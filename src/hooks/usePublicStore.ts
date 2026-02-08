@@ -53,19 +53,21 @@ export function usePublicStore() {
             if (subdomain) {
                 // Fetch by subdomain
                 query = query.eq('subdomain', subdomain)
+
+                const { data, error } = await query.single()
+
+                if (error) {
+                    console.error('Store not found:', error)
+                    // If subdomain exists but store doesn't, we throw error
+                    throw new Error('Restaurante não encontrado')
+                }
+
+                setStore(data)
             } else {
-                // Fallback: get first store (for development/backwards compat)
-                query = query.limit(1)
+                // Root domain -> No store loaded
+                // This allows the page to render the Landing Page instead
+                setStore(null)
             }
-
-            const { data, error } = await query.single()
-
-            if (error) {
-                console.error('Store not found:', error)
-                throw new Error('Restaurante não encontrado')
-            }
-
-            setStore(data)
         } catch (err: any) {
             console.error('Erro ao carregar loja:', err)
             setError(err.message || 'Erro ao carregar dados da loja')

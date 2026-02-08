@@ -16,6 +16,7 @@ import { CartSummaryFooter } from '@/components/cart/CartSummaryFooter'
 import { useCartStore } from '@/stores/cartStore'
 import type { Product } from '@/types/database'
 import { AlertCircle } from 'lucide-react'
+import { LandingPage } from '@/components/layout/LandingPage'
 
 export default function HomePage() {
     const { categories, products, loading: loadingProducts, error: errorProducts } = useProducts()
@@ -88,6 +89,11 @@ export default function HomePage() {
 
     const handleProductSelect = (product: Product) => {
         setSelectedProduct(product)
+    }
+
+    // Logic: If no store is loaded and no error (and not loading), it means we are on ROOT DOMAIN
+    if (!store && !loadingStore && !errorStore) {
+        return <LandingPage />
     }
 
     const isLoading = loadingStore || loadingProducts || loadingZones
