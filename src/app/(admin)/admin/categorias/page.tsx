@@ -35,9 +35,13 @@ export default function CategoriesPage() {
     // Fetch Categories
     const fetchCategories = async () => {
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
             const { data, error } = await supabase
                 .from("categories")
                 .select("*")
+                .eq('store_id', user.id) // Explicit filtering
                 .order("sort_order");
 
             if (error) throw error;
@@ -59,8 +63,12 @@ export default function CategoriesPage() {
         if (!newCategoryName.trim()) return;
 
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Usuário não autenticado");
+
             const maxSortOrder = categories.reduce((max, c) => Math.max(max, c.sort_order), -1);
             const newCategory = {
+                store_id: user.id,
                 name: newCategoryName,
                 sort_order: maxSortOrder + 1,
             };
@@ -72,6 +80,7 @@ export default function CategoriesPage() {
             setIsCreateOpen(false);
             setNewCategoryName("");
 
+            // @ts-ignore - Supabase type gen might not be updated yet
             const { error } = await supabase.from("categories").insert(newCategory);
 
             if (error) throw error;

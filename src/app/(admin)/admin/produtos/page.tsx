@@ -35,6 +35,9 @@ export default function ProductsPage() {
 
     const fetchProducts = async () => {
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return; // Or handle redirect
+
             const { data, error } = await supabase
                 .from("products")
                 .select(`
@@ -43,6 +46,7 @@ export default function ProductsPage() {
                         name
                     )
                 `)
+                .eq('store_id', user.id) // Explicit filtering
                 .order("name");
 
             if (error) throw error;

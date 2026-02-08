@@ -39,16 +39,20 @@ export default function AdminDashboard() {
             try {
                 const supabase = createClient();
 
+                // Get current user for filtering
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
                 const [
                     { count: productsCount },
                     { count: outOfStockCount },
                     { count: categoriesCount },
                     { count: zonesCount },
                 ] = await Promise.all([
-                    supabase.from("products").select("*", { count: "exact", head: true }),
-                    supabase.from("products").select("*", { count: "exact", head: true }).eq("is_available", false),
-                    supabase.from("categories").select("*", { count: "exact", head: true }),
-                    supabase.from("delivery_zones").select("*", { count: "exact", head: true }).eq("is_active", true),
+                    supabase.from("products").select("*", { count: "exact", head: true }).eq("store_id", user.id),
+                    supabase.from("products").select("*", { count: "exact", head: true }).eq("store_id", user.id).eq("is_available", false),
+                    supabase.from("categories").select("*", { count: "exact", head: true }).eq("store_id", user.id),
+                    supabase.from("delivery_zones").select("*", { count: "exact", head: true }).eq("store_id", user.id).eq("is_active", true),
                 ]);
 
                 setMetrics({

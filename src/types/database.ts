@@ -39,6 +39,7 @@ export interface BusinessHourPeriod {
 
 export interface Category {
     id: string
+    store_id: string // Linked to store_config.id (auth.uid for owner)
     name: string
     sort_order: number
     created_at: string
@@ -46,6 +47,7 @@ export interface Category {
 
 export interface DeliveryZone {
     id: string
+    store_id: string // Linked to store_config.id
     name: string
     price: number
     is_active: boolean
@@ -54,6 +56,7 @@ export interface DeliveryZone {
 
 export interface Product {
     id: string
+    store_id: string // Linked to store_config.id
     category_id: string
     name: string
     description: string | null

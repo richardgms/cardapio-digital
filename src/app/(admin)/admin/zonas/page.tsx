@@ -35,9 +35,13 @@ export default function DeliveryZonesPage() {
 
     const fetchZones = async () => {
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
             const { data, error } = await supabase
                 .from("delivery_zones")
                 .select("*")
+                .eq('store_id', user.id) // Explicit filtering
                 .order("name");
 
             if (error) throw error;
@@ -80,6 +84,9 @@ export default function DeliveryZonesPage() {
         }
 
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Usuário não autenticado");
+
             if (editingZone) {
                 // UPDATE
                 const updatedZone = { ...editingZone, name: formData.name, price };
@@ -98,15 +105,13 @@ export default function DeliveryZonesPage() {
             } else {
                 // INSERT
                 const newZone = {
+                    store_id: user.id, // Link to current user's store
                     name: formData.name,
                     price,
                     is_active: true, // Default active
                 };
 
-                // Optimistic UI can be tricky without ID, so we wait or generate temp ID. 
-                // Let's rely on fast response or refresh for creation.
-                // Or generate uuid locally if we want full optimistic.
-
+                // @ts-ignore - Supabase type gen might not be updated yet
                 const { data, error } = await supabase
                     .from("delivery_zones")
                     .insert(newZone)

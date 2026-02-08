@@ -78,7 +78,12 @@ export function AppSidebar() {
                         title: 'Configurações',
                         url: '/admin/config',
                         icon: Settings,
-                    }
+                    },
+                    ...(user?.email === 'richardgms001@gmail.com' ? [{
+                        title: 'Super Admin',
+                        url: '/admin/super',
+                        icon: Settings, // Or another icon like ShieldAlert or ShieldCheck
+                    }] : [])
                 ]
             }
         ]

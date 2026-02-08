@@ -5,7 +5,7 @@ import { Header } from '@/components/layout/Header'
 import { StoreBanner } from '@/components/layout/StoreBanner'
 import { CategoryNav } from '@/components/layout/CategoryNav'
 import { useProducts } from '@/hooks/useProducts'
-import { useStore } from '@/hooks/useStore'
+import { usePublicStore } from '@/hooks/usePublicStore'
 import { useDeliveryZones } from '@/hooks/useDeliveryZones'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ProductCard } from '@/components/product/ProductCard'
@@ -19,7 +19,7 @@ import { AlertCircle } from 'lucide-react'
 
 export default function HomePage() {
     const { categories, products, loading: loadingProducts, error: errorProducts } = useProducts()
-    const { store, isCurrentlyOpen, loading: loadingStore, error: errorStore } = useStore()
+    const { store, isCurrentlyOpen, loading: loadingStore, error: errorStore } = usePublicStore()
     const { zones, loading: loadingZones } = useDeliveryZones()
     // const cartItems = useCartStore((state) => state.items) // Not needed for layout logic anymore
 

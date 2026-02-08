@@ -174,8 +174,14 @@ export default function ProductFormPage({ params }: PageProps) {
         if (!unwrappedParams) return;
         setIsSaving(true);
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Usuário não autenticado");
+
+            toast.info(`Salvando para usuário: ${user.id}`); // DEBUG
+
             // 1. Upsert Product
             const productData = {
+                store_id: user.id, // Ensure ownership
                 name: values.name,
                 description: values.description,
                 price: values.price,
@@ -189,6 +195,7 @@ export default function ProductFormPage({ params }: PageProps) {
             let productId = unwrappedParams.id;
 
             if (productId === "novo") {
+                // @ts-ignore
                 const { data, error } = await supabase
                     .from("products")
                     .insert(productData)
@@ -197,6 +204,7 @@ export default function ProductFormPage({ params }: PageProps) {
                 if (error) throw error;
                 productId = data.id;
             } else {
+                // @ts-ignore
                 const { error } = await supabase
                     .from("products")
                     .update(productData)
@@ -276,7 +284,8 @@ export default function ProductFormPage({ params }: PageProps) {
             router.push("/admin/produtos");
             router.refresh();
         } catch (error) {
-            console.error("Erro ao salvar:", error);
+            console.error("Erro ao salvar:", JSON.stringify(error, null, 2));
+            toast.error(`Erro ao salvar produto: ${(error as any).message || "Erro desconhecido"}`);
             toast.error("Erro ao salvar produto");
         } finally {
             setIsSaving(false);

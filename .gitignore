@@ -46,3 +46,6 @@ next-env.d.ts
 .agent(legacy)
 **/.agent
 **/.agent(legacy)
+
+# SaaS Guide
+docs/GUIA_SAAS_COMPLETO.md

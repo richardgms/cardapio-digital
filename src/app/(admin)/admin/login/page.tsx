@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { AlertCircle, Loader2, Mail, UtensilsCrossed } from "lucide-react"
+import { checkEmailAuthorized } from "@/actions/auth/check-auth"
 
 export default function AdminLoginPage() {
     const [email, setEmail] = useState("")
@@ -23,16 +24,11 @@ export default function AdminLoginPage() {
         setIsSuccess(false)
 
         try {
-            // 1. Verificar se é email autorizado (buscar na config)
-            const { data: config, error: configError } = await supabase
-                .from('store_config')
-                .select('admin_email')
-                .single()
+            // 1. Verificar se é email autorizado (via Server Action segura)
+            const { authorized, error: authCheckError } = await checkEmailAuthorized(email)
 
-            if (configError) throw new Error("Erro ao verificar loja.")
-
-            if (config.admin_email !== email) {
-                throw new Error("Email não autorizado.")
+            if (!authorized) {
+                throw new Error(authCheckError || "Email não autorizado.")
             }
 
             // 2. Enviar Magic Link
@@ -40,6 +36,7 @@ export default function AdminLoginPage() {
                 email,
                 options: {
                     emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+                    shouldCreateUser: false, // Usuário JÁ DEVE existir (criado pelo Admin)
                 },
             })
 
@@ -47,7 +44,17 @@ export default function AdminLoginPage() {
 
             setIsSuccess(true)
         } catch (err: any) {
-            setError(err.message || "Ocorreu um erro ao tentar entrar.")
+            let message = err.message || "Ocorreu um erro ao tentar entrar."
+
+            // Tradução de erros comuns do Supabase
+            if (message.includes("only request this after")) {
+                const seconds = message.match(/\d+/)?.[0] || ""
+                message = `Por questões de segurança, você só pode solicitar isso após ${seconds} segundos.`
+            } else if (message.includes("email rate limit exceeded")) {
+                message = "Limite de e-mails excedido. Aguarde alguns minutos e tente novamente."
+            }
+
+            setError(message)
         } finally {
             setIsLoading(false)
         }
