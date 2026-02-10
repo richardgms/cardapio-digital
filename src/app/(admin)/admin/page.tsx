@@ -166,6 +166,19 @@ export default function AdminDashboard() {
         }
     }
 
+    const handleViewMenu = () => {
+        if (!store?.subdomain) {
+            toast.error("Você precisa definir um subdomínio nas Configurações da Loja primeiro.");
+            return;
+        }
+
+        const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000';
+        const protocol = window.location.protocol;
+        const url = `${protocol}//${store.subdomain}.${rootDomain}`;
+
+        window.open(url, "_blank");
+    };
+
     return (
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
@@ -290,7 +303,7 @@ export default function AdminDashboard() {
                 <Button
                     variant="outline"
                     className="h-24 w-40 flex flex-col gap-2"
-                    onClick={() => window.open("/", "_blank")}
+                    onClick={handleViewMenu}
                 >
                     <ExternalLink className="h-6 w-6" />
                     Ver Cardápio

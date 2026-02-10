@@ -8,6 +8,7 @@ import Image from "next/image";
 import imageCompression from "browser-image-compression";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ImageCropModal } from "./ImageCropModal";
 
 interface ImageUploadProps {
     value?: string | null;
@@ -18,26 +19,47 @@ interface ImageUploadProps {
 
 export function ImageUpload({ value, onChange, disabled, className }: ImageUploadProps) {
     const [loading, setLoading] = useState(false);
+    const [cropModalOpen, setCropModalOpen] = useState(false);
+    const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
     const supabase = createClient();
 
-    const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        // Read the file into a data URL for the crop modal
+        const reader = new FileReader();
+        reader.onload = () => {
+            setRawImageSrc(reader.result as string);
+            setCropModalOpen(true);
+        };
+        reader.readAsDataURL(file);
+
+        // Reset input so the same file can be re-selected
+        e.target.value = "";
+    };
+
+    const handleCropConfirm = async (croppedBlob: Blob) => {
+        setCropModalOpen(false);
+        setRawImageSrc(null);
         setLoading(true);
 
         try {
+            // Convert Blob to File for compression
+            const croppedFile = new File([croppedBlob], "cropped.jpg", {
+                type: "image/jpeg",
+            });
+
             // Compress image
             const options = {
                 maxSizeMB: 1,
                 maxWidthOrHeight: 800,
                 useWebWorker: true,
             };
-            const compressedFile = await imageCompression(file, options);
+            const compressedFile = await imageCompression(croppedFile, options);
 
             // Create unique filename
-            const fileExt = file.name.split(".").pop();
-            const fileName = `${Math.random()}.${fileExt}`;
+            const fileName = `${Math.random()}.jpg`;
             const filePath = `${fileName}`;
 
             // Upload to Supabase
@@ -62,6 +84,11 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleCropCancel = () => {
+        setCropModalOpen(false);
+        setRawImageSrc(null);
     };
 
     const removeImage = () => {
@@ -119,12 +146,23 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
                         <input
                             type="file"
                             className="absolute inset-0 cursor-pointer opacity-0"
-                            onChange={onUpload}
+                            onChange={onFileSelect}
                             accept="image/*"
                             disabled={disabled || loading}
                         />
                     </Button>
                 </div>
+            )}
+
+            {/* Crop Modal */}
+            {rawImageSrc && (
+                <ImageCropModal
+                    open={cropModalOpen}
+                    imageSrc={rawImageSrc}
+                    onConfirm={handleCropConfirm}
+                    onCancel={handleCropCancel}
+                    aspectRatio={1}
+                />
             )}
         </div>
     );

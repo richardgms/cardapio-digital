@@ -1,12 +1,12 @@
 'use client'
 
 import { Clock } from 'lucide-react'
-import { useStore } from '@/hooks/useStore'
+import { usePublicStore } from '@/hooks/usePublicStore'
 import { getNextOpeningTime } from '@/lib/checkStoreOpen'
 import { useMemo } from 'react'
 
 export function StoreBanner() {
-    const { store, isCurrentlyOpen, loading } = useStore()
+    const { store, isCurrentlyOpen, loading } = usePublicStore()
 
     const nextOpening = useMemo(() => {
         if (isCurrentlyOpen || !store?.business_hours) return null

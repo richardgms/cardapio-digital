@@ -9,6 +9,8 @@ interface OrderData {
     deliveryComplement?: string
     paymentMethod: 'pix' | 'card' | 'cash'
     changeFor?: string
+    pixKey?: string
+    pixKeyType?: string
     items: CartItem[]
     subtotal: number
     deliveryFee: number
@@ -21,7 +23,6 @@ export function generateWhatsAppMessage(order: OrderData): string {
     const customerInfo = [
         `*Cliente:* ${order.customerName}`,
         `*Telefone:* ${order.customerPhone}`,
-        `--------------------------------`
     ].join('\n')
 
     const itemsList = order.items.map(item => {
@@ -34,7 +35,8 @@ export function generateWhatsAppMessage(order: OrderData): string {
 
         if (item.selected_options && item.selected_options.length > 0) {
             item.selected_options.forEach(opt => {
-                itemStr += `\n   + ${opt.option_name}`
+                const optName = opt.option_name || (opt as any).name // Fallback
+                itemStr += `\n   + ${optName}`
             })
         }
 
@@ -47,39 +49,64 @@ export function generateWhatsAppMessage(order: OrderData): string {
         return itemStr
     }).join('\n\n')
 
-    const deliveryInfo = order.deliveryType === 'delivery' ? [
-        `--------------------------------`,
+    // Delivery Info
+    const deliverySection = order.deliveryType === 'delivery' ? [
         `*ENTREGA:*`,
-        `*Bairro:* ${order.deliveryZoneName}`,
-        `*Endereço:* ${order.deliveryAddress}`,
-        order.deliveryComplement ? `*Complemento:* ${order.deliveryComplement}` : '',
+        `*Bairro:* ${order.deliveryZoneName || 'N/A'}`,
+        `*Endereço:* ${order.deliveryAddress || 'N/A'}`,
+        order.deliveryComplement ? `   _Comp: ${order.deliveryComplement}_` : '',
     ].filter(Boolean).join('\n') : [
-        `--------------------------------`,
-        `*RETIRADA NO LOCAL*`,
+        `*RETIRADA NO LOCAL*`
     ].join('\n')
 
-    const paymentInfo = [
-        `--------------------------------`,
+    // Payment Info
+    let paymentDetails = ''
+    if (order.paymentMethod === 'pix') {
+        paymentDetails = [
+            `*Forma:* PIX`,
+            order.pixKey ? `*Chave:* ${order.pixKey}` : ''
+        ].filter(Boolean).join('\n')
+    } else if (order.paymentMethod === 'card') {
+        paymentDetails = `*Forma:* Cartão na Entrega`
+    } else if (order.paymentMethod === 'cash') {
+        paymentDetails = [
+            `*Forma:* Dinheiro`,
+            order.changeFor ? `*Troco para:* ${order.changeFor}` : ''
+        ].filter(Boolean).join('\n')
+    }
+
+    const paymentSection = [
         `*PAGAMENTO:*`,
-        `*Forma:* ${order.paymentMethod === 'pix' ? 'PIX' :
-            order.paymentMethod === 'card' ? 'Cartão na Entrega' : 'Dinheiro'
-        }`,
-        order.changeFor ? `*Troco para:* ${order.changeFor}` : ''
-    ].filter(Boolean).join('\n')
+        paymentDetails
+    ].join('\n')
 
     const totals = [
-        `--------------------------------`,
         `*RESUMO:*`,
         `Subtotal: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.subtotal)}`,
-        `Taxa de Entrega: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.deliveryFee)}`,
+        `Entrega: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.deliveryFee)}`,
         `*TOTAL: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total)}*`
     ].join('\n')
 
     const footer = `\n_Pedido gerado via Cardápio Digital_`
 
-    return encodeURIComponent(
-        `${header}\n\n${customerInfo}\n${itemsList}\n\n${deliveryInfo}\n\n${paymentInfo}\n\n${totals}${footer}`
-    )
+    // Combine all sections with separators
+    const messageBody = [
+        header,
+        customerInfo,
+        `--------------------------------`,
+        `*SEU PEDIDO:*`,
+        itemsList,
+        `--------------------------------`,
+        deliverySection,
+        `--------------------------------`,
+        paymentSection,
+        `--------------------------------`,
+        totals,
+        footer
+    ].join('\n\n')
+
+    // Remove multiple empty lines just in case
+    return messageBody.replace(/\n{3,}/g, '\n\n')
 }
 
 export function openWhatsApp(phoneNumber: string, message: string) {
@@ -88,5 +115,6 @@ export function openWhatsApp(phoneNumber: string, message: string) {
     // Add Brazil country code if missing
     const finalPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`
 
-    window.open(`https://wa.me/${finalPhone}?text=${message}`, '_blank')
+    const encodedMessage = encodeURIComponent(message)
+    window.open(`https://wa.me/${finalPhone}?text=${encodedMessage}`, '_blank')
 }

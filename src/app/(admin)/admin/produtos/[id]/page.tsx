@@ -109,9 +109,13 @@ export default function ProductFormPage({ params }: PageProps) {
         const fetchData = async () => {
             try {
                 // 1. Fetch Categories
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return; // Should be handled by middleware
+
                 const { data: catsData } = await supabase
                     .from("categories")
                     .select("*")
+                    .eq('store_id', user.id) // FIX: Filter by store_id
                     .order("sort_order");
                 setCategories(catsData || []);
 
@@ -177,8 +181,6 @@ export default function ProductFormPage({ params }: PageProps) {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("Usuário não autenticado");
 
-            toast.info(`Salvando para usuário: ${user.id}`); // DEBUG
-
             // 1. Upsert Product
             const productData = {
                 store_id: user.id, // Ensure ownership
@@ -189,7 +191,6 @@ export default function ProductFormPage({ params }: PageProps) {
                 is_available: values.is_available,
                 allows_half_half: values.allows_half_half,
                 image_url: values.image_url,
-                // If creating, no sort_order logic implemented yet, defaulting to 0 or DB default
             };
 
             let productId = unwrappedParams.id;
@@ -212,22 +213,56 @@ export default function ProductFormPage({ params }: PageProps) {
                 if (error) throw error;
             }
 
-            // 2. Handle Option Groups
-            // Strategy: For simplicity in this command, we will upsert known IDs and insert new ones.
-            // Deleting removed groups is complex without a robust diff. 
-            // For now, let's assume additions/edits. Removals might need a separate 'delete' logic or manual handling.
-            // A better approach for strict sync: Delete all and re-create? No, ID drift.
-            // Sync approach: Get current DB groups, compare with form.
+            // 2. Handle Option Groups & Options (Diff & Delete Strategy)
 
-            // To stick to prompt constraints and avoid massive complexity:
-            // We will iterate form groups. If ID exists -> update. If no ID -> insert.
-            // PROMPT didn't explicitly ask for deletion of REMOVED groups logic, but implied "Botão remover grupo".
-            // If user removes a group in UI, we should delete it in DB.
+            // A. Fetch Existing Data to Determine Deletions
+            // We need to fetch existing groups and options to know what to delete.
+            // Using a join to get options for each group.
+            const { data: existingGroups, error: fetchError } = await supabase
+                .from("product_option_groups")
+                .select("id, options:product_options(id)")
+                .eq("product_id", productId);
 
-            // let's do safe implementation:
-            // For each group in form: upsert.
-            // (Strict sync requires more logic, doing basic upsert for now)
+            if (fetchError) throw fetchError;
 
+            // B. Identify IDs in Form
+            // Get all Group IDs present in the form submission
+            const formGroupIds = new Set(values.option_groups?.map(g => g.id).filter(Boolean));
+            // Get all Option IDs present in the form submission (across all groups)
+            const formOptionIds = new Set(
+                values.option_groups?.flatMap(g => g.options.map(o => o.id)).filter(Boolean)
+            );
+
+            // C. Determine Items to Delete
+            // Groups to delete: present in DB but missing from Form
+            const groupsToDelete = existingGroups?.filter(g => !formGroupIds.has(g.id)).map(g => g.id) || [];
+
+            // Options to delete: present in DB but missing from Form
+            // This covers options removed from a kept group AND options belonging to a removed group.
+            const allExistingOptionIds = existingGroups?.flatMap(g => g.options?.map((o: any) => o.id)) || [];
+            // @ts-ignore
+            const optionsToDelete = allExistingOptionIds.filter((id: string) => !formOptionIds.has(id));
+
+            // D. Execute Deletions
+            // Delete options first to avoid FK constraints (though cascade might handle it, explicit is safer)
+            if (optionsToDelete.length > 0) {
+                const { error: delOptError } = await supabase
+                    .from("product_options")
+                    .delete()
+                    .in("id", optionsToDelete);
+                if (delOptError) throw delOptError;
+            }
+
+            // Delete groups next
+            if (groupsToDelete.length > 0) {
+                const { error: delGroupError } = await supabase
+                    .from("product_option_groups")
+                    .delete()
+                    .in("id", groupsToDelete);
+                if (delGroupError) throw delGroupError;
+            }
+
+            // E. Upsert Groups & Options
             if (values.option_groups) {
                 for (const [gIndex, group] of values.option_groups.entries()) {
                     const groupData = {
@@ -240,20 +275,30 @@ export default function ProductFormPage({ params }: PageProps) {
 
                     let groupId = group.id;
 
+                    // Upsert Group
                     if (groupId) {
-                        await supabase.from("product_option_groups").update(groupData).eq("id", groupId);
+                        // DEBUG: Log the group data being updated
+                        console.log(`Updating group ${groupId}:`, groupData);
+
+                        const { error: updateGroupError } = await supabase
+                            .from("product_option_groups")
+                            .update(groupData)
+                            .eq("id", groupId);
+
+                        if (updateGroupError) throw updateGroupError;
                     } else {
-                        const { data: newGroup } = await supabase
+                        const { data: newGroup, error: insertGroupError } = await supabase
                             .from("product_option_groups")
                             .insert(groupData)
                             .select()
                             .single();
+                        if (insertGroupError) throw insertGroupError;
                         groupId = newGroup?.id;
                     }
 
                     if (!groupId) continue;
 
-                    // Handle Options
+                    // Upsert Options
                     if (group.options) {
                         for (const [oIndex, option] of group.options.entries()) {
                             const optionData = {
@@ -264,20 +309,20 @@ export default function ProductFormPage({ params }: PageProps) {
                             };
 
                             if (option.id) {
-                                await supabase.from("product_options").update(optionData).eq("id", option.id);
+                                const { error: updateOptionError } = await supabase
+                                    .from("product_options")
+                                    .update(optionData)
+                                    .eq("id", option.id);
+                                if (updateOptionError) throw updateOptionError;
                             } else {
-                                await supabase.from("product_options").insert(optionData);
+                                const { error: insertOptionError } = await supabase
+                                    .from("product_options")
+                                    .insert(optionData);
+                                if (insertOptionError) throw insertOptionError;
                             }
                         }
                     }
                 }
-
-                // Note: Real deletion of items removed from UI isn't handled here (requires diffing).
-                // User can use the "Delete" button adjacent to items if we implemented per-item delete button calling API directly?
-                // Or we accept that for this MVP, we only Add/Edit via form submit.
-                // Button "Remover grupo" in UI just removes from SUBMIT payload. 
-                // Ideally we should track deleted IDs or nuking and recreating. 
-                // Given constraints, I will leave it as Upsert-only for safety unless demanded. 
             }
 
             toast.success("Produto salvo com sucesso!");
@@ -286,7 +331,6 @@ export default function ProductFormPage({ params }: PageProps) {
         } catch (error) {
             console.error("Erro ao salvar:", JSON.stringify(error, null, 2));
             toast.error(`Erro ao salvar produto: ${(error as any).message || "Erro desconhecido"}`);
-            toast.error("Erro ao salvar produto");
         } finally {
             setIsSaving(false);
         }
@@ -320,9 +364,12 @@ export default function ProductFormPage({ params }: PageProps) {
                                 control={control}
                                 name={`option_groups.${nestIndex}.options.${k}.price`}
                                 render={({ field }) => (
-                                    <FormItem className="w-24">
+                                    <FormItem className="w-32">
                                         <FormControl>
-                                            <Input type="number" placeholder="0.00" {...field} />
+                                            <div className="relative flex items-center">
+                                                <span className="absolute left-3 text-muted-foreground text-sm">R$ +</span>
+                                                <Input type="number" className="pl-10 text-right" placeholder="0.00" {...field} />
+                                            </div>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

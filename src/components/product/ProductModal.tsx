@@ -5,8 +5,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Minus, Plus, AlertCircle } from "lucide-react"
+import { Minus, Plus, AlertCircle, X, Maximize2 } from "lucide-react"
 import Image from "next/image"
 import { useCartStore } from "@/stores/cartStore"
 import { toast } from "sonner"
@@ -26,6 +25,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
     const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({})
     const [observation, setObservation] = useState("")
     const [validationErrors, setValidationErrors] = useState<string[]>([])
+    const [isImageOpen, setIsImageOpen] = useState(false)
     const [halfHalfSelection, setHalfHalfSelection] = useState<{
         enabled: boolean
         firstHalf: Product | null
@@ -47,6 +47,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
             setSelectedOptions({})
             setObservation("")
             setValidationErrors([])
+            setIsImageOpen(false)
             setHalfHalfSelection({
                 enabled: false,
                 firstHalf: null,
@@ -57,6 +58,11 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
     }, [open, product])
 
     if (!product) return null
+
+    console.log("ProductModal render:", {
+        productName: product.name,
+        optionGroups: product.option_groups
+    })
 
     const handleOptionChange = (groupId: string, optionId: string, maxSelect: number, isRadio: boolean) => {
         // Clear error for this group if it exists
@@ -183,22 +189,41 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 gap-0">
-                <ScrollArea className="flex-1 overflow-y-auto">
+            <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-xl [&>button]:hidden">
+                <div className="flex-1 overflow-y-auto no-scrollbar">
                     {/* Header Image */}
-                    <div className="relative h-48 w-full bg-muted">
+                    <div className="relative h-72 w-full bg-muted">
                         {product.image_url ? (
-                            <Image
-                                src={product.image_url}
-                                alt={product.name}
-                                fill
-                                className="object-cover"
-                            />
+                            <>
+                                <Image
+                                    src={product.image_url}
+                                    alt={product.name}
+                                    fill
+                                    className="object-cover"
+                                />
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    className="absolute right-4 bottom-4 z-10 h-8 w-8 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
+                                    onClick={() => setIsImageOpen(true)}
+                                >
+                                    <Maximize2 className="h-4 w-4" />
+                                </Button>
+                            </>
                         ) : (
                             <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                                 Sem imagem
                             </div>
                         )}
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-4 top-4 z-10 h-8 w-8 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
+                            onClick={onClose}
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
                     </div>
 
                     <div className="p-6 space-y-6">
@@ -312,7 +337,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                             />
                         </div>
                     </div>
-                </ScrollArea>
+                </div>
 
                 {/* Footer Actions */}
                 <div className="p-4 border-t bg-background space-y-4">
@@ -342,12 +367,41 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(calculateTotal())}
                             </span>
                         </div>
-                    </div>
+                    </div >
                     <Button className="w-full" size="lg" onClick={handleAddToCart}>
                         Adicionar ao Pedido
                     </Button>
-                </div>
+                </div >
             </DialogContent>
+
+            <Dialog open={isImageOpen} onOpenChange={setIsImageOpen}>
+                <DialogContent className="max-w-[100vw] w-screen h-screen p-0 m-0 bg-black/95 border-none flex items-center justify-center focus:outline-none">
+                    <DialogTitle className="sr-only">Visualização da imagem do produto</DialogTitle>
+                    <DialogDescription className="sr-only">Imagem ampliada do produto {product.name}</DialogDescription>
+
+                    <div className="relative w-full h-full flex items-center justify-center p-4">
+                        <div className="relative w-[80vw] h-[80vw] max-w-[500px] max-h-[500px]">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-2 top-2 z-50 h-8 w-8 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
+                                onClick={() => setIsImageOpen(false)}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                            {product.image_url && (
+                                <Image
+                                    src={product.image_url}
+                                    alt={product.name}
+                                    fill
+                                    priority
+                                    className="object-contain rounded-md"
+                                />
+                            )}
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </Dialog>
     )
 }

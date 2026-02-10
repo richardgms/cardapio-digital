@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Product, Category } from '@/types/database'
+import type { Product, Category, ProductOptionGroup, ProductOption } from '@/types/database'
 
 interface UseProductsReturn {
     products: Product[]
@@ -86,7 +86,27 @@ export function useProducts(): UseProductsReturn {
                     .order('sort_order')
 
                 if (productsError) throw productsError
-                setProducts(productsData)
+
+                // Sort nested relations (Supabase doesn't always guarantee order of nested arrays)
+                const sortedProducts = productsData.map(product => ({
+                    ...product,
+                    option_groups: product.option_groups?.sort((a: ProductOptionGroup, b: ProductOptionGroup) => a.sort_order - b.sort_order).map((group: ProductOptionGroup) => ({
+                        ...group,
+                        options: group.options?.sort((a: ProductOption, b: ProductOption) => a.sort_order - b.sort_order)
+                    }))
+                }))
+
+                // WARNING: Debug log for Max Select issue
+                if (sortedProducts.length > 0) {
+                    const debugGroup = sortedProducts
+                        .flatMap(p => p.option_groups)
+                        .find(g => g?.id === 'c573b4d0-5904-4989-9abc-4e62478d75ca');
+                    if (debugGroup) {
+                        console.log('useProducts: Fetched Group Data:', debugGroup);
+                    }
+                }
+
+                setProducts(sortedProducts)
 
             } catch (err: any) {
                 console.error('Erro ao carregar produtos:', err)

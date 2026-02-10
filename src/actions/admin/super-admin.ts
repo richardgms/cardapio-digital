@@ -190,7 +190,6 @@ export async function createUser(data: z.infer<typeof createUserSchema>) {
 }
 
 export async function toggleRestaurantStatus(id: string, isOpen: boolean) {
-    // ... existing implementation
     await checkSuperAdminAuth()
     const supabase = await createClient()
 
@@ -205,4 +204,56 @@ export async function toggleRestaurantStatus(id: string, isOpen: boolean) {
     }
 
     revalidatePath('/admin/super')
+}
+
+const updateRestaurantSchema = z.object({
+    id: z.string(),
+    subdomain: z.string().min(3, "Subdomínio deve ter pelo menos 3 caracteres").max(30, "Máximo 30 caracteres").regex(/^[a-z0-9-]+$/, "Subdomínio pode conter apenas letras minúsculas, números e hífens"),
+    name: z.string().min(3, "Nome do restaurante deve ter pelo menos 3 caracteres"),
+})
+
+export async function updateRestaurant(data: z.infer<typeof updateRestaurantSchema>) {
+    await checkSuperAdminAuth()
+
+    const result = updateRestaurantSchema.safeParse(data)
+    if (!result.success) {
+        throw new Error(result.error.issues[0].message)
+    }
+
+    const { id, subdomain, name } = result.data
+    const supabase = await createAdminClient()
+
+    // Check if subdomain is already taken by ANOTHER store
+    const { data: existingStore, error: checkError } = await supabase
+        .from('store_config')
+        .select('id')
+        .eq('subdomain', subdomain)
+        .neq('id', id) // Exclude current store
+        .single()
+
+    if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking subdomain:', checkError)
+        throw new Error('Erro ao verificar disponibilidade do subdomínio')
+    }
+
+    if (existingStore) {
+        throw new Error('Este subdomínio já está em uso por outro restaurante.')
+    }
+
+    const { error } = await supabase
+        .from('store_config')
+        .update({
+            name,
+            subdomain,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+
+    if (error) {
+        console.error('Error updating restaurant:', error)
+        throw new Error('Falha ao atualizar restaurante')
+    }
+
+    revalidatePath('/admin/super')
+    return { success: true }
 }

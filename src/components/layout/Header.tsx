@@ -3,7 +3,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ShoppingCart, Search } from 'lucide-react'
-import { useStore } from '@/hooks/useStore'
+import { usePublicStore } from '@/hooks/usePublicStore'
 import { useCartStore } from '@/stores/cartStore'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -13,7 +13,7 @@ interface HeaderProps {
 }
 
 export function Header({ onCartClick, onSearchClick }: HeaderProps) {
-    const { store, loading } = useStore()
+    const { store, loading } = usePublicStore()
     const items = useCartStore((state) => state.items)
 
     const cartItemCount = items.length

@@ -8,10 +8,10 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Trash2, AlertCircle, ArrowLeft, Bike, Store, Pencil, Minus, Plus } from "lucide-react"
-import Image from "next/image"
+import { Trash2, AlertCircle, ArrowLeft, Bike, Store, Pencil, Minus, Plus, CreditCard, Banknote, X } from "lucide-react"
+import NextImage from "next/image"
 import { useCartStore } from "@/stores/cartStore"
-import { useStore } from "@/hooks/useStore"
+import { usePublicStore } from "@/hooks/usePublicStore"
 import { useDeliveryZones } from "@/hooks/useDeliveryZones"
 import { generateWhatsAppMessage, openWhatsApp } from "@/lib/whatsapp"
 import { toast } from "sonner"
@@ -31,10 +31,10 @@ interface CartDrawerProps {
 
 export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     const { items, removeItem, updateQuantity, clearCart } = useCartStore()
-    const { store, isCurrentlyOpen } = useStore()
+    const { store, isCurrentlyOpen } = usePublicStore()
     const { zones } = useDeliveryZones()
 
-    const [step, setStep] = useState<'cart' | 'checkout'>('cart')
+    const [step, setStep] = useState<'cart' | 'details' | 'payment'>('cart')
 
     // Form State
     const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery')
@@ -43,7 +43,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     const [deliveryZoneId, setDeliveryZoneId] = useState("")
     const [address, setAddress] = useState("")
     const [complement, setComplement] = useState("")
-    const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card' | 'cash'>('pix')
+    const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card' | 'cash' | null>(null)
     const [changeFor, setChangeFor] = useState("")
 
     // Derived State
@@ -61,10 +61,13 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
         ? (deliveryZoneId !== "" && address.trim().length > 5)
         : true
 
-    const isFormValid =
+    const isDetailsValid =
         customerName.trim().length > 2 &&
         customerPhone.trim().length > 8 &&
-        isDeliveryValid &&
+        isDeliveryValid
+
+    const isPaymentValid =
+        paymentMethod !== null &&
         (paymentMethod !== 'cash' || (paymentMethod === 'cash' && changeFor.trim().length > 0))
 
     // Reset step when opening/closing
@@ -75,6 +78,11 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     const handleCheckout = () => {
         if (!store?.whatsapp) {
             toast.error("Erro: Telefone da loja não configurado.")
+            return
+        }
+
+        if (!paymentMethod) {
+            toast.error("Selecione uma forma de pagamento")
             return
         }
 
@@ -90,7 +98,8 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
             items,
             subtotal: total,
             deliveryFee,
-            total: finalTotal
+            total: finalTotal,
+            pixKey: store?.pix_key || undefined
         })
 
         openWhatsApp(store.whatsapp, message)
@@ -101,18 +110,37 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
 
     return (
         <Sheet open={open} onOpenChange={onClose}>
-            <SheetContent className="w-full sm:max-w-md flex flex-col p-0 gap-0">
-                <SheetHeader className="p-6 border-b">
-                    <div className="flex items-center gap-2">
-                        {step === 'checkout' && (
-                            <Button variant="ghost" size="icon" className="-ml-2 h-8 w-8" onClick={() => setStep('cart')}>
+            <SheetContent className="w-full sm:max-w-md flex flex-col p-0 gap-0 [&>button]:hidden">
+                <SheetHeader className="p-6 border-b flex flex-row items-center justify-between space-y-0 text-left">
+                    <div className="flex items-center gap-4">
+                        {step !== 'cart' && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="-ml-3 h-8 w-8"
+                                onClick={() => {
+                                    if (step === 'payment') setStep('details')
+                                    else if (step === 'details') setStep('cart')
+                                }}
+                            >
                                 <ArrowLeft className="h-4 w-4" />
                             </Button>
                         )}
-                        <SheetTitle>{step === 'cart' ? 'Seu Pedido' : 'Finalizar Pedido'}</SheetTitle>
+                        <SheetTitle className="text-lg">
+                            {step === 'cart' && 'Seu Pedido'}
+                            {step === 'details' && 'Seus Dados'}
+                            {step === 'payment' && 'Pagamento'}
+                        </SheetTitle>
                     </div>
+
+                    <Button variant="ghost" size="icon" onClick={onClose} className="-mr-2 h-8 w-8 text-muted-foreground hover:text-foreground">
+                        <X className="h-4 w-4" />
+                    </Button>
+
                     <SheetDescription className="hidden">
-                        {step === 'cart' ? 'Revise seus itens' : 'Preencha seus dados'}
+                        {step === 'cart' && 'Revise seus itens'}
+                        {step === 'details' && 'Preencha seus dados de entrega'}
+                        {step === 'payment' && 'Escolha a forma de pagamento'}
                     </SheetDescription>
                 </SheetHeader>
 
@@ -125,7 +153,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            {step === 'cart' ? (
+                            {step === 'cart' && (
                                 /* STEP 1: CART ITEMS */
                                 <div className="space-y-4">
                                     {items.map((item) => {
@@ -137,7 +165,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                 {/* Image & Edit Badge */}
                                                 <div className="relative h-20 w-20 shrink-0 rounded-lg bg-muted overflow-hidden">
                                                     {productImage ? (
-                                                        <Image
+                                                        <NextImage
                                                             src={productImage}
                                                             alt={productName}
                                                             fill
@@ -225,8 +253,10 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                         </div>
                                     )}
                                 </div>
-                            ) : (
-                                /* STEP 2: CHECKOUT FORM */
+                            )}
+
+                            {step === 'details' && (
+                                /* STEP 2: DETAILS FORM */
                                 <div className="space-y-6">
                                     {/* Delivery Type Toggle */}
                                     <div className="grid grid-cols-2 gap-2 p-1 bg-muted rounded-lg">
@@ -292,17 +322,40 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                             </div>
                                         </div>
                                     )}
+                                </div>
+                            )}
 
-                                    {/* Payment */}
+                            {step === 'payment' && (
+                                /* STEP 3: PAYMENT FORM */
+                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
                                     <div className="space-y-3">
-                                        <h3 className="font-semibold">Pagamento</h3>
-                                        <RadioGroup value={paymentMethod} onValueChange={(v: any) => setPaymentMethod(v)}>
-                                            <div className="flex items-center space-x-2"><RadioGroupItem value="pix" id="pix" /><Label htmlFor="pix">PIX</Label></div>
-                                            <div className="flex items-center space-x-2"><RadioGroupItem value="card" id="card" /><Label htmlFor="card">Cartão na Entrega</Label></div>
-                                            <div className="flex items-center space-x-2"><RadioGroupItem value="cash" id="cash" /><Label htmlFor="cash">Dinheiro</Label></div>
+                                        <h3 className="font-semibold">Como você vai pagar?</h3>
+                                        <RadioGroup value={paymentMethod || ""} onValueChange={(v: any) => setPaymentMethod(v)}>
+                                            <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('pix')}>
+                                                <RadioGroupItem value="pix" id="pix" />
+                                                <div className="flex items-center gap-3 flex-1">
+                                                    <NextImage src="/icons/pix.svg" alt="PIX" width={20} height={20} />
+                                                    <Label htmlFor="pix" className="flex-1 cursor-pointer">PIX</Label>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('card')}>
+                                                <RadioGroupItem value="card" id="card" />
+                                                <div className="flex items-center gap-3 flex-1">
+                                                    <CreditCard className="h-5 w-5" />
+                                                    <Label htmlFor="card" className="flex-1 cursor-pointer">Cartão na Entrega</Label>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('cash')}>
+                                                <RadioGroupItem value="cash" id="cash" />
+                                                <div className="flex items-center gap-3 flex-1">
+                                                    <Banknote className="h-5 w-5" />
+                                                    <Label htmlFor="cash" className="flex-1 cursor-pointer">Dinheiro</Label>
+                                                </div>
+                                            </div>
                                         </RadioGroup>
+
                                         {paymentMethod === 'cash' && (
-                                            <div className="space-y-1 animate-in fade-in slide-in-from-top-2">
+                                            <div className="space-y-1 animate-in fade-in slide-in-from-top-2 pt-2">
                                                 <Label>Troco para quanto?</Label>
                                                 <Input placeholder="Ex: R$ 50,00" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} />
                                             </div>
@@ -343,28 +396,48 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                 </div>
                             )}
 
-                            {step === 'cart' ? (
+                            {step === 'cart' && (
                                 <Button
                                     className="w-full"
                                     size="lg"
                                     disabled={!isCartValid || !isCurrentlyOpen}
-                                    onClick={() => setStep('checkout')}
+                                    onClick={() => setStep('details')}
                                 >
                                     {isCurrentlyOpen ? 'Continuar para Dados' : 'Loja Fechada'}
                                 </Button>
-                            ) : (
+                            )}
+
+                            {step === 'details' && (
+                                <div className="space-y-2">
+                                    <Button
+                                        className="w-full"
+                                        size="lg"
+                                        disabled={!isDetailsValid || !isCurrentlyOpen}
+                                        onClick={() => setStep('payment')}
+                                    >
+                                        Continuar para Pagamento
+                                    </Button>
+                                    {!isDetailsValid && isCurrentlyOpen && (
+                                        <p className="text-xs text-center text-destructive font-medium animate-pulse">
+                                            Preencha todos os dados obrigatórios
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            {step === 'payment' && (
                                 <div className="space-y-2">
                                     <Button
                                         className="w-full bg-green-600 hover:bg-green-700 text-white"
                                         size="lg"
-                                        disabled={!isFormValid || !isCurrentlyOpen}
+                                        disabled={!isPaymentValid || !isCurrentlyOpen}
                                         onClick={handleCheckout}
                                     >
                                         Enviar Pedido no WhatsApp
                                     </Button>
-                                    {!isFormValid && isCurrentlyOpen && (
+                                    {!isPaymentValid && isCurrentlyOpen && (
                                         <p className="text-xs text-center text-destructive font-medium animate-pulse">
-                                            Preencha todos os campos obrigatórios
+                                            Selecione uma forma de pagamento
                                         </p>
                                     )}
                                 </div>

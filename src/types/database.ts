@@ -19,6 +19,9 @@ export interface StoreConfig {
     created_at: string
     updated_at: string
     auto_schedule_enabled: boolean
+    subdomain: string | null
+    pix_key: string | null
+    pix_key_type: 'cpf' | 'cnpj' | 'email' | 'phone' | 'random' | null
 }
 
 export interface BusinessHour {

@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale'
 import { CreateUserDialog } from '@/components/admin/super/create-user-dialog'
 import { DeleteUserDialog } from '@/components/admin/super/delete-user-dialog'
 import { DeleteRestaurantDialog } from '@/components/admin/super/delete-restaurant-dialog'
+import { EditRestaurantDialog } from '@/components/admin/super/edit-restaurant-dialog'
 
 export default async function SuperAdminPage() {
     const [users, restaurants] = await Promise.all([
@@ -97,6 +98,9 @@ export default async function SuperAdminPage() {
                                             <TableCell>{restaurant.admin_email}</TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-2">
+                                                    <EditRestaurantDialog
+                                                        restaurant={restaurant}
+                                                    />
                                                     <form action={async () => {
                                                         'use server'
                                                         await toggleRestaurantStatus(restaurant.id, !restaurant.is_open)
