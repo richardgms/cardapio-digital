@@ -61,7 +61,7 @@ export default function AdminLoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="h-screen w-full flex items-center justify-center bg-gray-50 overflow-hidden">
             <Card className="w-full max-w-md shadow-lg border-muted/60">
                 <CardHeader className="space-y-1 text-center">
                     <div className="flex justify-center mb-4">

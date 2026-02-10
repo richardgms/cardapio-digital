@@ -5,7 +5,16 @@ import { AppSidebar } from '@/components/admin-panel/app-sidebar'
 import { LayoutProvider } from '@/context/layout-provider'
 import { Separator } from '@/components/ui/separator'
 
+import { usePathname } from "next/navigation"
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname()
+    const isLoginPage = pathname === "/admin/login"
+
+    if (isLoginPage) {
+        return <LayoutProvider>{children}</LayoutProvider>
+    }
+
     return (
         <LayoutProvider>
             <SidebarProvider>
