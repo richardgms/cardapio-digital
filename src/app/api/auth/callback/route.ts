@@ -13,8 +13,15 @@ export async function GET(request: NextRequest) {
         if (!error) {
             return NextResponse.redirect(`${requestUrl.origin}${next}`)
         }
+
+        // Log the error for debugging
+        console.error('[Auth Callback] Error exchanging code:', error.message)
+        return NextResponse.redirect(
+            `${requestUrl.origin}/admin/login?error=auth&message=${encodeURIComponent(error.message)}`
+        )
     }
 
     // Return the user to an error page with instructions
-    return NextResponse.redirect(`${requestUrl.origin}/admin/login?error=auth`)
+    console.error('[Auth Callback] No code parameter found in URL')
+    return NextResponse.redirect(`${requestUrl.origin}/admin/login?error=auth&message=${encodeURIComponent('No code provided')}`)
 }
