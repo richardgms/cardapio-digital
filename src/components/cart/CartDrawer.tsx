@@ -14,6 +14,7 @@ import { useCartStore } from "@/stores/cartStore"
 import { usePublicStore } from "@/hooks/usePublicStore"
 import { useDeliveryZones } from "@/hooks/useDeliveryZones"
 import { generateWhatsAppMessage, openWhatsApp } from "@/lib/whatsapp"
+import { useOrderConfirmationStore } from "@/stores/orderConfirmationStore"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { getCustomerData, saveCustomerData } from "@/lib/customer-cache"
@@ -35,6 +36,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     const { items, removeItem, updateQuantity, clearCart } = useCartStore()
     const { store, isCurrentlyOpen } = usePublicStore()
     const { zones } = useDeliveryZones()
+    const setPending = useOrderConfirmationStore(s => s.setPending)
 
     const [step, setStep] = useState<'cart' | 'details' | 'payment'>('cart')
 
@@ -136,10 +138,13 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
             tableNumber: deliveryType === 'table' ? tableNumber : undefined,
         })
 
+        setPending({
+            paymentMethod: paymentMethod!,
+            whatsappNumber: store.whatsapp,
+        })
         openWhatsApp(store.whatsapp, message)
         clearCart()
         onClose()
-        toast.success("Pedido enviado para o WhatsApp!")
     }
 
     return (

@@ -13,6 +13,7 @@ import { ProductModal } from '@/components/product/ProductModal'
 import { SearchDialog } from '@/components/layout/SearchDialog'
 import { CartDrawer } from '@/components/cart/CartDrawer'
 import { CartSummaryFooter } from '@/components/cart/CartSummaryFooter'
+import { OrderConfirmationDialog } from '@/components/cart/OrderConfirmationDialog'
 import { useCartStore } from '@/stores/cartStore'
 import type { Product } from '@/types/database'
 import { AlertCircle } from 'lucide-react'
@@ -222,6 +223,8 @@ export default function HomePage() {
                     }
                 }}
             />
+
+            <OrderConfirmationDialog />
         </div>
     )
 }
