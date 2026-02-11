@@ -7,7 +7,7 @@ interface OrderData {
     deliveryZoneName?: string
     deliveryAddress?: string
     deliveryComplement?: string
-    paymentMethod: 'pix' | 'card' | 'cash' | 'counter'
+    paymentMethod: 'pix' | 'card' | 'cash'
     changeFor?: string
     pixKey?: string
     pixKeyType?: string
@@ -67,18 +67,20 @@ export function generateWhatsAppMessage(order: OrderData): string {
 
     // Payment Info
     let paymentDetails = ''
-    if (order.paymentMethod === 'counter') {
-        paymentDetails = `*Forma:* Pagará no caixa`
-    } else if (order.paymentMethod === 'pix') {
+    const paymentPrefix = (order.deliveryType === 'table' || order.deliveryType === 'pickup')
+        ? 'Pagamento no caixa: '
+        : 'Forma: '
+
+    if (order.paymentMethod === 'pix') {
         paymentDetails = [
-            `*Forma:* PIX`,
+            `*${paymentPrefix}* PIX`,
             order.pixKey ? `*Chave:* ${order.pixKey}` : ''
         ].filter(Boolean).join('\n')
     } else if (order.paymentMethod === 'card') {
-        paymentDetails = `*Forma:* Cartão na Entrega`
+        paymentDetails = `*${paymentPrefix}* Cartão`
     } else if (order.paymentMethod === 'cash') {
         paymentDetails = [
-            `*Forma:* Dinheiro`,
+            `*${paymentPrefix}* Dinheiro`,
             order.changeFor ? `*Troco para:* ${order.changeFor}` : ''
         ].filter(Boolean).join('\n')
     }

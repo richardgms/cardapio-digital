@@ -45,7 +45,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     const [deliveryZoneId, setDeliveryZoneId] = useState("")
     const [address, setAddress] = useState("")
     const [complement, setComplement] = useState("")
-    const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card' | 'cash' | 'counter' | null>(null)
+    const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card' | 'cash' | null>(null)
     const [changeFor, setChangeFor] = useState("")
     const [tableNumber, setTableNumber] = useState("")
 
@@ -444,13 +444,9 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                     <div className="space-y-3">
                                         <h3 className="font-semibold">Como você vai pagar?</h3>
                                         <RadioGroup value={paymentMethod || ""} onValueChange={(v: any) => setPaymentMethod(v)}>
-                                            <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('counter')}>
-                                                <RadioGroupItem value="counter" id="counter" />
-                                                <div className="flex items-center gap-3 flex-1">
-                                                    <UtensilsCrossed className="h-5 w-5" />
-                                                    <Label htmlFor="counter" className="flex-1 cursor-pointer">Pagará no caixa</Label>
-                                                </div>
-                                            </div>
+                                            {deliveryType !== 'delivery' && (
+                                                <p className="text-sm font-medium text-muted-foreground mb-1">Pagamento no caixa</p>
+                                            )}
                                             <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('pix')}>
                                                 <RadioGroupItem value="pix" id="pix" />
                                                 <div className="flex items-center gap-3 flex-1">
@@ -458,13 +454,15 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                     <Label htmlFor="pix" className="flex-1 cursor-pointer">PIX</Label>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('card')}>
-                                                <RadioGroupItem value="card" id="card" />
-                                                <div className="flex items-center gap-3 flex-1">
-                                                    <CreditCard className="h-5 w-5" />
-                                                    <Label htmlFor="card" className="flex-1 cursor-pointer">Cartão na Entrega</Label>
+                                            {deliveryType !== 'delivery' && (
+                                                <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('card')}>
+                                                    <RadioGroupItem value="card" id="card" />
+                                                    <div className="flex items-center gap-3 flex-1">
+                                                        <CreditCard className="h-5 w-5" />
+                                                        <Label htmlFor="card" className="flex-1 cursor-pointer">Cartão</Label>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
                                             <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('cash')}>
                                                 <RadioGroupItem value="cash" id="cash" />
                                                 <div className="flex items-center gap-3 flex-1">
