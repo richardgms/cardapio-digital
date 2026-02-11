@@ -120,6 +120,17 @@
     @apply border-border outline-ring/50;
   }
 
+  /* Subtle focus ring — only on keyboard navigation, never on click */
+  *:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  *:focus-visible {
+    outline: 1px solid var(--ring) !important;
+    outline-offset: -1px;
+    box-shadow: none !important;
+  }
+
   body {
     @apply bg-background text-foreground;
   }

@@ -22,6 +22,9 @@ export interface StoreConfig {
     subdomain: string | null
     pix_key: string | null
     pix_key_type: 'cpf' | 'cnpj' | 'email' | 'phone' | 'random' | null
+    table_mode_available: boolean
+    table_mode_enabled: boolean
+    table_count: number
 }
 
 export interface BusinessHour {

@@ -1,4 +1,4 @@
-import { getRestaurants, getUsers, toggleUserBan, deleteUser, toggleRestaurantStatus, deleteRestaurant } from '@/actions/admin/super-admin'
+import { getRestaurants, getUsers, toggleUserBan, deleteUser, toggleRestaurantStatus, deleteRestaurant, toggleTableMode } from '@/actions/admin/super-admin'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -69,6 +69,7 @@ export default async function SuperAdminPage() {
                                         <TableHead>Nome</TableHead>
                                         <TableHead>Subdomínio</TableHead>
                                         <TableHead>Status</TableHead>
+                                        <TableHead>Modo Mesa</TableHead>
                                         <TableHead>Criado em</TableHead>
                                         <TableHead>Admin Email</TableHead>
                                         <TableHead className="text-right">Ações</TableHead>
@@ -91,6 +92,20 @@ export default async function SuperAdminPage() {
                                                 <Badge variant={restaurant.is_open ? 'default' : 'secondary'}>
                                                     {restaurant.is_open ? 'Aberto' : 'Fechado'}
                                                 </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <form action={async () => {
+                                                    'use server'
+                                                    await toggleTableMode(restaurant.id, !restaurant.table_mode_available)
+                                                }}>
+                                                    <Button
+                                                        variant={restaurant.table_mode_available ? 'default' : 'outline'}
+                                                        size="sm"
+                                                        className="text-xs"
+                                                    >
+                                                        {restaurant.table_mode_available ? '🍽️ Ativo' : 'Desativado'}
+                                                    </Button>
+                                                </form>
                                             </TableCell>
                                             <TableCell>
                                                 {format(new Date(restaurant.created_at), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}

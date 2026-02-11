@@ -257,3 +257,25 @@ export async function updateRestaurant(data: z.infer<typeof updateRestaurantSche
     revalidatePath('/admin/super')
     return { success: true }
 }
+
+export async function toggleTableMode(storeId: string, available: boolean) {
+    await checkSuperAdminAuth()
+    const supabase = await createAdminClient()
+
+    const { error } = await supabase
+        .from('store_config')
+        .update({
+            table_mode_available: available,
+            // If disabling availability, also disable the mode itself
+            ...(available === false ? { table_mode_enabled: false } : {}),
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', storeId)
+
+    if (error) {
+        console.error('Error toggling table mode:', error)
+        throw new Error('Falha ao alterar modo mesa')
+    }
+
+    revalidatePath('/admin/super')
+}

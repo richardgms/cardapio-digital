@@ -108,9 +108,20 @@ export default function AdminDashboard() {
         }
     };
 
+    const getPublicStoreUrl = (productionOnly = false): string | null => {
+        if (!store?.subdomain) return null;
+        const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || (productionOnly ? 'rmenu.com.br' : 'localhost:3000');
+        const protocol = rootDomain.includes('localhost') ? 'http' : 'https';
+        return `${protocol}://${store.subdomain}.${rootDomain}`;
+    };
+
     const generateQrCode = async () => {
         try {
-            const url = window.location.origin;
+            const url = getPublicStoreUrl(true);
+            if (!url) {
+                toast.error("Defina um subdomínio nas Configurações da Loja primeiro.");
+                return;
+            }
             const qrC = await QRCode.toDataURL(url, { width: 300, margin: 2 });
             setQrCodeUrl(qrC);
         } catch (err) {
@@ -123,7 +134,7 @@ export default function AdminDashboard() {
         if (!qrCodeUrl) return;
         const link = document.createElement("a");
         link.href = qrCodeUrl;
-        link.download = "cardapio-qr-code.png";
+        link.download = `${store?.subdomain || 'cardapio'}-qrcode.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -167,15 +178,11 @@ export default function AdminDashboard() {
     }
 
     const handleViewMenu = () => {
-        if (!store?.subdomain) {
-            toast.error("Você precisa definir um subdomínio nas Configurações da Loja primeiro.");
+        const url = getPublicStoreUrl();
+        if (!url) {
+            toast.error("Defina um subdomínio nas Configurações da Loja primeiro.");
             return;
         }
-
-        const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000';
-        const protocol = window.location.protocol;
-        const url = `${protocol}//${store.subdomain}.${rootDomain}`;
-
         window.open(url, "_blank");
     };
 

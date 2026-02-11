@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Trash2, AlertCircle, ArrowLeft, Bike, Store, Pencil, Minus, Plus, CreditCard, Banknote, X } from "lucide-react"
+import { Trash2, AlertCircle, ArrowLeft, Bike, Store, Pencil, Minus, Plus, CreditCard, Banknote, X, CheckCircle2, UtensilsCrossed } from "lucide-react"
 import NextImage from "next/image"
 import { useCartStore } from "@/stores/cartStore"
 import { usePublicStore } from "@/hooks/usePublicStore"
@@ -16,6 +16,8 @@ import { useDeliveryZones } from "@/hooks/useDeliveryZones"
 import { generateWhatsAppMessage, openWhatsApp } from "@/lib/whatsapp"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { getCustomerData, saveCustomerData } from "@/lib/customer-cache"
+import { formatPhone, cleanPhone, validatePhone, validateName } from "@/lib/validators"
 
 // Since Input component might not exist in ui folder yet (I only created some), 
 // I'll assume I need to use standard HTML input or create a simple wrapper if needed.
@@ -37,14 +39,25 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     const [step, setStep] = useState<'cart' | 'details' | 'payment'>('cart')
 
     // Form State
-    const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery')
+    const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup' | 'table'>('delivery')
     const [customerName, setCustomerName] = useState("")
     const [customerPhone, setCustomerPhone] = useState("")
     const [deliveryZoneId, setDeliveryZoneId] = useState("")
     const [address, setAddress] = useState("")
     const [complement, setComplement] = useState("")
-    const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card' | 'cash' | null>(null)
+    const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card' | 'cash' | 'counter' | null>(null)
     const [changeFor, setChangeFor] = useState("")
+    const [tableNumber, setTableNumber] = useState("")
+
+    // Touched state — errors only show after field is touched
+    const [touched, setTouched] = useState<Record<string, boolean>>({})
+    const markTouched = useCallback((field: string) => {
+        setTouched(prev => ({ ...prev, [field]: true }))
+    }, [])
+
+    // Validation errors (real-time)
+    const nameError = validateName(customerName)
+    const phoneError = validatePhone(customerPhone)
 
     // Derived State
     const total = items.reduce((acc, item) => acc + item.item_total, 0)
@@ -59,16 +72,27 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
 
     const isDeliveryValid = deliveryType === 'delivery'
         ? (deliveryZoneId !== "" && address.trim().length > 5)
-        : true
+        : deliveryType === 'table'
+            ? tableNumber.trim().length > 0
+            : true
 
-    const isDetailsValid =
-        customerName.trim().length > 2 &&
-        customerPhone.trim().length > 8 &&
-        isDeliveryValid
+    const isDetailsValid = deliveryType === 'table'
+        ? (!nameError && isDeliveryValid) // phone optional for table
+        : (!nameError && !phoneError && isDeliveryValid)
 
     const isPaymentValid =
         paymentMethod !== null &&
         (paymentMethod !== 'cash' || (paymentMethod === 'cash' && changeFor.trim().length > 0))
+
+    // Load cached customer data on mount
+    useEffect(() => {
+        const cached = getCustomerData()
+        if (cached.name) setCustomerName(cached.name)
+        if (cached.phone) setCustomerPhone(formatPhone(cached.phone))
+        if (cached.address) setAddress(cached.address)
+        if (cached.complement) setComplement(cached.complement)
+        if (cached.deliveryZoneId) setDeliveryZoneId(cached.deliveryZoneId)
+    }, [])
 
     // Reset step when opening/closing
     useEffect(() => {
@@ -86,9 +110,18 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
             return
         }
 
+        // Save customer data to cache for next order
+        saveCustomerData({
+            name: customerName,
+            phone: cleanPhone(customerPhone),
+            address,
+            complement,
+            deliveryZoneId,
+        })
+
         const message = generateWhatsAppMessage({
             customerName,
-            customerPhone,
+            customerPhone: cleanPhone(customerPhone),
             deliveryType,
             deliveryZoneName: selectedZone?.name,
             deliveryAddress: address,
@@ -99,7 +132,8 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
             subtotal: total,
             deliveryFee,
             total: finalTotal,
-            pixKey: store?.pix_key || undefined
+            pixKey: store?.pix_key || undefined,
+            tableNumber: deliveryType === 'table' ? tableNumber : undefined,
         })
 
         openWhatsApp(store.whatsapp, message)
@@ -259,7 +293,10 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                 /* STEP 2: DETAILS FORM */
                                 <div className="space-y-6">
                                     {/* Delivery Type Toggle */}
-                                    <div className="grid grid-cols-2 gap-2 p-1 bg-muted rounded-lg">
+                                    <div className={cn(
+                                        "grid gap-2 p-1 bg-muted rounded-lg",
+                                        store?.table_mode_enabled ? "grid-cols-3" : "grid-cols-2"
+                                    )}>
                                         <button
                                             className={cn(
                                                 "flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all",
@@ -280,6 +317,18 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                             <Store className="h-4 w-4" />
                                             Retirada
                                         </button>
+                                        {store?.table_mode_enabled && (
+                                            <button
+                                                className={cn(
+                                                    "flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all",
+                                                    deliveryType === 'table' ? "bg-white shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                                                )}
+                                                onClick={() => setDeliveryType('table')}
+                                            >
+                                                <UtensilsCrossed className="h-4 w-4" />
+                                                Na Mesa
+                                            </button>
+                                        )}
                                     </div>
 
                                     {/* Personal Data */}
@@ -287,15 +336,59 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                         <h3 className="font-semibold">Seus Dados</h3>
                                         <div className="space-y-1">
                                             <Label>Nome</Label>
-                                            <Input placeholder="Como devemos te chamar?" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+                                            <Input
+                                                placeholder="Como devemos te chamar?"
+                                                value={customerName}
+                                                onChange={(e) => setCustomerName(e.target.value)}
+                                                onBlur={() => markTouched('name')}
+                                                className={cn(
+                                                    touched.name && nameError && "border-destructive focus-visible:ring-destructive",
+                                                    touched.name && !nameError && customerName.length > 0 && "border-green-500 focus-visible:ring-green-500"
+                                                )}
+                                            />
+                                            {touched.name && nameError && (
+                                                <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                                                    <AlertCircle className="h-3 w-3" />
+                                                    {nameError}
+                                                </p>
+                                            )}
+                                            {touched.name && !nameError && customerName.length > 0 && (
+                                                <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                                                    <CheckCircle2 className="h-3 w-3" />
+                                                    Nome válido
+                                                </p>
+                                            )}
                                         </div>
                                         <div className="space-y-1">
-                                            <Label>Telefone (WhatsApp)</Label>
-                                            <Input placeholder="(00) 00000-0000" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+                                            <Label>Telefone (WhatsApp){deliveryType === 'table' && <span className="text-muted-foreground text-xs ml-1">(opcional)</span>}</Label>
+                                            <Input
+                                                placeholder="(11) 99999-9999"
+                                                inputMode="tel"
+                                                value={customerPhone}
+                                                onChange={(e) => setCustomerPhone(formatPhone(e.target.value))}
+                                                onBlur={() => markTouched('phone')}
+                                                maxLength={15}
+                                                className={cn(
+                                                    deliveryType !== 'table' && touched.phone && phoneError && "border-destructive focus-visible:ring-destructive",
+                                                    deliveryType !== 'table' && touched.phone && !phoneError && customerPhone.length > 0 && "border-green-500 focus-visible:ring-green-500"
+                                                )}
+                                            />
+                                            {deliveryType !== 'table' && touched.phone && phoneError && (
+                                                <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                                                    <AlertCircle className="h-3 w-3" />
+                                                    {phoneError}
+                                                </p>
+                                            )}
+                                            {deliveryType !== 'table' && touched.phone && !phoneError && customerPhone.length > 0 && (
+                                                <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                                                    <CheckCircle2 className="h-3 w-3" />
+                                                    Telefone válido
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
 
-                                    {/* Delivery Address (Conditional) */}
+                                    {/* Delivery Address (Conditional - only for delivery) */}
                                     {deliveryType === 'delivery' && (
                                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
                                             <h3 className="font-semibold">Endereço de Entrega</h3>
@@ -322,6 +415,26 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Table Number (Conditional - only for table mode) */}
+                                    {deliveryType === 'table' && (
+                                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                                            <h3 className="font-semibold">🍽️ Pedido na Mesa</h3>
+                                            <div className="space-y-1">
+                                                <Label>Número da Mesa</Label>
+                                                <Input
+                                                    placeholder="Ex: 5"
+                                                    inputMode="numeric"
+                                                    value={tableNumber}
+                                                    onChange={(e) => setTableNumber(e.target.value.replace(/\D/g, ''))}
+                                                    maxLength={3}
+                                                />
+                                                {tableNumber.trim().length === 0 && (
+                                                    <p className="text-xs text-muted-foreground">Informe o número da mesa onde você está.</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -331,6 +444,13 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                     <div className="space-y-3">
                                         <h3 className="font-semibold">Como você vai pagar?</h3>
                                         <RadioGroup value={paymentMethod || ""} onValueChange={(v: any) => setPaymentMethod(v)}>
+                                            <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('counter')}>
+                                                <RadioGroupItem value="counter" id="counter" />
+                                                <div className="flex items-center gap-3 flex-1">
+                                                    <UtensilsCrossed className="h-5 w-5" />
+                                                    <Label htmlFor="counter" className="flex-1 cursor-pointer">Pagará no caixa</Label>
+                                                </div>
+                                            </div>
                                             <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('pix')}>
                                                 <RadioGroupItem value="pix" id="pix" />
                                                 <div className="flex items-center gap-3 flex-1">

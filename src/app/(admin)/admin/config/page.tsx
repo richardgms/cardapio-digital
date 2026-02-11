@@ -26,7 +26,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ImageUpload } from "@/components/admin/ImageUpload";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, Lock, Smartphone, AlertCircle } from "lucide-react";
+import { Loader2, Lock, Smartphone, AlertCircle, UtensilsCrossed } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const formSchema = z.object({
     name: z.string().min(3, "Mínimo 3 caracteres").max(50, "Máximo 50 caracteres"),
@@ -44,6 +45,8 @@ const formSchema = z.object({
         .optional(),
     pix_key_type: z.enum(["cpf", "cnpj", "email", "phone", "random"]).optional().nullable(),
     pix_key: z.string().optional().nullable(),
+    table_mode_enabled: z.boolean().optional(),
+    table_count: z.coerce.number().min(1, "Mínimo 1 mesa").max(200, "Máximo 200 mesas").optional(),
 }).superRefine((data, ctx) => {
     if (!data.pix_key) return; // If empty, basic string check passes (optional). 
     // If user selected a type but no key? 
@@ -119,6 +122,7 @@ export default function ConfigPage() {
     const supabase = createClient();
     const [isLoading, setIsLoading] = useState(true);
     const [configId, setConfigId] = useState<string | null>(null);
+    const [tableModeAvailable, setTableModeAvailable] = useState(false);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema) as any,
@@ -131,6 +135,8 @@ export default function ConfigPage() {
             subdomain: "",
             pix_key_type: null,
             pix_key: "",
+            table_mode_enabled: false,
+            table_count: 10,
         },
     });
 
@@ -264,7 +270,10 @@ export default function ConfigPage() {
                         subdomain: data.subdomain || "",
                         pix_key: data.pix_key || "",
                         pix_key_type: data.pix_key_type || null,
+                        table_mode_enabled: data.table_mode_enabled || false,
+                        table_count: data.table_count || 10,
                     });
+                    setTableModeAvailable(data.table_mode_available || false);
                 } else {
                     // New Store Setup
                     setConfigId(user.id);
@@ -327,6 +336,8 @@ export default function ConfigPage() {
                     subdomain: values.subdomain,
                     pix_key: values.pix_key,
                     pix_key_type: values.pix_key_type,
+                    table_mode_enabled: values.table_mode_enabled || false,
+                    table_count: values.table_count || 10,
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'id' })
 
@@ -655,6 +666,59 @@ export default function ConfigPage() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* MODO MESA */}
+                    {tableModeAvailable && (
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="flex items-center gap-2">
+                                    <UtensilsCrossed className="h-5 w-5" />
+                                    Modo Mesa
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <FormField
+                                    control={form.control}
+                                    name="table_mode_enabled"
+                                    render={({ field }) => (
+                                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                                            <div className="space-y-0.5">
+                                                <FormLabel className="text-base">Ativar Modo Mesa</FormLabel>
+                                                <FormDescription>
+                                                    Permite que clientes façam pedidos diretamente da mesa.
+                                                </FormDescription>
+                                            </div>
+                                            <FormControl>
+                                                <Switch
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {form.watch('table_mode_enabled') && (
+                                    <FormField
+                                        control={form.control}
+                                        name="table_count"
+                                        render={({ field }) => (
+                                            <FormItem className="animate-in fade-in slide-in-from-top-2">
+                                                <FormLabel>Quantidade de Mesas</FormLabel>
+                                                <FormControl>
+                                                    <Input type="number" min="1" max="200" {...field} />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    Número total de mesas do seu restaurante.
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
 
                     <div className="flex flex-col gap-4">
                         {/* Summary of Errors */}

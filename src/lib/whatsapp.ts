@@ -3,14 +3,15 @@ import { CartItem } from "@/types/cart"
 interface OrderData {
     customerName: string
     customerPhone: string
-    deliveryType: 'delivery' | 'pickup'
+    deliveryType: 'delivery' | 'pickup' | 'table'
     deliveryZoneName?: string
     deliveryAddress?: string
     deliveryComplement?: string
-    paymentMethod: 'pix' | 'card' | 'cash'
+    paymentMethod: 'pix' | 'card' | 'cash' | 'counter'
     changeFor?: string
     pixKey?: string
     pixKeyType?: string
+    tableNumber?: string
     items: CartItem[]
     subtotal: number
     deliveryFee: number
@@ -50,18 +51,25 @@ export function generateWhatsAppMessage(order: OrderData): string {
     }).join('\n\n')
 
     // Delivery Info
-    const deliverySection = order.deliveryType === 'delivery' ? [
-        `*ENTREGA:*`,
-        `*Bairro:* ${order.deliveryZoneName || 'N/A'}`,
-        `*Endereço:* ${order.deliveryAddress || 'N/A'}`,
-        order.deliveryComplement ? `   _Comp: ${order.deliveryComplement}_` : '',
-    ].filter(Boolean).join('\n') : [
-        `*RETIRADA NO LOCAL*`
-    ].join('\n')
+    let deliverySection = ''
+    if (order.deliveryType === 'table') {
+        deliverySection = `🍽️ *PEDIDO NA MESA ${order.tableNumber || '?'}*`
+    } else if (order.deliveryType === 'delivery') {
+        deliverySection = [
+            `*ENTREGA:*`,
+            `*Bairro:* ${order.deliveryZoneName || 'N/A'}`,
+            `*Endereço:* ${order.deliveryAddress || 'N/A'}`,
+            order.deliveryComplement ? `   _Comp: ${order.deliveryComplement}_` : '',
+        ].filter(Boolean).join('\n')
+    } else {
+        deliverySection = `*RETIRADA NO LOCAL*`
+    }
 
     // Payment Info
     let paymentDetails = ''
-    if (order.paymentMethod === 'pix') {
+    if (order.paymentMethod === 'counter') {
+        paymentDetails = `*Forma:* Pagará no caixa`
+    } else if (order.paymentMethod === 'pix') {
         paymentDetails = [
             `*Forma:* PIX`,
             order.pixKey ? `*Chave:* ${order.pixKey}` : ''
@@ -80,18 +88,26 @@ export function generateWhatsAppMessage(order: OrderData): string {
         paymentDetails
     ].join('\n')
 
-    const totals = [
+    const totalsLines = [
         `*RESUMO:*`,
         `Subtotal: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.subtotal)}`,
-        `Entrega: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.deliveryFee)}`,
-        `*TOTAL: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total)}*`
-    ].join('\n')
+    ]
+    if (order.deliveryType === 'delivery') {
+        totalsLines.push(`Entrega: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.deliveryFee)}`)
+    }
+    totalsLines.push(`*TOTAL: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total)}*`)
+    const totals = totalsLines.join('\n')
 
     const footer = `\n_Pedido gerado via Cardápio Digital_`
 
     // Combine all sections with separators
+    // Build header with table tag if applicable
+    const fullHeader = order.deliveryType === 'table'
+        ? `${header}\n\n🍽️ *PEDIDO NA MESA ${order.tableNumber || '?'}*`
+        : header
+
     const messageBody = [
-        header,
+        fullHeader,
         customerInfo,
         `--------------------------------`,
         `*SEU PEDIDO:*`,
