@@ -419,7 +419,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                     {/* Table Number (Conditional - only for table mode) */}
                                     {deliveryType === 'table' && (
                                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                                            <h3 className="font-semibold">🍽️ Pedido na Mesa</h3>
+                                            <h3 className="font-semibold">Pedido na Mesa</h3>
                                             <div className="space-y-1">
                                                 <Label>Número da Mesa</Label>
                                                 <Input

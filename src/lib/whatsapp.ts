@@ -53,7 +53,7 @@ export function generateWhatsAppMessage(order: OrderData): string {
     // Delivery Info
     let deliverySection = ''
     if (order.deliveryType === 'table') {
-        deliverySection = `🍽️ *PEDIDO NA MESA ${order.tableNumber || '?'}*`
+        deliverySection = `*PEDIDO NA MESA ${order.tableNumber || '?'}*`
     } else if (order.deliveryType === 'delivery') {
         deliverySection = [
             `*ENTREGA:*`,
@@ -103,7 +103,7 @@ export function generateWhatsAppMessage(order: OrderData): string {
     // Combine all sections with separators
     // Build header with table tag if applicable
     const fullHeader = order.deliveryType === 'table'
-        ? `${header}\n\n🍽️ *PEDIDO NA MESA ${order.tableNumber || '?'}*`
+        ? `${header}\n\n*PEDIDO NA MESA ${order.tableNumber || '?'}*`
         : header
 
     const messageBody = [

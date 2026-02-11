@@ -10,6 +10,7 @@ import { CreateUserDialog } from '@/components/admin/super/create-user-dialog'
 import { DeleteUserDialog } from '@/components/admin/super/delete-user-dialog'
 import { DeleteRestaurantDialog } from '@/components/admin/super/delete-restaurant-dialog'
 import { EditRestaurantDialog } from '@/components/admin/super/edit-restaurant-dialog'
+import { UtensilsCrossed } from 'lucide-react'
 
 export default async function SuperAdminPage() {
     const [users, restaurants] = await Promise.all([
@@ -101,9 +102,10 @@ export default async function SuperAdminPage() {
                                                     <Button
                                                         variant={restaurant.table_mode_available ? 'default' : 'outline'}
                                                         size="sm"
-                                                        className="text-xs"
+                                                        className="text-xs gap-2"
                                                     >
-                                                        {restaurant.table_mode_available ? '🍽️ Ativo' : 'Desativado'}
+                                                        <UtensilsCrossed className="h-3.5 w-3.5" />
+                                                        {restaurant.table_mode_available ? 'Ativo' : 'Inativo'}
                                                     </Button>
                                                 </form>
                                             </TableCell>
