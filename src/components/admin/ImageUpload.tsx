@@ -15,9 +15,10 @@ interface ImageUploadProps {
     onChange: (url: string | null) => void;
     disabled?: boolean;
     className?: string;
+    compact?: boolean;
 }
 
-export function ImageUpload({ value, onChange, disabled, className }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, disabled, className, compact }: ImageUploadProps) {
     const [loading, setLoading] = useState(false);
     const [cropModalOpen, setCropModalOpen] = useState(false);
     const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
@@ -99,7 +100,11 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
         <div className="flex flex-col gap-4">
             <div className="flex items-center gap-4">
                 {value ? (
-                    <div className={cn("relative h-[200px] w-[200px] overflow-hidden rounded-md border", className)}>
+                    <div className={cn(
+                        compact ? "relative h-[120px] w-full" : "relative h-[200px] w-[200px]",
+                        "overflow-hidden rounded-md border",
+                        className
+                    )}>
                         <div className="absolute right-2 top-2 z-10">
                             <Button
                                 type="button"
@@ -120,7 +125,11 @@ export function ImageUpload({ value, onChange, disabled, className }: ImageUploa
                         />
                     </div>
                 ) : (
-                    <div className={cn("flex h-[200px] w-[200px] items-center justify-center rounded-md border border-dashed bg-muted/50", className)}>
+                    <div className={cn(
+                        compact ? "flex h-[120px] w-full" : "flex h-[200px] w-[200px]",
+                        "items-center justify-center rounded-md border border-dashed bg-muted/50",
+                        className
+                    )}>
                         {loading ? (
                             <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
                         ) : (

@@ -50,6 +50,8 @@ const optionGroupSchema = z.object({
     options: z.array(optionSchema),
 });
 
+const MAX_ADDITIONAL_IMAGES = 4;
+
 const formSchema = z.object({
     name: z.string().min(3, "Mínimo 3 caracteres"),
     description: z.string().optional(),
@@ -58,6 +60,7 @@ const formSchema = z.object({
     is_available: z.boolean().default(true),
     allows_half_half: z.boolean().default(false),
     image_url: z.string().nullable().optional(),
+    additional_images: z.array(z.string()).max(MAX_ADDITIONAL_IMAGES).optional(),
     option_groups: z.array(optionGroupSchema),
 });
 
@@ -93,6 +96,7 @@ export default function ProductFormPage({ params }: PageProps) {
             is_available: true,
             allows_half_half: false,
             image_url: null,
+            additional_images: [],
             option_groups: [],
         },
     });
@@ -160,6 +164,7 @@ export default function ProductFormPage({ params }: PageProps) {
                         is_available: product.is_available,
                         allows_half_half: product.allows_half_half,
                         image_url: product.image_url,
+                        additional_images: (product.additional_images || []).filter(Boolean),
                         option_groups: formattedGroups,
                     });
                 }
@@ -191,6 +196,8 @@ export default function ProductFormPage({ params }: PageProps) {
                 is_available: values.is_available,
                 allows_half_half: values.allows_half_half,
                 image_url: values.image_url,
+                // Filter out any accidental empty strings before saving
+                additional_images: (values.additional_images || []).filter(Boolean),
             };
 
             let productId = unwrappedParams.id;
@@ -428,7 +435,7 @@ export default function ProductFormPage({ params }: PageProps) {
                                 name="image_url"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Imagem do Produto</FormLabel>
+                                        <FormLabel>Imagem Principal</FormLabel>
                                         <FormControl>
                                             <ImageUpload
                                                 value={field.value}
@@ -439,6 +446,65 @@ export default function ProductFormPage({ params }: PageProps) {
                                         <FormMessage />
                                     </FormItem>
                                 )}
+                            />
+
+                            {/* Additional Images Gallery */}
+                            <FormField
+                                control={form.control}
+                                name="additional_images"
+                                render={({ field }) => {
+                                    const images: (string | null)[] = field.value || [];
+                                    const canAddMore = images.length < MAX_ADDITIONAL_IMAGES;
+
+                                    const handleImageChange = (index: number, url: string | null) => {
+                                        const next = [...images];
+                                        if (url === null) {
+                                            next.splice(index, 1);
+                                        } else {
+                                            next[index] = url;
+                                        }
+                                        field.onChange(next.filter(Boolean) as string[]);
+                                    };
+
+                                    const handleAddSlot = () => {
+                                        if (!canAddMore) return;
+                                        field.onChange([...images, null]);
+                                    };
+
+                                    return (
+                                        <FormItem>
+                                            <FormLabel>Galeria Adicional <span className="text-muted-foreground font-normal text-xs">(Opcional, máx. {MAX_ADDITIONAL_IMAGES})</span></FormLabel>
+                                            <FormControl>
+                                                <div className="space-y-3">
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                                        {images.map((imgUrl, idx) => (
+                                                            <ImageUpload
+                                                                key={idx}
+                                                                value={imgUrl}
+                                                                onChange={(url) => handleImageChange(idx, url)}
+                                                                disabled={isSaving}
+                                                                compact
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    {canAddMore && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={handleAddSlot}
+                                                            disabled={isSaving}
+                                                        >
+                                                            <Plus className="mr-2 h-3 w-3" />
+                                                            Adicionar Imagem à Galeria
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    );
+                                }}
                             />
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { Minus, Plus, AlertCircle, X, Maximize2 } from "lucide-react"
+import { Minus, Plus, AlertCircle, X, Maximize2, ChevronLeft, ChevronRight } from "lucide-react"
 import Image from "next/image"
 import { useCartStore } from "@/stores/cartStore"
 import { toast } from "sonner"
@@ -26,6 +26,8 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
     const [observation, setObservation] = useState("")
     const [validationErrors, setValidationErrors] = useState<string[]>([])
     const [isImageOpen, setIsImageOpen] = useState(false)
+    const [activeImageIndex, setActiveImageIndex] = useState(0)
+    const [fullscreenIndex, setFullscreenIndex] = useState(0)
     const [halfHalfSelection, setHalfHalfSelection] = useState<{
         enabled: boolean
         firstHalf: Product | null
@@ -38,6 +40,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
         finalPrice: 0
     })
 
+    const carouselRef = useRef<HTMLDivElement>(null)
     const addItem = useCartStore(state => state.addItem)
 
     // Reset state when product changes or modal opens
@@ -48,6 +51,8 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
             setObservation("")
             setValidationErrors([])
             setIsImageOpen(false)
+            setActiveImageIndex(0)
+            setFullscreenIndex(0)
             setHalfHalfSelection({
                 enabled: false,
                 firstHalf: null,
@@ -59,13 +64,29 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
 
     if (!product) return null
 
-    console.log("ProductModal render:", {
-        productName: product.name,
-        optionGroups: product.option_groups
-    })
+    // Build the unified image list — gracefully handles legacy products with no additional_images
+    const allImages: string[] = [
+        product.image_url,
+        ...(product.additional_images || [])
+    ].filter((url): url is string => Boolean(url))
+
+    const hasMultipleImages = allImages.length > 1
+
+    // Track which slide is currently in view based on scroll position
+    const handleCarouselScroll = () => {
+        const el = carouselRef.current
+        if (!el) return
+        const index = Math.round(el.scrollLeft / el.offsetWidth)
+        setActiveImageIndex(index)
+    }
+
+    const scrollToImage = (index: number) => {
+        const el = carouselRef.current
+        if (!el) return
+        el.scrollTo({ left: index * el.offsetWidth, behavior: 'smooth' })
+    }
 
     const handleOptionChange = (groupId: string, optionId: string, maxSelect: number, isRadio: boolean) => {
-        // Clear error for this group if it exists
         if (validationErrors.includes(groupId)) {
             setValidationErrors(prev => prev.filter(id => id !== groupId))
         }
@@ -77,7 +98,6 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                 return { ...prev, [groupId]: [optionId] }
             }
 
-            // Checkbox logic
             if (current.includes(optionId)) {
                 return { ...prev, [groupId]: current.filter(id => id !== optionId) }
             }
@@ -95,7 +115,6 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
             ? halfHalfSelection.finalPrice
             : product.price
 
-        // Add options price
         product.option_groups?.forEach(group => {
             const selectedIds = selectedOptions[group.id] || []
             selectedIds.forEach(optionId => {
@@ -110,7 +129,6 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
     }
 
     const handleAddToCart = () => {
-        // Validation for Half Half
         if (halfHalfSelection.enabled) {
             if (!halfHalfSelection.firstHalf || !halfHalfSelection.secondHalf) {
                 toast.error("Selecione os dois sabores para meio a meio")
@@ -118,7 +136,6 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
             }
         }
 
-        // Validate required options
         const errors: string[] = []
         if (!halfHalfSelection.enabled) {
             product.option_groups?.forEach(group => {
@@ -133,7 +150,6 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
             setValidationErrors(errors)
             toast.error("Por favor, preencha as opções obrigatórias.")
 
-            // Scroll to the first error
             const firstErrorElement = document.getElementById(`group-${errors[0]}`)
             if (firstErrorElement) {
                 firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -141,7 +157,6 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
             return
         }
 
-        // Prepare cart item options
         const cartOptions: CartItemOption[] = []
         product.option_groups?.forEach(group => {
             const selectedIds = selectedOptions[group.id] || []
@@ -176,7 +191,6 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
     }
 
     const handleHalfHalfChange = (selection: typeof halfHalfSelection) => {
-        // Avoid infinite loop: only update if changed
         if (
             selection.enabled !== halfHalfSelection.enabled ||
             selection.firstHalf?.id !== halfHalfSelection.firstHalf?.id ||
@@ -187,25 +201,77 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
         }
     }
 
+    const openFullscreen = (index: number) => {
+        setFullscreenIndex(index)
+        setIsImageOpen(true)
+    }
+
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-xl [&>button]:hidden">
                 <div className="flex-1 overflow-y-auto no-scrollbar">
-                    {/* Header Image */}
-                    <div className="relative h-72 w-full bg-muted">
-                        {product.image_url ? (
+                    {/* Image Carousel */}
+                    <div className="relative h-72 w-full bg-muted overflow-hidden">
+                        {allImages.length > 0 ? (
                             <>
-                                <Image
-                                    src={product.image_url}
-                                    alt={product.name}
-                                    fill
-                                    className="object-cover"
-                                />
+                                {/* Scroll-snap carousel track */}
+                                <div
+                                    ref={carouselRef}
+                                    onScroll={handleCarouselScroll}
+                                    className="flex h-full w-full overflow-x-auto snap-x snap-mandatory no-scrollbar"
+                                    style={{ scrollSnapType: 'x mandatory' }}
+                                >
+                                    {allImages.map((url, idx) => (
+                                        <div
+                                            key={url + idx}
+                                            className="relative h-full shrink-0 w-full snap-start"
+                                            style={{ scrollSnapAlign: 'start' }}
+                                        >
+                                            <Image
+                                                src={url}
+                                                alt={`${product.name} — imagem ${idx + 1}`}
+                                                fill
+                                                className="object-cover"
+                                                priority={idx === 0}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* 1/X indicator pill */}
+                                {hasMultipleImages && (
+                                    <div className="absolute left-4 top-4 z-10 flex items-center gap-1">
+                                        <span className="rounded-full bg-black/60 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+                                            {activeImageIndex + 1} / {allImages.length}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Dot indicators at bottom */}
+                                {hasMultipleImages && (
+                                    <div className="absolute bottom-12 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
+                                        {allImages.map((_, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => scrollToImage(idx)}
+                                                className={cn(
+                                                    "h-1.5 rounded-full transition-all duration-300",
+                                                    idx === activeImageIndex
+                                                        ? "w-4 bg-white"
+                                                        : "w-1.5 bg-white/50"
+                                                )}
+                                                aria-label={`Ver imagem ${idx + 1}`}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Expand button */}
                                 <Button
                                     variant="secondary"
                                     size="icon"
                                     className="absolute right-4 bottom-4 z-10 h-8 w-8 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
-                                    onClick={() => setIsImageOpen(true)}
+                                    onClick={() => openFullscreen(activeImageIndex)}
                                 >
                                     <Maximize2 className="h-4 w-4" />
                                 </Button>
@@ -216,6 +282,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                             </div>
                         )}
 
+                        {/* Close button */}
                         <Button
                             variant="ghost"
                             size="icon"
@@ -374,25 +441,19 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                 </div >
             </DialogContent>
 
+            {/* Fullscreen Image Viewer — navigates through all images */}
             <Dialog open={isImageOpen} onOpenChange={setIsImageOpen}>
                 <DialogContent className="max-w-[100vw] w-screen h-screen p-0 m-0 bg-black/95 border-none flex items-center justify-center focus:outline-none">
                     <DialogTitle className="sr-only">Visualização da imagem do produto</DialogTitle>
                     <DialogDescription className="sr-only">Imagem ampliada do produto {product.name}</DialogDescription>
 
+                    {/* Image */}
                     <div className="relative w-full h-full flex items-center justify-center p-4">
-                        <div className="relative w-[80vw] h-[80vw] max-w-[500px] max-h-[500px]">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-2 top-2 z-50 h-8 w-8 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
-                                onClick={() => setIsImageOpen(false)}
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
-                            {product.image_url && (
+                        <div className="relative w-[80vw] h-[80vw] max-w-[600px] max-h-[600px]">
+                            {allImages[fullscreenIndex] && (
                                 <Image
-                                    src={product.image_url}
-                                    alt={product.name}
+                                    src={allImages[fullscreenIndex]}
+                                    alt={`${product.name} — imagem ${fullscreenIndex + 1}`}
                                     fill
                                     priority
                                     className="object-contain rounded-md"
@@ -400,6 +461,47 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                             )}
                         </div>
                     </div>
+
+                    {/* Close */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-4 top-4 z-50 h-9 w-9 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
+                        onClick={() => setIsImageOpen(false)}
+                    >
+                        <X className="h-5 w-5" />
+                    </Button>
+
+                    {/* Navigation arrows — only shown when multiple images */}
+                    {hasMultipleImages && (
+                        <>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white disabled:opacity-30"
+                                disabled={fullscreenIndex === 0}
+                                onClick={() => setFullscreenIndex(i => i - 1)}
+                            >
+                                <ChevronLeft className="h-6 w-6" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white disabled:opacity-30"
+                                disabled={fullscreenIndex === allImages.length - 1}
+                                onClick={() => setFullscreenIndex(i => i + 1)}
+                            >
+                                <ChevronRight className="h-6 w-6" />
+                            </Button>
+
+                            {/* Fullscreen counter pill */}
+                            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
+                                <span className="rounded-full bg-black/60 px-3 py-1 text-sm font-medium text-white backdrop-blur-sm">
+                                    {fullscreenIndex + 1} / {allImages.length}
+                                </span>
+                            </div>
+                        </>
+                    )}
                 </DialogContent>
             </Dialog>
         </Dialog>

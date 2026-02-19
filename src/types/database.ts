@@ -68,6 +68,7 @@ export interface Product {
     description: string | null
     price: number
     image_url: string | null
+    additional_images?: string[] | null
     is_available: boolean
     allows_half_half: boolean
     sort_order: number
