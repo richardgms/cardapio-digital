@@ -101,15 +101,15 @@ export async function middleware(request: NextRequest) {
             return response
         }
 
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
 
-        if (!user) {
+        if (!session) {
             return NextResponse.redirect(new URL('/admin/login', request.url))
         }
 
         // Proteger rota de Super Admin
         if (request.nextUrl.pathname.startsWith('/admin/super')) {
-            const isSuperAdmin = user.email === 'richardgms001@gmail.com'
+            const isSuperAdmin = session.user.email === 'richardgms001@gmail.com'
 
             if (!isSuperAdmin) {
                 return NextResponse.redirect(new URL('/admin', request.url))
