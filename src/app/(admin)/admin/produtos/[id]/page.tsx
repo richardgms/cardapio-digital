@@ -2,11 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, useFieldArray, Control } from "react-hook-form";
+import { useForm, useFieldArray, Control, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { Category, Product, ProductOptionGroup, ProductOption } from "@/types/database";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +50,7 @@ const optionSchema = z.object({
     id: z.string().optional(), // For editing
     name: z.string().min(1, "Nome da opção é obrigatório"),
     price: z.coerce.number().min(0, "Preço inválido"),
+    is_available: z.boolean().default(true),
 });
 
 const optionGroupSchema = z.object({
@@ -65,6 +76,53 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+const OptionItemSwitch = ({ control, nestIndex, k }: { control: Control<FormValues>, nestIndex: number, k: number }) => {
+    const [openAlert, setOpenAlert] = useState(false);
+    const optionName = useWatch({ control, name: `option_groups.${nestIndex}.options.${k}.name` });
+
+    return (
+        <FormField
+            control={control}
+            name={`option_groups.${nestIndex}.options.${k}.is_available`}
+            render={({ field }) => (
+                <FormItem className="flex items-center shrink-0 pb-2">
+                    <FormControl>
+                        <div className="flex items-center">
+                            <Switch
+                                checked={field.value}
+                                onCheckedChange={(checked) => {
+                                    if (!checked) {
+                                        setOpenAlert(true);
+                                    } else {
+                                        field.onChange(true);
+                                    }
+                                }}
+                            />
+                            <AlertDialog open={openAlert} onOpenChange={setOpenAlert}>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Desativar Opção?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Tem certeza que deseja marcar a opção "{optionName || 'sem nome'}" como indisponível? Ela não aparecerá mais no cardápio para os clientes.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => {
+                                            field.onChange(false);
+                                            setOpenAlert(false);
+                                        }}>Confirmar</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                    </FormControl>
+                </FormItem>
+            )}
+        />
+    );
+};
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -152,7 +210,8 @@ export default function ProductFormPage({ params }: PageProps) {
                         options: g.options?.sort((a: any, b: any) => a.sort_order - b.sort_order).map((o: any) => ({
                             id: o.id,
                             name: o.name,
-                            price: o.price
+                            price: o.price,
+                            is_available: o.is_available ?? true
                         })) || []
                     })) || [];
 
@@ -313,6 +372,7 @@ export default function ProductFormPage({ params }: PageProps) {
                                 name: option.name,
                                 price: option.price,
                                 sort_order: oIndex,
+                                is_available: option.is_available,
                             };
 
                             if (option.id) {
@@ -382,7 +442,8 @@ export default function ProductFormPage({ params }: PageProps) {
                                     </FormItem>
                                 )}
                             />
-                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(k)}>
+                            <OptionItemSwitch control={control} nestIndex={nestIndex} k={k} />
+                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(k)} className="mb-2 shrink-0">
                                 <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                         </div>
@@ -392,7 +453,7 @@ export default function ProductFormPage({ params }: PageProps) {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => append({ name: "", price: 0 })}
+                    onClick={() => append({ name: "", price: 0, is_available: true })}
                 >
                     <Plus className="mr-2 h-3 w-3" />
                     Adicionar Opção

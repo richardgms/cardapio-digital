@@ -92,7 +92,9 @@ export function useProducts(): UseProductsReturn {
                     ...product,
                     option_groups: product.option_groups?.sort((a: ProductOptionGroup, b: ProductOptionGroup) => a.sort_order - b.sort_order).map((group: ProductOptionGroup) => ({
                         ...group,
-                        options: group.options?.sort((a: ProductOption, b: ProductOption) => a.sort_order - b.sort_order)
+                        options: group.options
+                            ?.filter((o: ProductOption) => o.is_available !== false)
+                            .sort((a: ProductOption, b: ProductOption) => a.sort_order - b.sort_order)
                     }))
                 }))
 

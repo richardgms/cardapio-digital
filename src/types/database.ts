@@ -98,5 +98,6 @@ export interface ProductOption {
     name: string
     price: number
     sort_order: number
+    is_available?: boolean
     // created_at removed
 }
