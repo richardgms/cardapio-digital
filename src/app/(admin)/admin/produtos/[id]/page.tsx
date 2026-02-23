@@ -86,7 +86,7 @@ const OptionItemSwitch = ({ control, nestIndex, k }: { control: Control<FormValu
             control={control}
             name={`option_groups.${nestIndex}.options.${k}.is_available`}
             render={({ field }) => (
-                <FormItem className="flex items-center shrink-0 pb-2">
+                <FormItem className="flex items-center shrink-0 space-y-0">
                     <FormControl>
                         <div className="flex items-center">
                             <Switch
@@ -412,14 +412,14 @@ export default function ProductFormPage({ params }: PageProps) {
 
         return (
             <div className="space-y-4">
-                <div className="space-y-2">
+                <div className="space-y-3">
                     {fields.map((item, k) => (
-                        <div key={item.id} className="flex items-end gap-2">
+                        <div key={item.id} className="flex flex-col sm:flex-row sm:items-start gap-3 p-3 sm:p-0 border sm:border-transparent rounded-lg sm:rounded-none bg-muted/10 sm:bg-transparent">
                             <FormField
                                 control={control}
                                 name={`option_groups.${nestIndex}.options.${k}.name`}
                                 render={({ field }) => (
-                                    <FormItem className="flex-1">
+                                    <FormItem className="w-full sm:flex-1">
                                         <FormControl>
                                             <Input placeholder="Nome da opção" {...field} />
                                         </FormControl>
@@ -427,25 +427,29 @@ export default function ProductFormPage({ params }: PageProps) {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={control}
-                                name={`option_groups.${nestIndex}.options.${k}.price`}
-                                render={({ field }) => (
-                                    <FormItem className="w-32">
-                                        <FormControl>
-                                            <div className="relative flex items-center">
-                                                <span className="absolute left-3 text-muted-foreground text-sm">R$ +</span>
-                                                <Input type="number" className="pl-10 text-right" placeholder="0.00" {...field} />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <OptionItemSwitch control={control} nestIndex={nestIndex} k={k} />
-                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(k)} className="mb-2 shrink-0">
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            <div className="flex items-start gap-3 justify-between sm:justify-start w-full sm:w-auto">
+                                <FormField
+                                    control={control}
+                                    name={`option_groups.${nestIndex}.options.${k}.price`}
+                                    render={({ field }) => (
+                                        <FormItem className="flex-1 sm:w-32">
+                                            <FormControl>
+                                                <div className="relative flex items-center">
+                                                    <span className="absolute left-3 text-muted-foreground text-sm">R$ +</span>
+                                                    <Input type="number" className="pl-10 text-right" placeholder="0.00" {...field} />
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <div className="flex items-center gap-2 shrink-0 h-10">
+                                    <OptionItemSwitch control={control} nestIndex={nestIndex} k={k} />
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(k)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </div>

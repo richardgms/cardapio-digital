@@ -7,6 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Minus, Plus, AlertCircle, X, Maximize2, ChevronLeft, ChevronRight } from "lucide-react"
 import Image from "next/image"
+import useEmblaCarousel from "embla-carousel-react"
+import Autoplay from "embla-carousel-autoplay"
 import { useCartStore } from "@/stores/cartStore"
 import { toast } from "sonner"
 import type { Product, ProductOption } from "@/types/database"
@@ -40,7 +42,10 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
         finalPrice: 0
     })
 
-    const carouselRef = useRef<HTMLDivElement>(null)
+    const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [
+        Autoplay({ delay: 4000, stopOnInteraction: true })
+    ])
+
     const addItem = useCartStore(state => state.addItem)
 
     // Reset state when product changes or modal opens
@@ -62,6 +67,24 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
         }
     }, [open, product])
 
+    const onSelect = useCallback(() => {
+        if (!emblaApi) return
+        setActiveImageIndex(emblaApi.selectedScrollSnap())
+    }, [emblaApi])
+
+    // Cleanup and Sync for Embla state
+    useEffect(() => {
+        if (!emblaApi) return
+        onSelect() // Initial load
+        emblaApi.on('select', onSelect)
+        emblaApi.on('reInit', onSelect)
+
+        return () => {
+            emblaApi.off('select', onSelect)
+            emblaApi.off('reInit', onSelect)
+        }
+    }, [emblaApi, onSelect])
+
     if (!product) return null
 
     // Build the unified image list — gracefully handles legacy products with no additional_images
@@ -72,18 +95,8 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
 
     const hasMultipleImages = allImages.length > 1
 
-    // Track which slide is currently in view based on scroll position
-    const handleCarouselScroll = () => {
-        const el = carouselRef.current
-        if (!el) return
-        const index = Math.round(el.scrollLeft / el.offsetWidth)
-        setActiveImageIndex(index)
-    }
-
     const scrollToImage = (index: number) => {
-        const el = carouselRef.current
-        if (!el) return
-        el.scrollTo({ left: index * el.offsetWidth, behavior: 'smooth' })
+        if (emblaApi) emblaApi.scrollTo(index)
     }
 
     const handleOptionChange = (groupId: string, optionId: string, maxSelect: number, isRadio: boolean) => {
@@ -210,87 +223,85 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-xl [&>button]:hidden">
                 <div className="flex-1 overflow-y-auto no-scrollbar">
-                    {/* Image Carousel */}
-                    <div className="relative h-72 w-full bg-muted overflow-hidden">
-                        {allImages.length > 0 ? (
-                            <>
-                                {/* Scroll-snap carousel track */}
-                                <div
-                                    ref={carouselRef}
-                                    onScroll={handleCarouselScroll}
-                                    className="flex h-full w-full overflow-x-auto snap-x snap-mandatory no-scrollbar"
-                                    style={{ scrollSnapType: 'x mandatory' }}
-                                >
-                                    {allImages.map((url, idx) => (
-                                        <div
-                                            key={url + idx}
-                                            className="relative h-full shrink-0 w-full snap-start"
-                                            style={{ scrollSnapAlign: 'start' }}
-                                        >
-                                            <Image
-                                                src={url}
-                                                alt={`${product.name} — imagem ${idx + 1}`}
-                                                fill
-                                                className="object-cover"
-                                                priority={idx === 0}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* 1/X indicator pill */}
-                                {hasMultipleImages && (
-                                    <div className="absolute left-4 top-4 z-10 flex items-center gap-1">
-                                        <span className="rounded-full bg-black/60 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
-                                            {activeImageIndex + 1} / {allImages.length}
-                                        </span>
-                                    </div>
-                                )}
-
-                                {/* Dot indicators at bottom */}
-                                {hasMultipleImages && (
-                                    <div className="absolute bottom-12 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
-                                        {allImages.map((_, idx) => (
-                                            <button
-                                                key={idx}
-                                                onClick={() => scrollToImage(idx)}
-                                                className={cn(
-                                                    "h-1.5 rounded-full transition-all duration-300",
-                                                    idx === activeImageIndex
-                                                        ? "w-4 bg-white"
-                                                        : "w-1.5 bg-white/50"
-                                                )}
-                                                aria-label={`Ver imagem ${idx + 1}`}
-                                            />
+                    {/* Image Carousel with Embla */}
+                    <div className="relative w-full">
+                        <div className="relative h-72 w-full bg-muted">
+                            <div className="overflow-hidden h-full w-full" ref={emblaRef}>
+                                {allImages.length > 0 ? (
+                                    <div className="flex h-full touch-pan-y">
+                                        {allImages.map((url, idx) => (
+                                            <div
+                                                key={url + idx}
+                                                className="relative h-full shrink-0 w-full flex-none"
+                                            >
+                                                <Image
+                                                    src={url}
+                                                    alt={`${product.name} — imagem ${idx + 1}`}
+                                                    fill
+                                                    className="object-cover"
+                                                    priority={idx === 0}
+                                                    loading={idx === 0 ? "eager" : "lazy"}
+                                                />
+                                            </div>
                                         ))}
                                     </div>
+                                ) : (
+                                    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                                        Sem imagem
+                                    </div>
                                 )}
+                            </div>
 
-                                {/* Expand button */}
+                            {/* Top-Left Counter Indicator */}
+                            {hasMultipleImages && (
+                                <div className="absolute left-4 top-4 z-10 flex items-center gap-1">
+                                    <span className="rounded-full bg-black/60 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm shadow-md">
+                                        {activeImageIndex + 1} / {allImages.length}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Expand Icon */}
+                            {allImages.length > 0 && (
                                 <Button
                                     variant="secondary"
                                     size="icon"
-                                    className="absolute right-4 bottom-4 z-10 h-8 w-8 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
+                                    className="absolute right-4 bottom-4 z-10 h-8 w-8 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white shadow-md"
                                     onClick={() => openFullscreen(activeImageIndex)}
                                 >
                                     <Maximize2 className="h-4 w-4" />
                                 </Button>
-                            </>
-                        ) : (
-                            <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                                Sem imagem
+                            )}
+
+                            {/* Close button */}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-4 top-4 z-10 h-8 w-8 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
+                                onClick={onClose}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+
+                        {/* Pagination Dots (Moved to neutral area to prevent layout shift & overlap) */}
+                        {hasMultipleImages && (
+                            <div className="flex items-center justify-center gap-1.5 pt-6 bg-background">
+                                {allImages.map((_, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => scrollToImage(idx)}
+                                        className={cn(
+                                            "h-1.5 rounded-full transition-all duration-300",
+                                            idx === activeImageIndex
+                                                ? "w-4 bg-primary"
+                                                : "w-1.5 bg-primary/30"
+                                        )}
+                                        aria-label={`Ver imagem ${idx + 1}`}
+                                    />
+                                ))}
                             </div>
                         )}
-
-                        {/* Close button */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-4 top-4 z-10 h-8 w-8 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
-                            onClick={onClose}
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
                     </div>
 
                     <div className="p-6 space-y-6">
