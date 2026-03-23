@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, useFieldArray, Control, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, Control, useWatch, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
@@ -47,14 +47,14 @@ import { Breadcrumb } from "@/components/admin/Breadcrumb";
 
 // --- Schema ---
 const optionSchema = z.object({
-    id: z.string().optional(), // For editing
+    id: z.string().optional(),
     name: z.string().min(1, "Nome da opção é obrigatório"),
     price: z.coerce.number().min(0, "Preço inválido"),
     is_available: z.boolean().default(true),
 });
 
 const optionGroupSchema = z.object({
-    id: z.string().optional(), // For editing
+    id: z.string().optional(),
     title: z.string().min(1, "Nome do grupo é obrigatório"),
     is_required: z.boolean().default(false),
     max_select: z.coerce.number().min(1, "Mínimo 1"),
@@ -77,6 +77,8 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+// --- Sub-components defined OUTSIDE the page component to prevent infinite re-render loops ---
 
 const OptionItemSwitch = ({ control, nestIndex, k }: { control: Control<FormValues>, nestIndex: number, k: number }) => {
     const [openAlert, setOpenAlert] = useState(false);
@@ -125,12 +127,230 @@ const OptionItemSwitch = ({ control, nestIndex, k }: { control: Control<FormValu
     );
 };
 
+const OptionsList = ({ nestIndex, control, pricingMode }: { nestIndex: number; control: Control<FormValues>; pricingMode: 'addon' | 'replacement' }) => {
+    const { fields, append, remove } = useFieldArray({
+        control,
+        name: `option_groups.${nestIndex}.options`,
+    });
+
+    return (
+        <div className="space-y-4">
+            <div className="space-y-3">
+                {fields.map((item, k) => (
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-start gap-3 p-3 sm:p-0 border sm:border-transparent rounded-lg sm:rounded-none bg-muted/10 sm:bg-transparent">
+                        <FormField
+                            control={control}
+                            name={`option_groups.${nestIndex}.options.${k}.name`}
+                            render={({ field }) => (
+                                <FormItem className="w-full sm:flex-1">
+                                    <FormControl>
+                                        <Input placeholder="Nome da opção" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <div className="flex items-start gap-3 justify-between sm:justify-start w-full sm:w-auto">
+                            <FormField
+                                control={control}
+                                name={`option_groups.${nestIndex}.options.${k}.price`}
+                                render={({ field }) => (
+                                    <FormItem className="flex-1 sm:w-32">
+                                        <FormControl>
+                                            <div className="relative flex items-center">
+                                                <span className="absolute left-3 text-muted-foreground text-sm">
+                                                    {pricingMode === 'replacement' ? 'R$' : 'R$ +'}
+                                                </span>
+                                                <Input type="number" className="pl-10 text-right" placeholder="0.00" {...field} />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <div className="flex items-center gap-2 shrink-0 h-10">
+                                <OptionItemSwitch control={control} nestIndex={nestIndex} k={k} />
+                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(k)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => append({ name: "", price: 0, is_available: true })}
+            >
+                <Plus className="mr-2 h-3 w-3" />
+                Adicionar Opção
+            </Button>
+        </div>
+    );
+};
+
+interface GroupCardProps {
+    index: number;
+    control: Control<FormValues>;
+    form: UseFormReturn<FormValues>;
+    onRemove: () => void;
+}
+
+const GroupCard = ({ index, control, form, onRemove }: GroupCardProps) => {
+    const currentPricingMode = useWatch({ control, name: `option_groups.${index}.pricing_mode` }) ?? 'addon';
+
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-base font-medium">
+                    Grupo de Opções #{index + 1}
+                </CardTitle>
+                <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                        control={control}
+                        name={`option_groups.${index}.title`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Título do Grupo</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Ex: Borda, Tamanho, Adicionais" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={control}
+                        name={`option_groups.${index}.max_select`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Máximo de Seleções</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        {...field}
+                                        disabled={currentPricingMode === 'replacement'}
+                                        className={currentPricingMode === 'replacement' ? 'opacity-50' : ''}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+
+                <div className="flex flex-row items-center justify-between rounded-lg border p-3">
+                    <div className="space-y-0.5">
+                        <FormLabel className="text-base">Obrigatório</FormLabel>
+                    </div>
+                    <FormControl>
+                        <FormField
+                            control={control}
+                            name={`option_groups.${index}.is_required`}
+                            render={({ field }) => (
+                                <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                            )}
+                        />
+                    </FormControl>
+                </div>
+
+                <FormField
+                    control={control}
+                    name={`option_groups.${index}.pricing_mode`}
+                    render={({ field }) => (
+                        <FormItem>
+                            <div className="flex flex-row items-center justify-between rounded-lg border p-3">
+                                <div className="space-y-0.5">
+                                    <FormLabel className="text-base">Tipo de Preço</FormLabel>
+                                    <FormDescription>
+                                        {currentPricingMode === 'replacement'
+                                            ? 'Cada opção define o preço total (ex: tamanhos P/M/G)'
+                                            : 'Cada opção soma ao preço base do produto'
+                                        }
+                                    </FormDescription>
+                                </div>
+                                <Select
+                                    value={field.value}
+                                    onValueChange={(val) => {
+                                        field.onChange(val)
+                                        if (val === 'replacement') {
+                                            form.setValue(`option_groups.${index}.max_select`, 1)
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className="w-36">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="addon">Adicional</SelectItem>
+                                        <SelectItem value="replacement">Tamanho</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <div className="pl-4 border-l-2">
+                    <h4 className="text-sm font-medium mb-3">Opções</h4>
+                    <OptionsList nestIndex={index} control={control} pricingMode={currentPricingMode} />
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+const PriceField = ({ control }: { control: Control<FormValues> }) => {
+    const groups = useWatch({ control, name: 'option_groups' });
+    const hasReplacement = groups?.some((g: { pricing_mode?: string }) => g.pricing_mode === 'replacement') ?? false;
+
+    return (
+        <FormField
+            control={control}
+            name="price"
+            render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Preço Base (R$)</FormLabel>
+                    <FormControl>
+                        <Input
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            disabled={hasReplacement}
+                            className={hasReplacement ? 'opacity-50' : ''}
+                        />
+                    </FormControl>
+                    {hasReplacement && (
+                        <FormDescription className="text-amber-600 dark:text-amber-400">
+                            Ignorado — o preço é definido pelas opções de tamanho
+                        </FormDescription>
+                    )}
+                    <FormMessage />
+                </FormItem>
+            )}
+        />
+    );
+};
+
+// --- Page Component ---
+
 interface PageProps {
     params: Promise<{ id: string }>;
 }
 
 export default function ProductFormPage({ params }: PageProps) {
-    // Unwrap params in Next.js 15
     const [unwrappedParams, setUnwrappedParams] = useState<{ id: string } | null>(null);
 
     const router = useRouter();
@@ -140,7 +360,6 @@ export default function ProductFormPage({ params }: PageProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Initial State Check
     useEffect(() => {
         params.then(setUnwrappedParams);
     }, [params]);
@@ -165,26 +384,22 @@ export default function ProductFormPage({ params }: PageProps) {
         name: "option_groups",
     });
 
-    // Fetch Data
     useEffect(() => {
         if (!unwrappedParams) return;
 
         const fetchData = async () => {
             try {
-                // 1. Fetch Categories
                 const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return; // Should be handled by middleware
+                if (!user) return;
 
                 const { data: catsData } = await supabase
                     .from("categories")
                     .select("*")
-                    .eq('store_id', user.id) // FIX: Filter by store_id
+                    .eq('store_id', user.id)
                     .order("sort_order");
                 setCategories(catsData || []);
 
-                // 2. If Edit Mode, Fetch Product
                 if (unwrappedParams.id !== "novo") {
-                    // Fetch Product
                     const { data: product, error: prodError } = await supabase
                         .from("products")
                         .select("*")
@@ -193,7 +408,6 @@ export default function ProductFormPage({ params }: PageProps) {
 
                     if (prodError) throw prodError;
 
-                    // Fetch Option Groups & Options
                     const { data: groups, error: groupsError } = await supabase
                         .from("product_option_groups")
                         .select(`*, options:product_options(*)`)
@@ -202,7 +416,6 @@ export default function ProductFormPage({ params }: PageProps) {
 
                     if (groupsError) throw groupsError;
 
-                    // Transform for Form
                     const formattedGroups = groups?.map(g => ({
                         id: g.id,
                         title: g.title,
@@ -247,9 +460,8 @@ export default function ProductFormPage({ params }: PageProps) {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("Usuário não autenticado");
 
-            // 1. Upsert Product
             const productData = {
-                store_id: user.id, // Ensure ownership
+                store_id: user.id,
                 name: values.name,
                 description: values.description,
                 price: values.price,
@@ -257,7 +469,6 @@ export default function ProductFormPage({ params }: PageProps) {
                 is_available: values.is_available,
                 allows_half_half: values.allows_half_half,
                 image_url: values.image_url,
-                // Filter out any accidental empty strings before saving
                 additional_images: (values.additional_images || []).filter(Boolean),
             };
 
@@ -281,11 +492,6 @@ export default function ProductFormPage({ params }: PageProps) {
                 if (error) throw error;
             }
 
-            // 2. Handle Option Groups & Options (Diff & Delete Strategy)
-
-            // A. Fetch Existing Data to Determine Deletions
-            // We need to fetch existing groups and options to know what to delete.
-            // Using a join to get options for each group.
             const { data: existingGroups, error: fetchError } = await supabase
                 .from("product_option_groups")
                 .select("id, options:product_options(id)")
@@ -293,26 +499,16 @@ export default function ProductFormPage({ params }: PageProps) {
 
             if (fetchError) throw fetchError;
 
-            // B. Identify IDs in Form
-            // Get all Group IDs present in the form submission
             const formGroupIds = new Set(values.option_groups?.map(g => g.id).filter(Boolean));
-            // Get all Option IDs present in the form submission (across all groups)
             const formOptionIds = new Set(
                 values.option_groups?.flatMap(g => g.options.map(o => o.id)).filter(Boolean)
             );
 
-            // C. Determine Items to Delete
-            // Groups to delete: present in DB but missing from Form
             const groupsToDelete = existingGroups?.filter(g => !formGroupIds.has(g.id)).map(g => g.id) || [];
-
-            // Options to delete: present in DB but missing from Form
-            // This covers options removed from a kept group AND options belonging to a removed group.
             const allExistingOptionIds = existingGroups?.flatMap(g => g.options?.map((o: any) => o.id)) || [];
             // @ts-ignore
             const optionsToDelete = allExistingOptionIds.filter((id: string) => !formOptionIds.has(id));
 
-            // D. Execute Deletions
-            // Delete options first to avoid FK constraints (though cascade might handle it, explicit is safer)
             if (optionsToDelete.length > 0) {
                 const { error: delOptError } = await supabase
                     .from("product_options")
@@ -321,7 +517,6 @@ export default function ProductFormPage({ params }: PageProps) {
                 if (delOptError) throw delOptError;
             }
 
-            // Delete groups next
             if (groupsToDelete.length > 0) {
                 const { error: delGroupError } = await supabase
                     .from("product_option_groups")
@@ -330,7 +525,6 @@ export default function ProductFormPage({ params }: PageProps) {
                 if (delGroupError) throw delGroupError;
             }
 
-            // E. Upsert Groups & Options
             if (values.option_groups) {
                 for (const [gIndex, group] of values.option_groups.entries()) {
                     const groupData = {
@@ -344,16 +538,12 @@ export default function ProductFormPage({ params }: PageProps) {
 
                     let groupId = group.id;
 
-                    // Upsert Group
                     if (groupId) {
-                        // DEBUG: Log the group data being updated
                         console.log(`Updating group ${groupId}:`, groupData);
-
                         const { error: updateGroupError } = await supabase
                             .from("product_option_groups")
                             .update(groupData)
                             .eq("id", groupId);
-
                         if (updateGroupError) throw updateGroupError;
                     } else {
                         const { data: newGroup, error: insertGroupError } = await supabase
@@ -367,7 +557,6 @@ export default function ProductFormPage({ params }: PageProps) {
 
                     if (!groupId) continue;
 
-                    // Upsert Options
                     if (group.options) {
                         for (const [oIndex, option] of group.options.entries()) {
                             const optionData = {
@@ -405,74 +594,6 @@ export default function ProductFormPage({ params }: PageProps) {
             setIsSaving(false);
         }
     };
-
-    // Nested Array Component (to avoid hook rules issues with recursion/nesting)
-    const OptionsList = ({ nestIndex, control, pricingMode }: { nestIndex: number; control: Control<FormValues>; pricingMode: 'addon' | 'replacement' }) => {
-        const { fields, append, remove } = useFieldArray({
-            control,
-            name: `option_groups.${nestIndex}.options`,
-        });
-
-        return (
-            <div className="space-y-4">
-                <div className="space-y-3">
-                    {fields.map((item, k) => (
-                        <div key={item.id} className="flex flex-col sm:flex-row sm:items-start gap-3 p-3 sm:p-0 border sm:border-transparent rounded-lg sm:rounded-none bg-muted/10 sm:bg-transparent">
-                            <FormField
-                                control={control}
-                                name={`option_groups.${nestIndex}.options.${k}.name`}
-                                render={({ field }) => (
-                                    <FormItem className="w-full sm:flex-1">
-                                        <FormControl>
-                                            <Input placeholder="Nome da opção" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <div className="flex items-start gap-3 justify-between sm:justify-start w-full sm:w-auto">
-                                <FormField
-                                    control={control}
-                                    name={`option_groups.${nestIndex}.options.${k}.price`}
-                                    render={({ field }) => (
-                                        <FormItem className="flex-1 sm:w-32">
-                                            <FormControl>
-                                                <div className="relative flex items-center">
-                                                    <span className="absolute left-3 text-muted-foreground text-sm">
-                                                        {pricingMode === 'replacement' ? 'R$' : 'R$ +'}
-                                                    </span>
-                                                    <Input type="number" className="pl-10 text-right" placeholder="0.00" {...field} />
-                                                </div>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="flex items-center gap-2 shrink-0 h-10">
-                                    <OptionItemSwitch control={control} nestIndex={nestIndex} k={k} />
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(k)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => append({ name: "", price: 0, is_available: true })}
-                >
-                    <Plus className="mr-2 h-3 w-3" />
-                    Adicionar Opção
-                </Button>
-            </div>
-        );
-    };
-
-    const watchedGroups = useWatch({ control: form.control, name: 'option_groups' })
-    const hasReplacementGroup = watchedGroups?.some((g: { pricing_mode?: string }) => g.pricing_mode === 'replacement') ?? false
 
     if (isLoading || !unwrappedParams) {
         return <div className="space-y-4">
@@ -594,30 +715,7 @@ export default function ProductFormPage({ params }: PageProps) {
                                         </FormItem>
                                     )}
                                 />
-                                <FormField
-                                    control={form.control}
-                                    name="price"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Preço Base (R$)</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    step="0.01"
-                                                    {...field}
-                                                    disabled={hasReplacementGroup}
-                                                    className={hasReplacementGroup ? 'opacity-50' : ''}
-                                                />
-                                            </FormControl>
-                                            {hasReplacementGroup && (
-                                                <FormDescription className="text-amber-600 dark:text-amber-400">
-                                                    Ignorado — o preço é definido pelas opções de tamanho
-                                                </FormDescription>
-                                            )}
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                <PriceField control={form.control} />
                             </div>
 
                             <FormField
@@ -717,123 +815,15 @@ export default function ProductFormPage({ params }: PageProps) {
                             </Button>
                         </div>
 
-                        {groupFields.map((field, index) => {
-                            const currentPricingMode = watchedGroups?.[index]?.pricing_mode ?? 'addon'
-                            return (
-                            <Card key={field.id}>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-base font-medium">
-                                        Grupo de Opções #{index + 1}
-                                    </CardTitle>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => removeGroup(index)}
-                                    >
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </CardHeader>
-                                <CardContent className="space-y-4 pt-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name={`option_groups.${index}.title`}
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Título do Grupo</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="Ex: Borda, Tamanho, Adicionais" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={form.control}
-                                            name={`option_groups.${index}.max_select`}
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Máximo de Seleções</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="number"
-                                                            min={1}
-                                                            {...field}
-                                                            disabled={currentPricingMode === 'replacement'}
-                                                            className={currentPricingMode === 'replacement' ? 'opacity-50' : ''}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-
-                                    <div className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                        <div className="space-y-0.5">
-                                            <FormLabel className="text-base">Obrigatório</FormLabel>
-                                        </div>
-                                        <FormControl>
-                                            <FormField
-                                                control={form.control}
-                                                name={`option_groups.${index}.is_required`}
-                                                render={({ field }) => (
-                                                    <Switch
-                                                        checked={field.value}
-                                                        onCheckedChange={field.onChange}
-                                                    />
-                                                )}
-                                            />
-                                        </FormControl>
-                                    </div>
-
-                                    <FormField
-                                        control={form.control}
-                                        name={`option_groups.${index}.pricing_mode`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <div className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                                    <div className="space-y-0.5">
-                                                        <FormLabel className="text-base">Tipo de Preço</FormLabel>
-                                                        <FormDescription>
-                                                            {currentPricingMode === 'replacement'
-                                                                ? 'Cada opção define o preço total (ex: tamanhos P/M/G)'
-                                                                : 'Cada opção soma ao preço base do produto'
-                                                            }
-                                                        </FormDescription>
-                                                    </div>
-                                                    <Select
-                                                        value={field.value}
-                                                        onValueChange={(val) => {
-                                                            field.onChange(val)
-                                                            if (val === 'replacement') {
-                                                                form.setValue(`option_groups.${index}.max_select`, 1)
-                                                            }
-                                                        }}
-                                                    >
-                                                        <SelectTrigger className="w-36">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="addon">Adicional</SelectItem>
-                                                            <SelectItem value="replacement">Tamanho</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <div className="pl-4 border-l-2">
-                                        <h4 className="text-sm font-medium mb-3">Opções</h4>
-                                        <OptionsList nestIndex={index} control={form.control} pricingMode={currentPricingMode} />
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            )
-                        })}
+                        {groupFields.map((field, index) => (
+                            <GroupCard
+                                key={field.id}
+                                index={index}
+                                control={form.control}
+                                form={form}
+                                onRemove={() => removeGroup(index)}
+                            />
+                        ))}
                     </div>
 
                     <div className="flex justify-end gap-4">
