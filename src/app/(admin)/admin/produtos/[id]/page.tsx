@@ -471,8 +471,8 @@ export default function ProductFormPage({ params }: PageProps) {
         );
     };
 
-    const watchedGroups = form.watch('option_groups')
-    const hasReplacementGroup = watchedGroups?.some(g => g.pricing_mode === 'replacement') ?? false
+    const watchedGroups = useWatch({ control: form.control, name: 'option_groups' })
+    const hasReplacementGroup = watchedGroups?.some((g: { pricing_mode?: string }) => g.pricing_mode === 'replacement') ?? false
 
     if (isLoading || !unwrappedParams) {
         return <div className="space-y-4">
