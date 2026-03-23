@@ -37,7 +37,7 @@ export function generateWhatsAppMessage(order: OrderData): string {
         if (item.selected_options && item.selected_options.length > 0) {
             item.selected_options.forEach(opt => {
                 const optName = opt.option_name || (opt as any).name // Fallback
-                itemStr += `\n   + ${optName}`
+                itemStr += opt.is_replacement ? `\n   ${optName}` : `\n   + ${optName}`
             })
         }
 

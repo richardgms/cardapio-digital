@@ -124,21 +124,33 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
     }
 
     const calculateTotal = () => {
-        let total = halfHalfSelection.enabled && halfHalfSelection.finalPrice > 0
+        let base = halfHalfSelection.enabled && halfHalfSelection.finalPrice > 0
             ? halfHalfSelection.finalPrice
             : product.price
 
+        let replacementApplied = false
+
         product.option_groups?.forEach(group => {
             const selectedIds = selectedOptions[group.id] || []
-            selectedIds.forEach(optionId => {
-                const option = group.options?.find(o => o.id === optionId)
-                if (option) {
-                    total += option.price
+            if (selectedIds.length === 0) return
+
+            if (group.pricing_mode === 'replacement') {
+                if (!replacementApplied) {
+                    const option = group.options?.find(o => o.id === selectedIds[0])
+                    if (option) {
+                        base = option.price
+                        replacementApplied = true
+                    }
                 }
-            })
+            } else {
+                selectedIds.forEach(optionId => {
+                    const option = group.options?.find(o => o.id === optionId)
+                    if (option) base += option.price
+                })
+            }
         })
 
-        return total * quantity
+        return base * quantity
     }
 
     const handleAddToCart = () => {
@@ -179,7 +191,8 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                     cartOptions.push({
                         group_name: group.title,
                         option_name: option.name,
-                        price: option.price
+                        price: option.price,
+                        is_replacement: group.pricing_mode === 'replacement'
                     })
                 }
             })
@@ -311,9 +324,11 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                             <DialogDescription className="mt-2 text-base">
                                 {product.description}
                             </DialogDescription>
-                            <p className="mt-2 font-semibold text-lg text-primary">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
-                            </p>
+                            {!product.option_groups?.some(g => g.pricing_mode === 'replacement') && (
+                                <p className="mt-2 font-semibold text-lg text-primary">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
+                                </p>
+                            )}
                         </div>
 
                         {/* Half Half Selector */}
@@ -370,7 +385,10 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                                                     </div>
                                                     {option.price > 0 && (
                                                         <span className="text-sm text-muted-foreground">
-                                                            + {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(option.price)}
+                                                            {group.pricing_mode === 'replacement'
+                                                                ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(option.price)
+                                                                : `+ ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(option.price)}`
+                                                            }
                                                         </span>
                                                     )}
                                                 </div>
@@ -392,7 +410,10 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                                                     </div>
                                                     {option.price > 0 && (
                                                         <span className="text-sm text-muted-foreground">
-                                                            + {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(option.price)}
+                                                            {group.pricing_mode === 'replacement'
+                                                                ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(option.price)
+                                                                : `+ ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(option.price)}`
+                                                            }
                                                         </span>
                                                     )}
                                                 </div>

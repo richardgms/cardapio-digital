@@ -85,6 +85,7 @@ export interface ProductOptionGroup {
     title: string
     is_required: boolean
     max_select: number
+    pricing_mode: 'addon' | 'replacement'
     sort_order: number
     created_at: string // Note: SQL doesn't show created_at for this table in snippet, but usually has it. Checking snippet... snippet didn't show created_at for option_groups. I'll keep it optional or remove if strict. Snippet: "created_at TIMESTAMPTZ DEFAULT NOW()" is NOT present in snippet 5.1 for option_groups. It has sort_order. I will remove created_at to be safe or keep it if I suspect it exists. The snippet 5.1 shows created_at for products, categories, zones, config. NOT for option_groups or options. I will remove created_at from these types to match snippet.
 

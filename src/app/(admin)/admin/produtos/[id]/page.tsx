@@ -58,6 +58,7 @@ const optionGroupSchema = z.object({
     title: z.string().min(1, "Nome do grupo é obrigatório"),
     is_required: z.boolean().default(false),
     max_select: z.coerce.number().min(1, "Mínimo 1"),
+    pricing_mode: z.enum(['addon', 'replacement']).default('addon'),
     options: z.array(optionSchema),
 });
 
@@ -207,6 +208,7 @@ export default function ProductFormPage({ params }: PageProps) {
                         title: g.title,
                         is_required: g.is_required,
                         max_select: g.max_select,
+                        pricing_mode: (g.pricing_mode ?? 'addon') as 'addon' | 'replacement',
                         options: g.options?.sort((a: any, b: any) => a.sort_order - b.sort_order).map((o: any) => ({
                             id: o.id,
                             name: o.name,
@@ -335,7 +337,8 @@ export default function ProductFormPage({ params }: PageProps) {
                         product_id: productId,
                         title: group.title,
                         is_required: group.is_required,
-                        max_select: group.max_select,
+                        max_select: group.pricing_mode === 'replacement' ? 1 : group.max_select,
+                        pricing_mode: group.pricing_mode,
                         sort_order: gIndex,
                     };
 
@@ -404,7 +407,7 @@ export default function ProductFormPage({ params }: PageProps) {
     };
 
     // Nested Array Component (to avoid hook rules issues with recursion/nesting)
-    const OptionsList = ({ nestIndex, control }: { nestIndex: number; control: Control<FormValues> }) => {
+    const OptionsList = ({ nestIndex, control, pricingMode }: { nestIndex: number; control: Control<FormValues>; pricingMode: 'addon' | 'replacement' }) => {
         const { fields, append, remove } = useFieldArray({
             control,
             name: `option_groups.${nestIndex}.options`,
@@ -435,7 +438,9 @@ export default function ProductFormPage({ params }: PageProps) {
                                         <FormItem className="flex-1 sm:w-32">
                                             <FormControl>
                                                 <div className="relative flex items-center">
-                                                    <span className="absolute left-3 text-muted-foreground text-sm">R$ +</span>
+                                                    <span className="absolute left-3 text-muted-foreground text-sm">
+                                                        {pricingMode === 'replacement' ? 'R$' : 'R$ +'}
+                                                    </span>
                                                     <Input type="number" className="pl-10 text-right" placeholder="0.00" {...field} />
                                                 </div>
                                             </FormControl>
@@ -465,6 +470,9 @@ export default function ProductFormPage({ params }: PageProps) {
             </div>
         );
     };
+
+    const watchedGroups = form.watch('option_groups')
+    const hasReplacementGroup = watchedGroups?.some(g => g.pricing_mode === 'replacement') ?? false
 
     if (isLoading || !unwrappedParams) {
         return <div className="space-y-4">
@@ -591,10 +599,21 @@ export default function ProductFormPage({ params }: PageProps) {
                                     name="price"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Preço (R$)</FormLabel>
+                                            <FormLabel>Preço Base (R$)</FormLabel>
                                             <FormControl>
-                                                <Input type="number" step="0.01" {...field} />
+                                                <Input
+                                                    type="number"
+                                                    step="0.01"
+                                                    {...field}
+                                                    disabled={hasReplacementGroup}
+                                                    className={hasReplacementGroup ? 'opacity-50' : ''}
+                                                />
                                             </FormControl>
+                                            {hasReplacementGroup && (
+                                                <FormDescription className="text-amber-600 dark:text-amber-400">
+                                                    Ignorado — o preço é definido pelas opções de tamanho
+                                                </FormDescription>
+                                            )}
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -691,14 +710,16 @@ export default function ProductFormPage({ params }: PageProps) {
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => appendGroup({ title: "", is_required: false, max_select: 1, options: [] } as any)}
+                                onClick={() => appendGroup({ title: "", is_required: false, max_select: 1, pricing_mode: 'addon', options: [] } as any)}
                             >
                                 <Plus className="mr-2 h-4 w-4" />
                                 Adicionar Grupo
                             </Button>
                         </div>
 
-                        {groupFields.map((field, index) => (
+                        {groupFields.map((field, index) => {
+                            const currentPricingMode = watchedGroups?.[index]?.pricing_mode ?? 'addon'
+                            return (
                             <Card key={field.id}>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                     <CardTitle className="text-base font-medium">
@@ -735,7 +756,13 @@ export default function ProductFormPage({ params }: PageProps) {
                                                 <FormItem>
                                                     <FormLabel>Máximo de Seleções</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" min={1} {...field} />
+                                                        <Input
+                                                            type="number"
+                                                            min={1}
+                                                            {...field}
+                                                            disabled={currentPricingMode === 'replacement'}
+                                                            className={currentPricingMode === 'replacement' ? 'opacity-50' : ''}
+                                                        />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -761,13 +788,52 @@ export default function ProductFormPage({ params }: PageProps) {
                                         </FormControl>
                                     </div>
 
+                                    <FormField
+                                        control={form.control}
+                                        name={`option_groups.${index}.pricing_mode`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <div className="flex flex-row items-center justify-between rounded-lg border p-3">
+                                                    <div className="space-y-0.5">
+                                                        <FormLabel className="text-base">Tipo de Preço</FormLabel>
+                                                        <FormDescription>
+                                                            {currentPricingMode === 'replacement'
+                                                                ? 'Cada opção define o preço total (ex: tamanhos P/M/G)'
+                                                                : 'Cada opção soma ao preço base do produto'
+                                                            }
+                                                        </FormDescription>
+                                                    </div>
+                                                    <Select
+                                                        value={field.value}
+                                                        onValueChange={(val) => {
+                                                            field.onChange(val)
+                                                            if (val === 'replacement') {
+                                                                form.setValue(`option_groups.${index}.max_select`, 1)
+                                                            }
+                                                        }}
+                                                    >
+                                                        <SelectTrigger className="w-36">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="addon">Adicional</SelectItem>
+                                                            <SelectItem value="replacement">Tamanho</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
                                     <div className="pl-4 border-l-2">
                                         <h4 className="text-sm font-medium mb-3">Opções</h4>
-                                        <OptionsList nestIndex={index} control={form.control} />
+                                        <OptionsList nestIndex={index} control={form.control} pricingMode={currentPricingMode} />
                                     </div>
                                 </CardContent>
                             </Card>
-                        ))}
+                            )
+                        })}
                     </div>
 
                     <div className="flex justify-end gap-4">

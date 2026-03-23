@@ -4,6 +4,7 @@ export interface CartItemOption {
     group_name: string
     option_name: string
     price: number
+    is_replacement?: boolean
 }
 
 export interface CartItem {
