@@ -123,34 +123,46 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
         })
     }
 
+    const hasMissingRequiredOptions = !halfHalfSelection.enabled && (product.option_groups?.some(group => {
+        const selections = selectedOptions[group.id] || []
+        return group.is_required && selections.length === 0
+    }) ?? false)
+
     const calculateTotal = () => {
-        let base = halfHalfSelection.enabled && halfHalfSelection.finalPrice > 0
+        if (hasMissingRequiredOptions) return 0
+
+        let replacementPrice: number | null = null
+        let addonsTotal = 0
+
+        // 1. Definir o preço base inicial (produto ou meio-a-meio)
+        const initialBase = halfHalfSelection.enabled && halfHalfSelection.finalPrice > 0
             ? halfHalfSelection.finalPrice
             : product.price
 
-        let replacementApplied = false
-
+        // 2. Processar grupos de opções para encontrar replacements e somar addons
         product.option_groups?.forEach(group => {
             const selectedIds = selectedOptions[group.id] || []
             if (selectedIds.length === 0) return
 
             if (group.pricing_mode === 'replacement') {
-                if (!replacementApplied) {
-                    const option = group.options?.find(o => o.id === selectedIds[0])
-                    if (option) {
-                        base = option.price
-                        replacementApplied = true
-                    }
+                // Para simplificar, o último replacement processado ganha.
+                // Geralmente só há um grupo de replacement (ex: Tamanho).
+                const option = group.options?.find(o => o.id === selectedIds[0])
+                if (option) {
+                    replacementPrice = option.price
                 }
             } else {
                 selectedIds.forEach(optionId => {
                     const option = group.options?.find(o => o.id === optionId)
-                    if (option) base += option.price
+                    if (option) addonsTotal += option.price
                 })
             }
         })
 
-        return base * quantity
+        // 3. O preço base final é o replacement (se existir) ou o inicial
+        const finalBase = replacementPrice !== null ? replacementPrice : initialBase
+        
+        return (finalBase + addonsTotal) * quantity
     }
 
     const handleAddToCart = () => {
@@ -481,9 +493,16 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                             </span>
                         </div>
                     </div >
-                    <Button className="w-full" size="lg" onClick={handleAddToCart}>
-                        Adicionar ao Pedido
-                    </Button>
+                    <div className="w-full space-y-2">
+                        <Button className="w-full" size="lg" onClick={handleAddToCart} disabled={hasMissingRequiredOptions}>
+                            Adicionar ao Pedido
+                        </Button>
+                        {hasMissingRequiredOptions && (
+                            <p className="text-xs text-destructive/80 text-center font-medium animate-in fade-in">
+                                Selecione as opções obrigatórias para habilitar o botão
+                            </p>
+                        )}
+                    </div>
                 </div >
             </DialogContent>
 

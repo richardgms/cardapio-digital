@@ -50,5 +50,6 @@ next-env.d.ts
 # Local docs
 docs/
 
-# Claude Code local settings
-.claude/
+# router-pro cache
+.cache/
+router_output.txt

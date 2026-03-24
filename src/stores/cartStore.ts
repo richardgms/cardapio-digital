@@ -61,6 +61,34 @@ export const useCartStore = create<CartState & CartActions>()(
         }),
         {
             name: 'cardapio-cart',
+            version: 1,
+            migrate: (persistedState: any, version: number) => {
+                if (version === 0) {
+                    const state = persistedState as any
+                    if (state && Array.isArray(state.items)) {
+                        const sanitizedItems = state.items.filter((item: any) => {
+                            if (item.half_half?.enabled) return true
+
+                            const product = item.product
+                            if (!product || !Array.isArray(product.option_groups)) return true
+
+                            const requiredGroups = product.option_groups.filter((g: any) => g.is_required)
+                            
+                            const hasAllRequired = requiredGroups.every((reqGroup: any) => {
+                                return item.selected_options?.some((opt: any) => opt.group_name === reqGroup.title)
+                            })
+
+                            return hasAllRequired
+                        })
+
+                        return {
+                            ...state,
+                            items: sanitizedItems
+                        }
+                    }
+                }
+                return persistedState as any
+            }
         }
     )
 )
