@@ -79,18 +79,28 @@ export interface Product {
     option_groups?: ProductOptionGroup[]
 }
 
+export interface GroupSizeRule {
+    id: string
+    group_id: string        // grupo addon que receberá o limite (ex: Proteínas)
+    source_group_id: string // grupo replacement dono do tamanho (ex: Tamanho)
+    size_option_id: string  // opção de tamanho que ativa a regra (ex: G)
+    max_select: number      // limite quando este tamanho está selecionado
+    created_at: string
+}
+
 export interface ProductOptionGroup {
     id: string
     product_id: string
     title: string
     is_required: boolean
-    max_select: number
+    max_select: number      // fallback para tamanhos sem regra específica
     pricing_mode: 'addon' | 'replacement'
     sort_order: number
-    created_at: string // Note: SQL doesn't show created_at for this table in snippet, but usually has it. Checking snippet... snippet didn't show created_at for option_groups. I'll keep it optional or remove if strict. Snippet: "created_at TIMESTAMPTZ DEFAULT NOW()" is NOT present in snippet 5.1 for option_groups. It has sort_order. I will remove created_at to be safe or keep it if I suspect it exists. The snippet 5.1 shows created_at for products, categories, zones, config. NOT for option_groups or options. I will remove created_at from these types to match snippet.
+    created_at: string
 
     // Joins
     options?: ProductOption[]
+    size_rules?: GroupSizeRule[]
 }
 
 export interface ProductOption {
@@ -100,5 +110,4 @@ export interface ProductOption {
     price: number
     sort_order: number
     is_available?: boolean
-    // created_at removed
 }
