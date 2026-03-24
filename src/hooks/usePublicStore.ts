@@ -8,12 +8,31 @@ export type StoreWithHours = StoreConfig & {
 }
 
 /**
- * Get subdomain from cookie (set by middleware)
+ * Get subdomain directly from window.location.hostname.
+ * More reliable than reading the cookie, which may not be available
+ * on the first render cycle (before the browser applies Set-Cookie).
  */
-function getSubdomainFromCookie(): string | null {
-    if (typeof document === 'undefined') return null
-    const match = document.cookie.match(/(?:^|; )subdomain=([^;]*)/)
-    return match ? decodeURIComponent(match[1]) : null
+function getSubdomainFromHostname(): string | null {
+    if (typeof window === 'undefined') return null
+
+    const hostname = window.location.hostname
+    const rootDomain = (process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost').split(':')[0]
+
+    // Local development: nutribox.localhost
+    if (hostname.endsWith('.localhost') || hostname.endsWith('.local')) {
+        const parts = hostname.split('.')
+        return parts.length >= 2 ? parts[0] : null
+    }
+
+    // Production: nutribox.rmenu.com.br
+    if (hostname === rootDomain || hostname === `www.${rootDomain}`) return null
+
+    if (hostname.endsWith(`.${rootDomain}`)) {
+        const subdomain = hostname.replace(`.${rootDomain}`, '')
+        return subdomain === 'www' ? null : subdomain
+    }
+
+    return null
 }
 
 /**
@@ -38,7 +57,7 @@ export function usePublicStore() {
         try {
             setLoading(true)
             const supabase = createClient()
-            const subdomain = getSubdomainFromCookie()
+            const subdomain = getSubdomainFromHostname()
 
             let query = supabase
                 .from('store_config')
