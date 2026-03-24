@@ -324,11 +324,25 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                             <DialogDescription className="mt-2 text-base">
                                 {product.description}
                             </DialogDescription>
-                            {!product.option_groups?.some(g => g.pricing_mode === 'replacement') && (
-                                <p className="mt-2 font-semibold text-lg text-primary">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
-                                </p>
-                            )}
+                            {(() => {
+                                const replacementGroup = product.option_groups?.find(g => g.pricing_mode === 'replacement')
+                                if (replacementGroup?.options?.length) {
+                                    const selectedId = selectedOptions[replacementGroup.id]?.[0]
+                                    const selectedOption = replacementGroup.options.find(o => o.id === selectedId)
+                                    const minPrice = Math.min(...replacementGroup.options.filter(o => o.is_available !== false).map(o => o.price))
+                                    const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+                                    return (
+                                        <p className="mt-2 font-semibold text-lg text-primary">
+                                            {selectedOption ? fmt(selectedOption.price) : `A partir de ${fmt(minPrice)}`}
+                                        </p>
+                                    )
+                                }
+                                return (
+                                    <p className="mt-2 font-semibold text-lg text-primary">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
+                                    </p>
+                                )
+                            })()}
                         </div>
 
                         {/* Half Half Selector */}

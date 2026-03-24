@@ -15,6 +15,11 @@ export function ProductCard({ product, onSelect, disabled = false, priority = fa
     const hasOptions = (product.option_groups?.length ?? 0) > 0 || product.allows_half_half
     const isAvailable = product.is_available
 
+    const replacementGroup = product.option_groups?.find(g => g.pricing_mode === 'replacement')
+    const minReplacementPrice = replacementGroup?.options?.length
+        ? Math.min(...replacementGroup.options.filter(o => o.is_available !== false).map(o => o.price))
+        : null
+
     const handleAddClick = (e: React.MouseEvent) => {
         e.stopPropagation()
         if (!disabled && isAvailable) {
@@ -40,7 +45,10 @@ export function ProductCard({ product, onSelect, disabled = false, priority = fa
                     </p>
                 )}
                 <p className="text-foreground font-semibold mt-2">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
+                    {minReplacementPrice !== null
+                        ? `A partir de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(minReplacementPrice)}`
+                        : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)
+                    }
                 </p>
                 {!isAvailable && (
                     <span className="text-xs font-bold text-destructive mt-1 block">
