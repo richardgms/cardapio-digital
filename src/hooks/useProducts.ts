@@ -90,7 +90,12 @@ export function useProducts(): UseProductsReturn {
                 // Sort nested relations (Supabase doesn't always guarantee order of nested arrays)
                 const sortedProducts = productsData.map(product => ({
                     ...product,
-                    option_groups: product.option_groups?.sort((a: ProductOptionGroup, b: ProductOptionGroup) => a.sort_order - b.sort_order).map((group: ProductOptionGroup) => ({
+                    option_groups: product.option_groups?.sort((a: ProductOptionGroup, b: ProductOptionGroup) => {
+                            const aIsReplacement = a.pricing_mode === 'replacement' ? -1 : 1
+                            const bIsReplacement = b.pricing_mode === 'replacement' ? -1 : 1
+                            if (aIsReplacement !== bIsReplacement) return aIsReplacement - bIsReplacement
+                            return a.sort_order - b.sort_order
+                        }).map((group: ProductOptionGroup) => ({
                         ...group,
                         options: group.options
                             ?.filter((o: ProductOption) => o.is_available !== false)

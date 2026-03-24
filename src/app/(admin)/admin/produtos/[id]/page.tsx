@@ -416,7 +416,7 @@ export default function ProductFormPage({ params }: PageProps) {
 
                     if (groupsError) throw groupsError;
 
-                    const formattedGroups = groups?.map(g => ({
+                    const formattedGroups = (groups?.map(g => ({
                         id: g.id,
                         title: g.title,
                         is_required: g.is_required,
@@ -428,7 +428,11 @@ export default function ProductFormPage({ params }: PageProps) {
                             price: o.price,
                             is_available: o.is_available ?? true
                         })) || []
-                    })) || [];
+                    })) || []).sort((a, b) => {
+                        const aR = a.pricing_mode === 'replacement' ? -1 : 1
+                        const bR = b.pricing_mode === 'replacement' ? -1 : 1
+                        return aR - bR
+                    });
 
                     form.reset({
                         name: product.name,
