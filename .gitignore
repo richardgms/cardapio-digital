@@ -47,5 +47,8 @@ next-env.d.ts
 **/.agent
 **/.agent(legacy)
 
-# SaaS Guide
-docs/GUIA_SAAS_COMPLETO.md
+# Local docs
+docs/
+
+# Claude Code local settings
+.claude/
