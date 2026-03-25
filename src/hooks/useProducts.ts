@@ -59,7 +59,8 @@ export function useProducts(): UseProductsReturn {
                         category:categories(*),
                         option_groups:product_option_groups(
                             *,
-                            options:product_options(*)
+                            options:product_options(*),
+                            size_rules:group_size_rules!group_size_rules_group_id_fkey(*)
                         )
                     `)
                     .eq('store_id', storeId)
@@ -84,20 +85,10 @@ export function useProducts(): UseProductsReturn {
                     }))
                 }))
 
-                // WARNING: Debug log for Max Select issue
-                if (sortedProducts.length > 0) {
-                    const debugGroup = sortedProducts
-                        .flatMap(p => p.option_groups)
-                        .find(g => g?.id === 'c573b4d0-5904-4989-9abc-4e62478d75ca');
-                    if (debugGroup) {
-                        console.log('useProducts: Fetched Group Data:', debugGroup);
-                    }
-                }
-
                 setProducts(sortedProducts)
 
             } catch (err: any) {
-                console.error('Erro ao carregar produtos:', err)
+                console.error('Erro ao carregar produtos:', err?.message, err?.code, err?.details, err?.hint)
                 setError(err.message || 'Erro ao carregar cardápio')
             } finally {
                 setLoading(false)

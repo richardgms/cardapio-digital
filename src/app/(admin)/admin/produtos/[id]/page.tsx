@@ -40,10 +40,12 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ImageUpload } from "@/components/admin/ImageUpload";
-import { Trash2, Plus, GripVertical } from "lucide-react";
+import { Trash2, Plus, GripVertical, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
+import { SizeRulesModal } from "@/components/admin/SizeRulesModal";
+import { ReorderGroupsModal } from "@/components/admin/ReorderGroupsModal";
 
 // --- Schema ---
 const optionSchema = z.object({
@@ -191,25 +193,50 @@ const OptionsList = ({ nestIndex, control, pricingMode }: { nestIndex: number; c
     );
 };
 
+interface ReplacementGroupForModal {
+    id: string
+    title: string
+    options: Array<{ id: string; name: string; is_available?: boolean }>
+}
+
 interface GroupCardProps {
     index: number;
     control: Control<FormValues>;
     form: UseFormReturn<FormValues>;
     onRemove: () => void;
+    replacementGroups: ReplacementGroupForModal[];
 }
 
-const GroupCard = ({ index, control, form, onRemove }: GroupCardProps) => {
+const GroupCard = ({ index, control, form, onRemove, replacementGroups }: GroupCardProps) => {
     const currentPricingMode = useWatch({ control, name: `option_groups.${index}.pricing_mode` }) ?? 'addon';
+    const groupDbId = useWatch({ control, name: `option_groups.${index}.id` })
+    const groupTitle = useWatch({ control, name: `option_groups.${index}.title` })
+    const groupMaxSelect = useWatch({ control, name: `option_groups.${index}.max_select` })
+    const [openSizeRules, setOpenSizeRules] = useState(false)
+
+    const showSizeRulesButton =
+        currentPricingMode === 'addon' &&
+        !!groupDbId &&
+        replacementGroups.some(g => g.options.length > 0)
 
     return (
+        <>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-base font-medium">
                     Grupo de Opções #{index + 1}
                 </CardTitle>
-                <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <div className="flex items-center gap-2">
+                    {showSizeRulesButton && (
+                        <Button type="button" variant="outline" size="sm" onClick={() => setOpenSizeRules(true)}>
+                            <SlidersHorizontal className="h-4 w-4 mr-1" />
+                            Regras por tamanho
+                        </Button>
+                    )}
+                    <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -309,6 +336,15 @@ const GroupCard = ({ index, control, form, onRemove }: GroupCardProps) => {
                 </div>
             </CardContent>
         </Card>
+        {showSizeRulesButton && groupDbId && (
+            <SizeRulesModal
+                open={openSizeRules}
+                onOpenChange={setOpenSizeRules}
+                group={{ id: groupDbId, title: groupTitle || "", max_select: groupMaxSelect ?? 1 }}
+                replacementGroups={replacementGroups}
+            />
+        )}
+        </>
     );
 };
 
@@ -359,6 +395,9 @@ export default function ProductFormPage({ params }: PageProps) {
     const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(null);
+    const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+    const [reorderGroupsOpen, setReorderGroupsOpen] = useState(false);
 
     useEffect(() => {
         params.then(setUnwrappedParams);
@@ -383,6 +422,45 @@ export default function ProductFormPage({ params }: PageProps) {
         control: form.control,
         name: "option_groups",
     });
+
+    const watchedGroups = form.watch("option_groups");
+    const replacementGroupsForModal: ReplacementGroupForModal[] = (watchedGroups ?? [])
+        .filter((g: any) => g.pricing_mode === 'replacement' && g.id)
+        .map((g: any) => ({
+            id: g.id as string,
+            title: g.title || "",
+            options: (g.options || [])
+                .filter((o: any) => o.id)
+                .map((o: any) => ({ id: o.id as string, name: o.name || "", is_available: o.is_available })),
+        }));
+
+    const handleGroupsReordered = (newOrderedIds: string[]) => {
+        const currentGroups = form.getValues("option_groups");
+        const reordered = newOrderedIds
+            .map(id => currentGroups.find((g: any) => g.id === id))
+            .filter(Boolean) as typeof currentGroups;
+        // Preserve any unsaved (new) groups at the end
+        const unsaved = currentGroups.filter((g: any) => !g.id);
+        form.setValue("option_groups", [...reordered, ...unsaved]);
+    };
+
+    const handleRemoveGroup = async (index: number) => {
+        const group = form.getValues(`option_groups.${index}`);
+        if (group.pricing_mode !== 'replacement' || !group.id) {
+            removeGroup(index);
+            return;
+        }
+        const { count, error } = await supabase
+            .from("group_size_rules")
+            .select("*", { count: "exact", head: true })
+            .eq("source_group_id", group.id);
+        if (!error && count && count > 0) {
+            setPendingDeleteIndex(index);
+            setDeleteAlertOpen(true);
+        } else {
+            removeGroup(index);
+        }
+    };
 
     useEffect(() => {
         if (!unwrappedParams) return;
@@ -607,6 +685,30 @@ export default function ProductFormPage({ params }: PageProps) {
     }
 
     return (
+        <>
+        <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir grupo com regras ativas?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Este grupo possui regras de tamanho configuradas. Excluir irá apagar todas as regras associadas. Deseja continuar?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setPendingDeleteIndex(null)}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                        className="bg-destructive hover:bg-destructive/90"
+                        onClick={() => {
+                            if (pendingDeleteIndex !== null) removeGroup(pendingDeleteIndex);
+                            setPendingDeleteIndex(null);
+                            setDeleteAlertOpen(false);
+                        }}
+                    >
+                        Excluir mesmo assim
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
         <div className="space-y-6 max-w-4xl mx-auto pb-20">
             <Breadcrumb items={[
                 { label: "Dashboard", href: "/admin" },
@@ -809,14 +911,26 @@ export default function ProductFormPage({ params }: PageProps) {
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-semibold">Opções do Produto</h2>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => appendGroup({ title: "", is_required: false, max_select: 1, pricing_mode: 'addon', options: [] } as any)}
-                            >
-                                <Plus className="mr-2 h-4 w-4" />
-                                Adicionar Grupo
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                {(watchedGroups ?? []).filter((g: any) => g.id).length > 1 && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setReorderGroupsOpen(true)}
+                                    >
+                                        <GripVertical className="mr-2 h-4 w-4" />
+                                        Reordenar
+                                    </Button>
+                                )}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => appendGroup({ title: "", is_required: false, max_select: 1, pricing_mode: 'addon', options: [] } as any)}
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Adicionar Grupo
+                                </Button>
+                            </div>
                         </div>
 
                         {groupFields.map((field, index) => (
@@ -825,10 +939,24 @@ export default function ProductFormPage({ params }: PageProps) {
                                 index={index}
                                 control={form.control}
                                 form={form}
-                                onRemove={() => removeGroup(index)}
+                                onRemove={() => handleRemoveGroup(index)}
+                                replacementGroups={replacementGroupsForModal}
                             />
                         ))}
                     </div>
+
+                    <ReorderGroupsModal
+                        open={reorderGroupsOpen}
+                        onOpenChange={setReorderGroupsOpen}
+                        groups={(watchedGroups ?? [])
+                            .filter((g: any) => g.id)
+                            .map((g: any) => ({
+                                id: g.id as string,
+                                title: g.title || "",
+                                pricing_mode: g.pricing_mode as "addon" | "replacement",
+                            }))}
+                        onSaved={handleGroupsReordered}
+                    />
 
                     <div className="flex justify-end gap-4">
                         <Button type="button" variant="outline" onClick={() => router.back()}>
@@ -841,5 +969,6 @@ export default function ProductFormPage({ params }: PageProps) {
                 </form>
             </Form>
         </div>
+        </>
     );
 }

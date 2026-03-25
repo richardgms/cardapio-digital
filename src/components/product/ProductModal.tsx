@@ -13,6 +13,7 @@ import { useCartStore } from "@/stores/cartStore"
 import { toast } from "sonner"
 import type { Product, ProductOption } from "@/types/database"
 import type { CartItemOption } from "@/types/cart"
+import { getEffectiveMaxSelect } from "@/lib/sizeRules"
 import { HalfHalfSelector } from "./HalfHalfSelector"
 import { cn } from "@/lib/utils"
 
@@ -99,23 +100,46 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
         if (emblaApi) emblaApi.scrollTo(index)
     }
 
-    const handleOptionChange = (groupId: string, optionId: string, maxSelect: number, isRadio: boolean) => {
+    const handleOptionChange = (groupId: string, optionId: string, isRadio: boolean) => {
         if (validationErrors.includes(groupId)) {
             setValidationErrors(prev => prev.filter(id => id !== groupId))
+        }
+
+        if (isRadio) {
+            setSelectedOptions(prev => ({ ...prev, [groupId]: [optionId] }))
+
+            // After size change in a replacement group, scroll to first addon group with excess
+            const changedGroup = product.option_groups?.find(g => g.id === groupId)
+            if (changedGroup?.pricing_mode === 'replacement') {
+                const newSelected = { ...selectedOptions, [groupId]: [optionId] }
+                const repGroups = product.option_groups?.filter(g => g.pricing_mode === 'replacement') ?? []
+                const firstExcess = product.option_groups?.find(g => {
+                    if (g.pricing_mode === 'replacement') return false
+                    const selections = newSelected[g.id] || []
+                    return selections.length > getEffectiveMaxSelect(g, newSelected, repGroups)
+                })
+                if (firstExcess) {
+                    setTimeout(() => {
+                        document.getElementById(`group-${firstExcess.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }, 100)
+                }
+            }
+            return
         }
 
         setSelectedOptions(prev => {
             const current = prev[groupId] || []
 
-            if (isRadio) {
-                return { ...prev, [groupId]: [optionId] }
-            }
-
             if (current.includes(optionId)) {
                 return { ...prev, [groupId]: current.filter(id => id !== optionId) }
             }
 
-            if (current.length < maxSelect) {
+            const group = product.option_groups?.find(g => g.id === groupId)
+            if (!group) return prev
+
+            const repGroups = product.option_groups?.filter(g => g.pricing_mode === 'replacement') ?? []
+            const effectiveMax = getEffectiveMaxSelect(group, prev, repGroups)
+            if (current.length < effectiveMax) {
                 return { ...prev, [groupId]: [...current, optionId] }
             }
 
@@ -123,9 +147,17 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
         })
     }
 
+    const replacementGroups = product.option_groups?.filter(g => g.pricing_mode === 'replacement') ?? []
+
     const hasMissingRequiredOptions = !halfHalfSelection.enabled && (product.option_groups?.some(group => {
         const selections = selectedOptions[group.id] || []
         return group.is_required && selections.length === 0
+    }) ?? false)
+
+    const hasExcessErrors = !halfHalfSelection.enabled && (product.option_groups?.some(group => {
+        if (group.pricing_mode === 'replacement') return false
+        const selections = selectedOptions[group.id] || []
+        return selections.length > getEffectiveMaxSelect(group, selectedOptions, replacementGroups)
     }) ?? false)
 
     const calculateTotal = () => {
@@ -369,37 +401,46 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                         {/* Options Groups */}
                         {!halfHalfSelection.enabled && product.option_groups?.map(group => {
                             const hasError = validationErrors.includes(group.id)
+                            const effectiveMax = getEffectiveMaxSelect(group, selectedOptions, replacementGroups)
+                            const hasExcess = group.pricing_mode !== 'replacement' && (selectedOptions[group.id]?.length ?? 0) > effectiveMax
+                            const showErrorStyle = hasError || hasExcess
                             return (
                                 <div
                                     key={group.id}
                                     id={`group-${group.id}`}
                                     className={cn(
                                         "space-y-3 p-3 rounded-xl transition-all",
-                                        hasError ? "bg-destructive/5 border border-destructive/20" : ""
+                                        showErrorStyle ? "bg-destructive/5 border border-destructive/20" : ""
                                     )}
                                 >
                                     <div className="flex flex-col gap-1">
                                         <div className="flex items-center justify-between">
-                                            <Label className={cn("text-base font-semibold", hasError && "text-destructive")}>
+                                            <Label className={cn("text-base font-semibold", showErrorStyle && "text-destructive")}>
                                                 {group.title}
                                                 {group.is_required && <span className="text-destructive ml-1">*</span>}
                                             </Label>
                                             <span className="text-xs text-muted-foreground">
-                                                {group.max_select === 1 ? 'Escolha 1' : `Até ${group.max_select}`}
+                                                {effectiveMax === 1 ? 'Escolha 1' : `Até ${effectiveMax}`}
                                             </span>
                                         </div>
-                                        {hasError && (
+                                        {hasError && !hasExcess && (
                                             <div className="flex items-center gap-1 text-xs text-destructive font-medium animate-in slide-in-from-left-2 fade-in">
                                                 <AlertCircle className="h-3 w-3" />
                                                 Campo obrigatório
                                             </div>
                                         )}
+                                        {hasExcess && (
+                                            <div className="flex items-center gap-1 text-xs text-destructive font-medium animate-in slide-in-from-left-2 fade-in">
+                                                <AlertCircle className="h-3 w-3" />
+                                                Este tamanho permite apenas {effectiveMax} opção{effectiveMax !== 1 ? 'ões' : ''}. Remova o excesso para continuar.
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {group.max_select === 1 ? (
+                                    {effectiveMax === 1 ? (
                                         <RadioGroup
                                             value={selectedOptions[group.id]?.[0]}
-                                            onValueChange={(val) => handleOptionChange(group.id, val, 1, true)}
+                                            onValueChange={(val) => handleOptionChange(group.id, val, true)}
                                         >
                                             {group.options?.map(option => (
                                                 <div key={option.id} className="flex items-center justify-between space-x-2 border p-3 rounded-lg bg-background">
@@ -428,7 +469,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                                                         <Checkbox
                                                             id={option.id}
                                                             checked={selectedOptions[group.id]?.includes(option.id)}
-                                                            onCheckedChange={() => handleOptionChange(group.id, option.id, group.max_select, false)}
+                                                            onCheckedChange={() => handleOptionChange(group.id, option.id, false)}
                                                         />
                                                         <Label htmlFor={option.id} className="font-normal cursor-pointer w-full">
                                                             {option.name}
@@ -494,12 +535,17 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                         </div>
                     </div >
                     <div className="w-full space-y-2">
-                        <Button className="w-full" size="lg" onClick={handleAddToCart} disabled={hasMissingRequiredOptions}>
+                        <Button className="w-full" size="lg" onClick={handleAddToCart} disabled={hasMissingRequiredOptions || hasExcessErrors}>
                             Adicionar ao Pedido
                         </Button>
                         {hasMissingRequiredOptions && (
                             <p className="text-xs text-destructive/80 text-center font-medium animate-in fade-in">
                                 Selecione as opções obrigatórias para habilitar o botão
+                            </p>
+                        )}
+                        {!hasMissingRequiredOptions && hasExcessErrors && (
+                            <p className="text-xs text-destructive/80 text-center font-medium animate-in fade-in">
+                                Ajuste as opções acima para o tamanho selecionado
                             </p>
                         )}
                     </div>
