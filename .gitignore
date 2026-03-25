@@ -56,3 +56,13 @@ docs/
 # router-pro cache
 .cache/
 router_output.txt
+
+# PWA generated files (rebuilt by next-pwa on each build)
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+public/swe-worker-*.js
+public/swe-worker-*.js.map
+public/fallback-*.js
+public/fallback-*.js.map

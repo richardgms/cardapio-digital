@@ -57,6 +57,7 @@ export function SizeRulesModal({ open, onOpenChange, group, replacementGroups }:
             .then(({ data, error }) => {
                 if (error) {
                     toast.error("Erro ao carregar regras de tamanho")
+                    setIsFetching(false)
                     return
                 }
                 const rules = data || []
@@ -66,8 +67,8 @@ export function SizeRulesModal({ open, onOpenChange, group, replacementGroups }:
                     init[r.size_option_id] = String(r.max_select)
                 })
                 setValues(init)
+                setIsFetching(false)
             })
-            .finally(() => setIsFetching(false))
     }, [open, group.id])
 
     const handleSave = async () => {

@@ -14,20 +14,34 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cardápio Digital",
+  applicationName: "Cardápio Digital",
+  title: {
+    default: "Cardápio Digital",
+    template: "%s | Cardápio Digital",
+  },
   description: "Faça seu pedido online",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Cardápio Digital",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   openGraph: {
     title: "Cardápio Digital",
     description: "Faça seu pedido online",
     type: "website",
     locale: "pt_BR",
+    siteName: "Cardápio Digital",
   },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#ffffff",
+  themeColor: "#f97316",
 };
 
 export default function RootLayout({
