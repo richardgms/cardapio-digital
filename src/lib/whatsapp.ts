@@ -100,7 +100,7 @@ export function generateWhatsAppMessage(order: OrderData): string {
     totalsLines.push(`*TOTAL: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total)}*`)
     const totals = totalsLines.join('\n')
 
-    const footer = `\n_Pedido gerado via Cardápio Digital_`
+    const footer = `\n_Pedido gerado via RMenu Digital_`
 
     // Combine all sections with separators
     // Build header with table tag if applicable
