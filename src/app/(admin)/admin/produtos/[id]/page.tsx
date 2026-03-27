@@ -640,7 +640,12 @@ export default function ProductFormPage({ params }: PageProps) {
                     if (!groupId) continue;
 
                     if (group.options) {
-                        for (const [oIndex, option] of group.options.entries()) {
+                        // Para grupos replacement (ex: Tamanho), ordenar por preço crescente
+                        const sortedOptions = group.pricing_mode === 'replacement'
+                            ? [...group.options].sort((a, b) => (a.price || 0) - (b.price || 0))
+                            : group.options;
+
+                        for (const [oIndex, option] of sortedOptions.entries()) {
                             const optionData = {
                                 group_id: groupId,
                                 name: option.name,

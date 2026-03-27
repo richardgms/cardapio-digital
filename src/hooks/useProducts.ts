@@ -81,7 +81,11 @@ export function useProducts(): UseProductsReturn {
                         ...group,
                         options: group.options
                             ?.filter((o: ProductOption) => o.is_available !== false)
-                            .sort((a: ProductOption, b: ProductOption) => a.sort_order - b.sort_order)
+                            .sort((a: ProductOption, b: ProductOption) =>
+                                group.pricing_mode === 'replacement'
+                                    ? a.price - b.price
+                                    : a.sort_order - b.sort_order
+                            )
                     }))
                 }))
 
