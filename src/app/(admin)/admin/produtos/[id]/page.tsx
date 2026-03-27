@@ -640,10 +640,12 @@ export default function ProductFormPage({ params }: PageProps) {
                     if (!groupId) continue;
 
                     if (group.options) {
-                        // Para grupos replacement (ex: Tamanho), ordenar por preço crescente
-                        const sortedOptions = group.pricing_mode === 'replacement'
-                            ? [...group.options].sort((a, b) => (a.price || 0) - (b.price || 0))
-                            : group.options;
+                        // Ordenar opções por preço crescente, desempate alfabético
+                        const sortedOptions = [...group.options].sort((a, b) => {
+                            const priceDiff = (a.price || 0) - (b.price || 0)
+                            if (priceDiff !== 0) return priceDiff
+                            return a.name.localeCompare(b.name, 'pt-BR')
+                        });
 
                         for (const [oIndex, option] of sortedOptions.entries()) {
                             const optionData = {
