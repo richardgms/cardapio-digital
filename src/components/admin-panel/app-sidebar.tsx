@@ -20,7 +20,8 @@ import {
     MapPin,
     Settings,
     UtensilsCrossed,
-    Clock
+    Clock,
+    ClipboardList
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -43,6 +44,11 @@ export function AppSidebar() {
                         title: 'Dashboard',
                         url: '/admin',
                         icon: LayoutDashboard,
+                    },
+                    {
+                        title: 'Pedidos',
+                        url: '/admin/pedidos',
+                        icon: ClipboardList,
                     }
                 ]
             },
