@@ -536,6 +536,11 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
 
     const onSubmit = async (values: FormValues) => {
         setIsSaving(true);
+        // DIAGNÓSTICO TEMPORÁRIO — remover após identificar o bug
+        const debugInfo = values.option_groups.flatMap((g: any) =>
+            (g.options || []).map((o: any) => `${o.name}=${o.is_available}`)
+        ).join(' | ');
+        toast.info(`[DEBUG] ${debugInfo}`, { duration: 10000 });
         try {
             if (isImpersonating && storeId) {
                 // Modo simulador (Super Admin)
