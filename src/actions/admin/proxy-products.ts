@@ -214,27 +214,44 @@ export async function saveProductAsProxy(storeId: string, productId: string, val
 
                 if (!groupId) continue;
 
-                // Apagar todas as opções existentes do grupo e reinserir do formulário
-                const { error: doError } = await adminClient.from("product_options").delete().eq("group_id", groupId);
-                if (doError) throw doError;
+                // Buscar opções existentes do grupo no DB
+                const { data: existingOpts, error: fetchOptsError } = await adminClient
+                    .from("product_options")
+                    .select("id")
+                    .eq("group_id", groupId);
+                if (fetchOptsError) throw fetchOptsError;
 
+                const existingOptIds = new Set((existingOpts || []).map(o => o.id as string));
+                const formOptIds = new Set((group.options || []).map(o => o.id).filter(Boolean) as string[]);
+
+                // Excluir apenas opções removidas do formulário (limpando FK de group_size_rules primeiro)
+                const optsToDelete = [...existingOptIds].filter(id => !formOptIds.has(id));
+                if (optsToDelete.length > 0) {
+                    const { error: dsrError } = await adminClient.from("group_size_rules").delete().in("size_option_id", optsToDelete);
+                    if (dsrError) throw dsrError;
+                    const { error: doError } = await adminClient.from("product_options").delete().in("id", optsToDelete);
+                    if (doError) throw doError;
+                }
+
+                // Atualizar opções existentes ou inserir novas
                 if (group.options && group.options.length > 0) {
-                    const sortedOptions = [...group.options].sort((a, b) => {
-                        const priceDiff = (a.price || 0) - (b.price || 0);
-                        if (priceDiff !== 0) return priceDiff;
-                        return a.name.localeCompare(b.name, 'pt-BR');
-                    });
+                    for (const [oIndex, option] of group.options.entries()) {
+                        const optData = {
+                            group_id: groupId as string,
+                            name: option.name,
+                            price: option.price,
+                            sort_order: oIndex,
+                            is_available: option.is_available !== false,
+                        };
 
-                    const optionsToInsert = sortedOptions.map((option, oIndex) => ({
-                        group_id: groupId as string,
-                        name: option.name,
-                        price: option.price,
-                        sort_order: oIndex,
-                        is_available: option.is_available !== false,
-                    }));
-
-                    const { error: ioError } = await adminClient.from("product_options").insert(optionsToInsert);
-                    if (ioError) throw ioError;
+                        if (option.id && existingOptIds.has(option.id)) {
+                            const { error } = await adminClient.from("product_options").update(optData).eq("id", option.id);
+                            if (error) throw error;
+                        } else {
+                            const { error } = await adminClient.from("product_options").insert(optData);
+                            if (error) throw error;
+                        }
+                    }
                 }
             }
         }

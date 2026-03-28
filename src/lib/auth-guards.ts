@@ -30,7 +30,7 @@ export async function withSuperAdmin<T>(
     action: (adminClient: SupabaseClient, user: User) => Promise<T>
 ): Promise<T> {
     const user = await validateSuperAdmin()
-    const adminClient = await createAdminClient()
+    const adminClient = createAdminClient()
     
     return action(adminClient, user)
 }
