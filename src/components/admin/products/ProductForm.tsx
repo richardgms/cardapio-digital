@@ -536,18 +536,10 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
 
     const onSubmit = async (values: FormValues) => {
         setIsSaving(true);
-        // DIAGNÓSTICO TEMPORÁRIO — remover após identificar o bug
-        const debugInfo = values.option_groups.flatMap((g: any) =>
-            (g.options || []).map((o: any) => `${o.name}=${o.is_available}`)
-        ).join(' | ');
-        toast.info(`[DEBUG] ${debugInfo}`, { duration: 10000 });
         try {
             if (isImpersonating && storeId) {
                 // Modo simulador (Super Admin)
-                const result = await saveProductAsProxy(storeId, productId, values);
-                if ((result as any)._debug) {
-                    toast.info(`[DB após save] ${(result as any)._debug}`, { duration: 15000 });
-                }
+                await saveProductAsProxy(storeId, productId, values);
             } else {
                 // Modo lojista (RLS)
                 const { data: { user } } = await supabase.auth.getUser();
@@ -582,33 +574,24 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
                     if (error) throw error;
                 }
 
-                // Sincronizar grupos e opções via Supabase client (RLS)
+                // Excluir grupos removidos do formulário
                 const { data: rawGroups, error: fetchError } = await supabase
                     .from("product_option_groups")
-                    .select("id, options:product_options(id)")
+                    .select("id")
                     .eq("product_id", targetId);
 
                 if (fetchError) throw fetchError;
 
-                const existingGroups = (rawGroups || []) as { id: string, options: { id: string }[] }[];
-
+                const existingGroupIds = (rawGroups || []).map((g: any) => g.id) as string[];
                 const formGroupIds = new Set(values.option_groups?.map((g: any) => g.id).filter(Boolean));
-                const formOptionIds = new Set(
-                    values.option_groups?.flatMap((g: any) => g.options.map((o: any) => o.id)).filter(Boolean)
-                );
-
-                const groupsToDelete = existingGroups.filter(g => !formGroupIds.has(g.id)).map(g => g.id);
-                const allExistingOptionIds = existingGroups.flatMap(g => g.options?.map(o => o.id) || []);
-                const optionsToDelete = (allExistingOptionIds as string[]).filter((id: string) => !formOptionIds.has(id));
-
-                if (optionsToDelete.length > 0) {
-                    await supabase.from("product_options").delete().in("id", optionsToDelete);
-                }
+                const groupsToDelete = existingGroupIds.filter(id => !formGroupIds.has(id));
 
                 if (groupsToDelete.length > 0) {
-                    await supabase.from("product_option_groups").delete().in("id", groupsToDelete);
+                    const { error: dgError } = await supabase.from("product_option_groups").delete().in("id", groupsToDelete);
+                    if (dgError) throw dgError;
                 }
 
+                // Salvar grupos e opções (delete-then-insert por grupo)
                 if (values.option_groups) {
                     for (const [gIndex, group] of (values.option_groups as any[]).entries()) {
                         const groupData = {
@@ -637,30 +620,27 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
 
                         if (!groupId) continue;
 
-                        if (group.options) {
+                        // Apagar todas as opções do grupo e reinserir do formulário
+                        const { error: doError } = await supabase.from("product_options").delete().eq("group_id", groupId);
+                        if (doError) throw doError;
+
+                        if (group.options && group.options.length > 0) {
                             const sortedOptions = [...group.options].sort((a: any, b: any) => {
                                 const priceDiff = (a.price || 0) - (b.price || 0);
                                 if (priceDiff !== 0) return priceDiff;
                                 return a.name.localeCompare(b.name, 'pt-BR');
                             });
 
-                            for (const [oIndex, option] of sortedOptions.entries()) {
-                                const optionData = {
-                                    group_id: groupId,
-                                    name: option.name,
-                                    price: option.price,
-                                    sort_order: oIndex,
-                                    is_available: option.is_available !== false,
-                                };
+                            const optionsToInsert = sortedOptions.map((option: any, oIndex: number) => ({
+                                group_id: groupId,
+                                name: option.name,
+                                price: option.price,
+                                sort_order: oIndex,
+                                is_available: option.is_available !== false,
+                            }));
 
-                                if (option.id) {
-                                    const { error: uoError } = await supabase.from("product_options").update(optionData).eq("id", option.id);
-                                    if (uoError) throw uoError;
-                                } else {
-                                    const { error: ioError } = await supabase.from("product_options").insert(optionData);
-                                    if (ioError) throw ioError;
-                                }
-                            }
+                            const { error: ioError } = await supabase.from("product_options").insert(optionsToInsert);
+                            if (ioError) throw ioError;
                         }
                     }
                 }

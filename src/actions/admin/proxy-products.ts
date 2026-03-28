@@ -168,34 +168,24 @@ export async function saveProductAsProxy(storeId: string, productId: string, val
             if (error) throw error;
         }
 
-        // 2. Sincronizar Grupos e Opções (Lógica de exclusão/atualização)
+        // 2. Excluir grupos removidos do formulário (cascade exclui as opções)
         const { data: rawGroups, error: fetchError } = await adminClient
             .from("product_option_groups")
-            .select("id, options:product_options(id)")
+            .select("id")
             .eq("product_id", targetProductId);
 
         if (fetchError) throw fetchError;
-        
-        const existingGroups = (rawGroups || []) as { id: string, options: { id: string }[] }[];
 
+        const existingGroupIds = (rawGroups || []).map(g => g.id) as string[];
         const formGroupIds = new Set(values.option_groups?.map(g => g.id).filter(Boolean));
-        const formOptionIds = new Set(
-            values.option_groups?.flatMap(g => g.options.map(o => o.id)).filter(Boolean)
-        );
-
-        const groupsToDelete = existingGroups.filter(g => !formGroupIds.has(g.id)).map(g => g.id);
-        const allExistingOptionIds = existingGroups.flatMap(g => g.options?.map(o => o.id) || []);
-        const optionsToDelete = (allExistingOptionIds as string[]).filter((id: string) => !formOptionIds.has(id));
-
-        if (optionsToDelete.length > 0) {
-            await adminClient.from("product_options").delete().in("id", optionsToDelete);
-        }
+        const groupsToDelete = existingGroupIds.filter(id => !formGroupIds.has(id));
 
         if (groupsToDelete.length > 0) {
-            await adminClient.from("product_option_groups").delete().in("id", groupsToDelete);
+            const { error: dgError } = await adminClient.from("product_option_groups").delete().in("id", groupsToDelete);
+            if (dgError) throw dgError;
         }
 
-        // 3. Upsert Grupos e Opções
+        // 3. Salvar Grupos e Opções (delete-then-insert por grupo para garantir consistência)
         if (values.option_groups) {
             for (const [gIndex, group] of values.option_groups.entries()) {
                 const groupData = {
@@ -224,63 +214,40 @@ export async function saveProductAsProxy(storeId: string, productId: string, val
 
                 if (!groupId) continue;
 
-                if (group.options) {
+                // Apagar todas as opções existentes do grupo e reinserir do formulário
+                const { error: doError } = await adminClient.from("product_options").delete().eq("group_id", groupId);
+                if (doError) throw doError;
+
+                if (group.options && group.options.length > 0) {
                     const sortedOptions = [...group.options].sort((a, b) => {
                         const priceDiff = (a.price || 0) - (b.price || 0);
                         if (priceDiff !== 0) return priceDiff;
                         return a.name.localeCompare(b.name, 'pt-BR');
                     });
 
-                    for (const [oIndex, option] of sortedOptions.entries()) {
-                        const optionData = {
-                            group_id: groupId,
-                            name: option.name,
-                            price: option.price,
-                            sort_order: oIndex,
-                            is_available: option.is_available !== false,
-                        };
+                    const optionsToInsert = sortedOptions.map((option, oIndex) => ({
+                        group_id: groupId as string,
+                        name: option.name,
+                        price: option.price,
+                        sort_order: oIndex,
+                        is_available: option.is_available !== false,
+                    }));
 
-                        if (option.id) {
-                            const { data: updRow, error: uoError } = await adminClient
-                                .from("product_options")
-                                .update(optionData)
-                                .eq("id", option.id)
-                                .select('id, name, is_available');
-                            if (uoError) throw uoError;
-                            // DIAGNÓSTICO: lança erro se 0 linhas afetadas
-                            if (!updRow || updRow.length === 0) {
-                                throw new Error(`UPDATE atingiu 0 linhas para opção "${option.name}" (id=${option.id})`)
-                            }
-                        } else {
-                            const { error: ioError } = await adminClient.from("product_options").insert(optionData);
-                            if (ioError) throw ioError;
-                        }
-                    }
+                    const { error: ioError } = await adminClient.from("product_options").insert(optionsToInsert);
+                    if (ioError) throw ioError;
                 }
             }
         }
 
         // Auditoria
-        await recordAuditLog(adminClient, user.id, storeId, productId === 'novo' ? 'create' : 'update', 'products', { 
+        await recordAuditLog(adminClient, user.id, storeId, productId === 'novo' ? 'create' : 'update', 'products', {
             productId: targetProductId,
-            productName: values.name 
+            productName: values.name
         });
 
         revalidatePath(`/admin/super/lojista/${storeId}/produtos`);
         revalidatePath(`/admin/super/lojista/${storeId}/produtos/${targetProductId}`);
 
-        // DIAGNÓSTICO TEMPORÁRIO — verificar o que o banco tem após o save
-        const { data: dbCheck } = await adminClient
-            .from('product_options')
-            .select('name, is_available')
-            .in('group_id', (await adminClient
-                .from('product_option_groups')
-                .select('id')
-                .eq('product_id', targetProductId)
-            ).data?.map((g: any) => g.id) ?? []);
-
-        const dbDebug = (dbCheck || []).map((o: any) => `${o.name}=${o.is_available}`).join(' | ');
-
-        return { success: true, productId: targetProductId, _debug: dbDebug };
+        return { success: true, productId: targetProductId };
     });
 }
