@@ -827,6 +827,20 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
                 </form>
             </Form>
         </div>
+
+        {/* Barra de salvar fixada no bottom — apenas mobile, apenas com alterações pendentes */}
+        {form.formState.isDirty && (
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t px-4 py-3 flex items-center justify-between gap-3 shadow-lg">
+                <p className="text-sm text-muted-foreground">Alterações não salvas</p>
+                <Button
+                    size="sm"
+                    disabled={isSaving}
+                    onClick={form.handleSubmit(onSubmit)}
+                >
+                    {isSaving ? "Salvando..." : "Salvar"}
+                </Button>
+            </div>
+        )}
         </>
     );
 }
