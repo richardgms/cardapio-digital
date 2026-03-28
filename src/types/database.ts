@@ -111,3 +111,60 @@ export interface ProductOption {
     sort_order: number
     is_available?: boolean
 }
+
+// ── Orders ───────────────────────────────────────────────────────
+
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
+export type DeliveryType = 'delivery' | 'pickup' | 'table'
+export type PaymentMethod = 'pix' | 'card' | 'cash'
+
+export interface SelectedOption {
+    group: string
+    option: string
+    price: number
+}
+
+export interface HalfHalfItem {
+    product_name: string
+    selected_options: SelectedOption[]
+}
+
+export interface Order {
+    id: string
+    store_id: string
+    order_number: number
+    customer_name: string
+    customer_phone: string
+    delivery_type: DeliveryType
+    table_number: number | null
+    delivery_zone_id: string | null
+    delivery_zone_name: string | null
+    delivery_address: string | null
+    payment_method: PaymentMethod
+    change_for: number | null
+    subtotal: number
+    delivery_fee: number
+    total: number
+    status: OrderStatus
+    notes: string | null
+    created_at: string
+    updated_at: string
+
+    // Joins
+    items?: OrderItem[]
+}
+
+export interface OrderItem {
+    id: string
+    order_id: string
+    product_id: string | null
+    product_name: string
+    quantity: number
+    unit_price: number
+    selected_options: SelectedOption[]
+    observations: string | null
+    is_half_half: boolean
+    half_half_items: HalfHalfItem[] | null
+    item_total: number
+    created_at: string
+}

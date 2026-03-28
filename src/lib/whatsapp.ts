@@ -16,10 +16,13 @@ interface OrderData {
     subtotal: number
     deliveryFee: number
     total: number
+    orderNumber?: number
 }
 
 export function generateWhatsAppMessage(order: OrderData): string {
-    const header = `*NOVO PEDIDO - CARDÁPIO DIGITAL*`
+    const header = order.orderNumber
+        ? `*NOVO PEDIDO #${order.orderNumber} - CARDÁPIO DIGITAL*`
+        : `*NOVO PEDIDO - CARDÁPIO DIGITAL*`
 
     const customerInfo = [
         `*Cliente:* ${order.customerName}`,

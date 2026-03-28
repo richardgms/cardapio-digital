@@ -19,6 +19,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { getCustomerData, saveCustomerData } from "@/lib/customer-cache"
 import { formatPhone, cleanPhone, validatePhone, validateName } from "@/lib/validators"
+import { createOrder } from "@/actions/store/create-order"
 
 // Since Input component might not exist in ui folder yet (I only created some), 
 // I'll assume I need to use standard HTML input or create a simple wrapper if needed.
@@ -39,6 +40,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     const setPending = useOrderConfirmationStore(s => s.setPending)
 
     const [step, setStep] = useState<'cart' | 'details' | 'payment'>('cart')
+    const [isSending, setIsSending] = useState(false)
 
     // Form State
     const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup' | 'table'>('delivery')
@@ -101,7 +103,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
         if (open) setStep('cart')
     }, [open])
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         if (!store?.whatsapp) {
             toast.error("Erro: Telefone da loja não configurado.")
             return
@@ -112,39 +114,93 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
             return
         }
 
-        // Save customer data to cache for next order
-        saveCustomerData({
-            name: customerName,
-            phone: cleanPhone(customerPhone),
-            address,
-            complement,
-            deliveryZoneId,
-        })
+        setIsSending(true)
 
-        const message = generateWhatsAppMessage({
-            customerName,
-            customerPhone: cleanPhone(customerPhone),
-            deliveryType,
-            deliveryZoneName: selectedZone?.name,
-            deliveryAddress: address,
-            deliveryComplement: complement,
-            paymentMethod,
-            changeFor,
-            items,
-            subtotal: total,
-            deliveryFee,
-            total: finalTotal,
-            pixKey: store?.pix_key || undefined,
-            tableNumber: deliveryType === 'table' ? tableNumber : undefined,
-        })
+        try {
+            // Save customer data to cache for next order
+            saveCustomerData({
+                name: customerName,
+                phone: cleanPhone(customerPhone),
+                address,
+                complement,
+                deliveryZoneId,
+            })
 
-        setPending({
-            paymentMethod: paymentMethod!,
-            whatsappNumber: store.whatsapp,
-        })
-        openWhatsApp(store.whatsapp, message)
-        clearCart()
-        onClose()
+            // 1. Salvar pedido no banco via Server Action
+            const orderResult = await createOrder({
+                store_id: store.id,
+                customer_name: customerName,
+                customer_phone: cleanPhone(customerPhone),
+                delivery_type: deliveryType,
+                table_number: deliveryType === 'table' ? parseInt(tableNumber) : null,
+                delivery_zone_id: deliveryType === 'delivery' && deliveryZoneId ? deliveryZoneId : null,
+                delivery_zone_name: deliveryType === 'delivery' && selectedZone ? selectedZone.name : null,
+                delivery_address: deliveryType === 'delivery' ? address.trim() : null,
+                payment_method: paymentMethod,
+                change_for: paymentMethod === 'cash' && changeFor ? parseInt(changeFor.replace(/\D/g, '')) : null,
+                subtotal: total,
+                delivery_fee: deliveryFee,
+                total: finalTotal,
+                notes: null,
+                items: items.map((item) => ({
+                    product_id: item.product?.id || null,
+                    product_name: item.product?.name || 'Produto',
+                    quantity: item.quantity,
+                    unit_price: item.half_half?.enabled ? item.half_half.final_price : (
+                        item.selected_options.find(o => o.is_replacement)?.price ?? item.product?.price ?? 0
+                    ),
+                    selected_options: item.selected_options.map((o) => ({
+                        group: o.group_name,
+                        option: o.option_name,
+                        price: o.price,
+                    })),
+                    observations: item.observation || null,
+                    is_half_half: item.half_half?.enabled || false,
+                    half_half_items: item.half_half?.enabled ? [
+                        { product_name: item.half_half.first_half, selected_options: [] },
+                        { product_name: item.half_half.second_half, selected_options: [] },
+                    ] : null,
+                    item_total: item.item_total,
+                })),
+            })
+
+            if (!orderResult.success) {
+                toast.error(orderResult.error)
+                return
+            }
+
+            // 2. Gerar mensagem WhatsApp (inclui numero do pedido)
+            const message = generateWhatsAppMessage({
+                customerName,
+                customerPhone: cleanPhone(customerPhone),
+                deliveryType,
+                deliveryZoneName: selectedZone?.name,
+                deliveryAddress: address,
+                deliveryComplement: complement,
+                paymentMethod,
+                changeFor,
+                items,
+                subtotal: total,
+                deliveryFee,
+                total: finalTotal,
+                pixKey: store?.pix_key || undefined,
+                tableNumber: deliveryType === 'table' ? tableNumber : undefined,
+                orderNumber: orderResult.order_number,
+            })
+
+            // 3. Confirmar e redirecionar
+            setPending({
+                paymentMethod: paymentMethod!,
+                whatsappNumber: store.whatsapp,
+            })
+            openWhatsApp(store.whatsapp, message)
+            clearCart()
+            onClose()
+        } catch {
+            toast.error("Erro ao enviar pedido. Tente novamente.")
+        } finally {
+            setIsSending(false)
+        }
     }
 
     return (
@@ -553,10 +609,10 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                     <Button
                                         className="w-full bg-green-600 hover:bg-green-700 text-white"
                                         size="lg"
-                                        disabled={!isPaymentValid || !isCurrentlyOpen}
+                                        disabled={!isPaymentValid || !isCurrentlyOpen || isSending}
                                         onClick={handleCheckout}
                                     >
-                                        Enviar Pedido no WhatsApp
+                                        {isSending ? "Enviando..." : "Enviar Pedido no WhatsApp"}
                                     </Button>
                                     {!isPaymentValid && isCurrentlyOpen && (
                                         <p className="text-xs text-center text-destructive font-medium animate-pulse">
