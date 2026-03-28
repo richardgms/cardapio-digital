@@ -21,6 +21,11 @@ export const metadata: Metadata = {
   },
   description: "Faça seu pedido online",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icons/icon-192x192.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
