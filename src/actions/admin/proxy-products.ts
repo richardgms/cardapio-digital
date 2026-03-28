@@ -261,6 +261,18 @@ export async function saveProductAsProxy(storeId: string, productId: string, val
         revalidatePath(`/admin/super/lojista/${storeId}/produtos`);
         revalidatePath(`/admin/super/lojista/${storeId}/produtos/${targetProductId}`);
 
-        return { success: true, productId: targetProductId };
+        // DIAGNÓSTICO TEMPORÁRIO — verificar o que o banco tem após o save
+        const { data: dbCheck } = await adminClient
+            .from('product_options')
+            .select('name, is_available')
+            .in('group_id', (await adminClient
+                .from('product_option_groups')
+                .select('id')
+                .eq('product_id', targetProductId)
+            ).data?.map((g: any) => g.id) ?? []);
+
+        const dbDebug = (dbCheck || []).map((o: any) => `${o.name}=${o.is_available}`).join(' | ');
+
+        return { success: true, productId: targetProductId, _debug: dbDebug };
     });
 }

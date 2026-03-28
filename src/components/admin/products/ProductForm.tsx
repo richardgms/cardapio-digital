@@ -544,7 +544,10 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
         try {
             if (isImpersonating && storeId) {
                 // Modo simulador (Super Admin)
-                await saveProductAsProxy(storeId, productId, values);
+                const result = await saveProductAsProxy(storeId, productId, values);
+                if ((result as any)._debug) {
+                    toast.info(`[DB após save] ${(result as any)._debug}`, { duration: 15000 });
+                }
             } else {
                 // Modo lojista (RLS)
                 const { data: { user } } = await supabase.auth.getUser();
