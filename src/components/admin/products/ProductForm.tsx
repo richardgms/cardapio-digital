@@ -60,7 +60,7 @@ const optionGroupSchema = z.object({
     id: z.string().optional(),
     title: z.string().min(1, "Nome do grupo é obrigatório"),
     is_required: z.boolean().default(false),
-    max_select: z.coerce.number().min(1, "Mínimo 1"),
+    max_select: z.coerce.number().min(0, "Mínimo 0"),
     pricing_mode: z.enum(['addon', 'replacement']).default('addon'),
     options: z.array(optionSchema),
 });
@@ -259,11 +259,11 @@ const GroupCard = ({ index, control, form, onRemove, replacementGroups }: GroupC
                         name={`option_groups.${index}.max_select`}
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Máximo de Seleções</FormLabel>
+                                <FormLabel>Máximo de Seleções <span className="text-xs text-muted-foreground font-normal">(0 = ilimitado)</span></FormLabel>
                                 <FormControl>
                                     <Input
                                         type="number"
-                                        min={1}
+                                        min={0}
                                         {...field}
                                         disabled={currentPricingMode === 'replacement'}
                                         className={currentPricingMode === 'replacement' ? 'opacity-50' : ''}

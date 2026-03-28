@@ -122,7 +122,7 @@ export const useCartStore = create<CartState & CartActions>()(
                             const filtered = newSelectedOptions.filter((opt: any) => {
                                 if (opt.group_name !== group.title) return true
                                 seen++
-                                return seen <= effectiveMax
+                                return effectiveMax <= 0 || seen <= effectiveMax
                             })
 
                             if (filtered.length < newSelectedOptions.length) {
