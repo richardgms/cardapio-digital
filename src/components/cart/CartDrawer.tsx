@@ -340,7 +340,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                     })}
 
                                     {!isCartValid && (
-                                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2 text-amber-800 text-sm">
+                                        <div className="bg-muted border border-border rounded-lg p-3 flex items-start gap-2 text-foreground text-sm font-medium">
                                             <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                                             <p>
                                                 Faltam <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remainingForMinOrder)}</strong> para o pedido mínimo de {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(minOrder)}.

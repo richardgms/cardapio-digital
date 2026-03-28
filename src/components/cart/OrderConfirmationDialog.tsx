@@ -55,11 +55,11 @@ export function OrderConfirmationDialog() {
                 <div className="space-y-4 pt-2">
                     {/* PIX Payment Notice */}
                     {paymentMethod === "pix" && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            <p className="text-sm font-medium text-amber-900">
+                        <div className="bg-muted border border-border rounded-lg p-4 text-center space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <p className="text-sm font-medium text-foreground opacity-80">
                                 Envie o comprovante do pagamento para o WhatsApp:
                             </p>
-                            <p className="text-base font-bold text-amber-800">
+                            <p className="text-base font-bold text-foreground">
                                 {formattedPhone}
                             </p>
                         </div>

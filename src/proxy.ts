@@ -41,7 +41,7 @@ function getSubdomain(hostname: string): string | null {
     return null
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const hostname = request.headers.get('host') || ''
     const subdomain = getSubdomain(hostname)
 
@@ -124,4 +124,3 @@ export const config = {
     // Match all routes except static files and api
     matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 }
-

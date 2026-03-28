@@ -1,8 +1,17 @@
 // ─── Phone ───────────────────────────────────────────────
 
-/** Aplica máscara (XX) XXXXX-XXXX, aceitando somente dígitos */
+/** Aplica máscara (XX) XXXXX-XXXX, aceitando somente dígitos e ignorando prefixo 55 se presente */
 export function formatPhone(value: string): string {
-    const digits = value.replace(/\D/g, '').slice(0, 11)
+    let digits = value.replace(/\D/g, '')
+
+    // Se começar com 55 e tiver 12 ou 13 dígitos, remove o 55 (DDI Brasil)
+    // Isso evita que o 55 seja tratado como DDD em números que já vem com o código do país
+    if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
+        digits = digits.slice(2)
+    }
+
+    // Garante no máximo 11 dígitos para o formato (DD) 9XXXX-XXXX
+    digits = digits.slice(0, 11)
 
     if (digits.length <= 2) return digits.length ? `(${digits}` : ''
     if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`

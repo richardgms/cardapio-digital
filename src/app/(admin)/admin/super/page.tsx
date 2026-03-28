@@ -10,7 +10,8 @@ import { CreateUserDialog } from '@/components/admin/super/create-user-dialog'
 import { DeleteUserDialog } from '@/components/admin/super/delete-user-dialog'
 import { DeleteRestaurantDialog } from '@/components/admin/super/delete-restaurant-dialog'
 import { EditRestaurantDialog } from '@/components/admin/super/edit-restaurant-dialog'
-import { UtensilsCrossed } from 'lucide-react'
+import { UtensilsCrossed, Monitor } from 'lucide-react'
+import Link from 'next/link'
 
 export default async function SuperAdminPage() {
     const [users, restaurants] = await Promise.all([
@@ -126,6 +127,12 @@ export default async function SuperAdminPage() {
                                                             {restaurant.is_open ? 'Fechar' : 'Abrir'}
                                                         </Button>
                                                     </form>
+                                                    <Link href={`/admin/super/lojista/${restaurant.id}`}>
+                                                        <Button variant="outline" size="sm" className="gap-2">
+                                                            <Monitor className="h-3.5 w-3.5" />
+                                                            Simulador
+                                                        </Button>
+                                                    </Link>
                                                     <DeleteRestaurantDialog
                                                         restaurantId={restaurant.id}
                                                         restaurantName={restaurant.name}
