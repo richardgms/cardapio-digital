@@ -95,8 +95,8 @@ export default function PedidosPage() {
         ? orders
         : orders.filter((o) => o.delivery_type === deliveryFilter);
 
-    const formatCurrency = (cents: number) =>
-        (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const formatCurrency = (value: number) =>
+        value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
     const formatOrderNumber = (n: number) => String(n).padStart(3, "0");
 

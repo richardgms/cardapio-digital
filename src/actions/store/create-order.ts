@@ -8,7 +8,7 @@ import { z } from "zod"
 const SelectedOptionSchema = z.object({
     group: z.string().min(1),
     option: z.string().min(1),
-    price: z.number().int(),
+    price: z.coerce.number(),
 })
 
 const HalfHalfItemSchema = z.object({
@@ -20,12 +20,12 @@ const OrderItemSchema = z.object({
     product_id: z.string().uuid().nullable(),
     product_name: z.string().min(1).max(200),
     quantity: z.number().int().min(1).max(100),
-    unit_price: z.number().int().min(0),
+    unit_price: z.coerce.number().min(0),
     selected_options: z.array(SelectedOptionSchema),
     observations: z.string().max(500).nullable().optional(),
     is_half_half: z.boolean().default(false),
     half_half_items: z.array(HalfHalfItemSchema).nullable().optional(),
-    item_total: z.number().int().min(0),
+    item_total: z.coerce.number().min(0),
 })
 
 const CreateOrderSchema = z.object({
@@ -38,10 +38,10 @@ const CreateOrderSchema = z.object({
     delivery_zone_name: z.string().max(100).nullable().optional(),
     delivery_address: z.string().max(300).nullable().optional(),
     payment_method: z.enum(["pix", "card", "cash"]),
-    change_for: z.number().int().min(0).nullable().optional(),
-    subtotal: z.number().int().min(0),
-    delivery_fee: z.number().int().min(0).default(0),
-    total: z.number().int().min(0),
+    change_for: z.coerce.number().min(0).nullable().optional(),
+    subtotal: z.coerce.number().min(0),
+    delivery_fee: z.coerce.number().min(0).default(0),
+    total: z.coerce.number().min(0),
     notes: z.string().max(500).nullable().optional(),
     items: z.array(OrderItemSchema).min(1),
 }).refine(
