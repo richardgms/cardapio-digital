@@ -3,6 +3,7 @@
 import { withSuperAdmin } from '@/lib/auth-guards'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Schemas de validação
@@ -16,7 +17,14 @@ const ZoneSchema = z.object({
 /**
  * Registra log de auditoria
  */
-async function recordAuditLog(adminClient: any, adminId: string, storeId: string, actionType: string, entityName: string, payload: any) {
+async function recordAuditLog(
+    adminClient: SupabaseClient, 
+    adminId: string, 
+    storeId: string, 
+    actionType: string, 
+    entityName: string, 
+    payload: Record<string, unknown>
+) {
     try {
         await adminClient.from('admin_impersonation_logs').insert({
             admin_id: adminId,

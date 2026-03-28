@@ -2,11 +2,47 @@
 
 import { withSuperAdmin } from '@/lib/auth-guards'
 import { revalidatePath } from 'next/cache'
+import { SupabaseClient } from '@supabase/supabase-js'
+
+interface OptionValues {
+    id?: string
+    name: string
+    price: number
+    is_available: boolean
+}
+
+interface OptionGroupValues {
+    id?: string
+    title: string
+    is_required: boolean
+    pricing_mode: 'addon' | 'replacement'
+    max_select: number
+    options: OptionValues[]
+}
+
+export interface ProductSaveValues {
+    name: string
+    description?: string
+    price: number
+    category_id: string
+    is_available: boolean
+    allows_half_half: boolean
+    image_url?: string | null
+    additional_images?: string[]
+    option_groups: OptionGroupValues[]
+}
 
 /**
  * Registra log de auditoria no DB sobre a ação de proxy
  */
-async function recordAuditLog(adminClient: any, adminId: string, storeId: string, actionType: string, entityName: string, payload: any) {
+async function recordAuditLog(
+    adminClient: SupabaseClient, 
+    adminId: string, 
+    storeId: string, 
+    actionType: string, 
+    entityName: string, 
+    payload: Record<string, unknown>
+) {
     try {
         await adminClient.from('admin_impersonation_logs').insert({
             admin_id: adminId,
@@ -24,7 +60,7 @@ async function recordAuditLog(adminClient: any, adminId: string, storeId: string
  * Busca produtos de um lojista via proxy
  */
 export async function fetchProductsForProxy(storeId: string) {
-    return withSuperAdmin(async (adminClient, user) => {
+    return withSuperAdmin(async (adminClient) => {
         const { data, error } = await adminClient
             .from('products')
             .select(`
@@ -98,7 +134,7 @@ export async function toggleProductAvailabilityAsProxy(storeId: string, productI
 /**
  * Salva ou atualiza um produto via proxy (incluindo grupos e opções)
  */
-export async function saveProductAsProxy(storeId: string, productId: string, values: any) {
+export async function saveProductAsProxy(storeId: string, productId: string, values: ProductSaveValues) {
     return withSuperAdmin(async (adminClient, user) => {
         const productData = {
             store_id: storeId,
@@ -133,21 +169,23 @@ export async function saveProductAsProxy(storeId: string, productId: string, val
         }
 
         // 2. Sincronizar Grupos e Opções (Lógica de exclusão/atualização)
-        const { data: existingGroups, error: fetchError } = await adminClient
+        const { data: rawGroups, error: fetchError } = await adminClient
             .from("product_option_groups")
             .select("id, options:product_options(id)")
             .eq("product_id", targetProductId);
 
         if (fetchError) throw fetchError;
+        
+        const existingGroups = (rawGroups || []) as { id: string, options: { id: string }[] }[];
 
-        const formGroupIds = new Set(values.option_groups?.map((g: any) => g.id).filter(Boolean));
+        const formGroupIds = new Set(values.option_groups?.map(g => g.id).filter(Boolean));
         const formOptionIds = new Set(
-            values.option_groups?.flatMap((g: any) => g.options.map((o: any) => o.id)).filter(Boolean)
+            values.option_groups?.flatMap(g => g.options.map(o => o.id)).filter(Boolean)
         );
 
-        const groupsToDelete = existingGroups?.filter(g => !formGroupIds.has(g.id)).map(g => g.id) || [];
-        const allExistingOptionIds = existingGroups?.flatMap(g => g.options?.map((o: any) => o.id)) || [];
-        const optionsToDelete = allExistingOptionIds.filter((id: string) => !formOptionIds.has(id));
+        const groupsToDelete = existingGroups.filter(g => !formGroupIds.has(g.id)).map(g => g.id);
+        const allExistingOptionIds = existingGroups.flatMap(g => g.options?.map(o => o.id) || []);
+        const optionsToDelete = (allExistingOptionIds as string[]).filter((id: string) => !formOptionIds.has(id));
 
         if (optionsToDelete.length > 0) {
             await adminClient.from("product_options").delete().in("id", optionsToDelete);

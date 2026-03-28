@@ -70,11 +70,11 @@ export function BusinessHoursManager({ storeId, isImpersonating }: BusinessHours
                 setAutoEnabled(config.auto_schedule_enabled || false);
                 const days: DayConfig[] = [];
                 for (let i = 0; i < 7; i++) {
-                    const existing = (config.business_hours as any[])?.find(bh => bh.day_of_week === i);
+                    const existing = config.business_hours?.find(bh => bh.day_of_week === i);
                     days.push({
                         day_of_week: i,
                         is_open: existing ? existing.is_open : false,
-                        periods: existing?.periods?.map((p: any) => ({
+                        periods: existing?.periods?.map((p) => ({
                             open_time: p.open_time.slice(0, 5),
                             close_time: p.close_time.slice(0, 5),
                         })) || []

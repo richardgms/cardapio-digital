@@ -2,11 +2,19 @@
 
 import { withSuperAdmin } from '@/lib/auth-guards'
 import { revalidatePath } from 'next/cache'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Registra log de auditoria no DB sobre a ação de proxy
  */
-async function recordAuditLog(adminClient: any, adminId: string, storeId: string, actionType: string, entityName: string, payload: any) {
+async function recordAuditLog(
+    adminClient: SupabaseClient, 
+    adminId: string, 
+    storeId: string, 
+    actionType: string, 
+    entityName: string, 
+    payload: Record<string, unknown>
+) {
     try {
         await adminClient.from('admin_impersonation_logs').insert({
             admin_id: adminId,
@@ -24,7 +32,7 @@ async function recordAuditLog(adminClient: any, adminId: string, storeId: string
  * Busca configurações de um lojista via proxy
  */
 export async function fetchStoreConfigForProxy(storeId: string) {
-    return withSuperAdmin(async (adminClient, user) => {
+    return withSuperAdmin(async (adminClient) => {
         const { data, error } = await adminClient
             .from('store_config')
             .select('*')
@@ -43,7 +51,7 @@ export async function fetchStoreConfigForProxy(storeId: string) {
 /**
  * Atualiza configurações de um lojista via proxy
  */
-export async function updateStoreConfigAsProxy(storeId: string, values: any) {
+export async function updateStoreConfigAsProxy(storeId: string, values: Record<string, unknown>) {
     return withSuperAdmin(async (adminClient, user) => {
         const { data, error } = await adminClient
             .from('store_config')

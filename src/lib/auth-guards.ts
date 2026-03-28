@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { SupabaseClient, User } from '@supabase/supabase-js'
 
 /**
  * Validates if the current session belongs to a Super Admin.
@@ -26,7 +27,7 @@ export async function validateSuperAdmin() {
  * Type-safe wrapper for Super Admin actions that use the Service Role client.
  */
 export async function withSuperAdmin<T>(
-    action: (adminClient: any, user: any) => Promise<T>
+    action: (adminClient: SupabaseClient, user: User) => Promise<T>
 ): Promise<T> {
     const user = await validateSuperAdmin()
     const adminClient = await createAdminClient()

@@ -1,12 +1,19 @@
 'use server'
 
 import { withSuperAdmin } from '@/lib/auth-guards'
-import { z } from 'zod'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Registra log de auditoria para acesso a dados sensíveis (Pedidos)
  */
-async function recordAuditLog(adminClient: any, adminId: string, storeId: string, actionType: string, entityName: string, payload: any) {
+async function recordAuditLog(
+    adminClient: SupabaseClient, 
+    adminId: string, 
+    storeId: string, 
+    actionType: string, 
+    entityName: string, 
+    payload: Record<string, unknown>
+) {
     try {
         await adminClient.from('admin_impersonation_logs').insert({
             admin_id: adminId,

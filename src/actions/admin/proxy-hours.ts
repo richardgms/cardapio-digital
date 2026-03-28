@@ -3,6 +3,7 @@
 import { withSuperAdmin } from '@/lib/auth-guards'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Schemas de validação
@@ -26,7 +27,14 @@ const HoursUpdateSchema = z.object({
 /**
  * Registra log de auditoria
  */
-async function recordAuditLog(adminClient: any, adminId: string, storeId: string, actionType: string, entityName: string, payload: any) {
+async function recordAuditLog(
+    adminClient: SupabaseClient, 
+    adminId: string, 
+    storeId: string, 
+    actionType: string, 
+    entityName: string, 
+    payload: Record<string, unknown>
+) {
     try {
         await adminClient.from('admin_impersonation_logs').insert({
             admin_id: adminId,
@@ -38,6 +46,29 @@ async function recordAuditLog(adminClient: any, adminId: string, storeId: string
     } catch (err) {
         console.error('Falha ao registrar log de auditoria [IGNORADO]:', err)
     }
+}
+
+/**
+ * Busca configuracao de horarios de uma loja via proxy (adminClient)
+ */
+export async function fetchBusinessHoursAsProxy(storeId: string) {
+    return withSuperAdmin(async (adminClient) => {
+        const { data, error } = await adminClient
+            .from('store_config')
+            .select('auto_schedule_enabled, business_hours(day_of_week, is_open, periods:business_hour_periods(open_time, close_time))')
+            .eq('id', storeId)
+            .single()
+
+        if (error) throw error
+        return data as {
+            auto_schedule_enabled: boolean
+            business_hours: {
+                day_of_week: number
+                is_open: boolean
+                periods: { open_time: string; close_time: string }[]
+            }[]
+        }
+    })
 }
 
 /**
@@ -69,7 +100,7 @@ export async function saveBusinessHoursAsProxy(storeId: string, data: z.infer<ty
                 .single()
 
             if (hourError) throw hourError
-            const hourId = hourData.id
+            const hourId = (hourData as { id: string }).id
 
             // Limpar períodos antigos deste dia
             const { error: deleteError } = await adminClient
