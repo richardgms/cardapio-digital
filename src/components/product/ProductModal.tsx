@@ -116,7 +116,8 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                 const firstExcess = product.option_groups?.find(g => {
                     if (g.pricing_mode === 'replacement') return false
                     const selections = newSelected[g.id] || []
-                    return selections.length > getEffectiveMaxSelect(g, newSelected, repGroups)
+                    const effMax = getEffectiveMaxSelect(g, newSelected, repGroups)
+                    return effMax > 0 && selections.length > effMax
                 })
                 if (firstExcess) {
                     setTimeout(() => {
@@ -139,7 +140,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
 
             const repGroups = product.option_groups?.filter(g => g.pricing_mode === 'replacement') ?? []
             const effectiveMax = getEffectiveMaxSelect(group, prev, repGroups)
-            if (current.length < effectiveMax) {
+            if (effectiveMax <= 0 || current.length < effectiveMax) {
                 return { ...prev, [groupId]: [...current, optionId] }
             }
 
@@ -157,7 +158,8 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
     const hasExcessErrors = !halfHalfSelection.enabled && (product.option_groups?.some(group => {
         if (group.pricing_mode === 'replacement') return false
         const selections = selectedOptions[group.id] || []
-        return selections.length > getEffectiveMaxSelect(group, selectedOptions, replacementGroups)
+        const effMax = getEffectiveMaxSelect(group, selectedOptions, replacementGroups)
+        return effMax > 0 && selections.length > effMax
     }) ?? false)
 
     const calculateTotal = () => {
@@ -402,7 +404,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                         {!halfHalfSelection.enabled && product.option_groups?.map(group => {
                             const hasError = validationErrors.includes(group.id)
                             const effectiveMax = getEffectiveMaxSelect(group, selectedOptions, replacementGroups)
-                            const hasExcess = group.pricing_mode !== 'replacement' && (selectedOptions[group.id]?.length ?? 0) > effectiveMax
+                            const hasExcess = group.pricing_mode !== 'replacement' && effectiveMax > 0 && (selectedOptions[group.id]?.length ?? 0) > effectiveMax
                             const showErrorStyle = hasError || hasExcess
                             return (
                                 <div
@@ -420,7 +422,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                                                 {group.is_required && <span className="text-destructive ml-1">*</span>}
                                             </Label>
                                             <span className="text-xs text-muted-foreground">
-                                                {effectiveMax === 1 ? 'Escolha 1' : `Até ${effectiveMax}`}
+                                                {effectiveMax <= 0 ? '' : effectiveMax === 1 ? 'Escolha 1' : `Até ${effectiveMax}`}
                                             </span>
                                         </div>
                                         {hasError && !hasExcess && (
