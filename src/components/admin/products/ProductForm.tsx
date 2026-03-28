@@ -574,10 +574,85 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
                     if (error) throw error;
                 }
 
-                // Sincronizar grupos e opções (Simplificado para o lojista, similar ao proxy mas via client)
-                // Nota: O código original de save do lojista era gigantesco, aqui vamos manter a compatibilidade
-                // Chamando a mesma lógica mas via Supabase Client se preferir, ou apenas o salvamento básico.
-                // Para manter paridade total, ideal seria usar a mesma lógica.
+                // Sincronizar grupos e opções via Supabase client (RLS)
+                const { data: rawGroups, error: fetchError } = await supabase
+                    .from("product_option_groups")
+                    .select("id, options:product_options(id)")
+                    .eq("product_id", targetId);
+
+                if (fetchError) throw fetchError;
+
+                const existingGroups = (rawGroups || []) as { id: string, options: { id: string }[] }[];
+
+                const formGroupIds = new Set(values.option_groups?.map((g: any) => g.id).filter(Boolean));
+                const formOptionIds = new Set(
+                    values.option_groups?.flatMap((g: any) => g.options.map((o: any) => o.id)).filter(Boolean)
+                );
+
+                const groupsToDelete = existingGroups.filter(g => !formGroupIds.has(g.id)).map(g => g.id);
+                const allExistingOptionIds = existingGroups.flatMap(g => g.options?.map(o => o.id) || []);
+                const optionsToDelete = (allExistingOptionIds as string[]).filter((id: string) => !formOptionIds.has(id));
+
+                if (optionsToDelete.length > 0) {
+                    await supabase.from("product_options").delete().in("id", optionsToDelete);
+                }
+
+                if (groupsToDelete.length > 0) {
+                    await supabase.from("product_option_groups").delete().in("id", groupsToDelete);
+                }
+
+                if (values.option_groups) {
+                    for (const [gIndex, group] of (values.option_groups as any[]).entries()) {
+                        const groupData = {
+                            product_id: targetId,
+                            title: group.title,
+                            is_required: group.is_required,
+                            max_select: group.pricing_mode === 'replacement' ? 1 : group.max_select,
+                            pricing_mode: group.pricing_mode,
+                            sort_order: gIndex,
+                        };
+
+                        let groupId = group.id;
+
+                        if (groupId) {
+                            await supabase.from("product_option_groups").update(groupData).eq("id", groupId);
+                        } else {
+                            const { data: newGroup, error: igError } = await supabase
+                                .from("product_option_groups")
+                                .insert(groupData)
+                                .select()
+                                .single();
+                            if (igError) throw igError;
+                            groupId = newGroup?.id;
+                        }
+
+                        if (!groupId) continue;
+
+                        if (group.options) {
+                            const sortedOptions = [...group.options].sort((a: any, b: any) => {
+                                const priceDiff = (a.price || 0) - (b.price || 0);
+                                if (priceDiff !== 0) return priceDiff;
+                                return a.name.localeCompare(b.name, 'pt-BR');
+                            });
+
+                            for (const [oIndex, option] of sortedOptions.entries()) {
+                                const optionData = {
+                                    group_id: groupId,
+                                    name: option.name,
+                                    price: option.price,
+                                    sort_order: oIndex,
+                                    is_available: option.is_available,
+                                };
+
+                                if (option.id) {
+                                    await supabase.from("product_options").update(optionData).eq("id", option.id);
+                                } else {
+                                    await supabase.from("product_options").insert(optionData);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             toast.success("Produto salvo com sucesso!");
