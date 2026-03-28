@@ -615,7 +615,8 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
                         let groupId = group.id;
 
                         if (groupId) {
-                            await supabase.from("product_option_groups").update(groupData).eq("id", groupId);
+                            const { error: ugError } = await supabase.from("product_option_groups").update(groupData).eq("id", groupId);
+                            if (ugError) throw ugError;
                         } else {
                             const { data: newGroup, error: igError } = await supabase
                                 .from("product_option_groups")
@@ -641,13 +642,15 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
                                     name: option.name,
                                     price: option.price,
                                     sort_order: oIndex,
-                                    is_available: option.is_available,
+                                    is_available: option.is_available !== false,
                                 };
 
                                 if (option.id) {
-                                    await supabase.from("product_options").update(optionData).eq("id", option.id);
+                                    const { error: uoError } = await supabase.from("product_options").update(optionData).eq("id", option.id);
+                                    if (uoError) throw uoError;
                                 } else {
-                                    await supabase.from("product_options").insert(optionData);
+                                    const { error: ioError } = await supabase.from("product_options").insert(optionData);
+                                    if (ioError) throw ioError;
                                 }
                             }
                         }

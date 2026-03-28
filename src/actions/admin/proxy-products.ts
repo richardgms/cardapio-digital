@@ -210,7 +210,8 @@ export async function saveProductAsProxy(storeId: string, productId: string, val
                 let groupId = group.id;
 
                 if (groupId) {
-                    await adminClient.from("product_option_groups").update(groupData).eq("id", groupId);
+                    const { error: ugError } = await adminClient.from("product_option_groups").update(groupData).eq("id", groupId);
+                    if (ugError) throw ugError;
                 } else {
                     const { data: newGroup, error: igError } = await adminClient
                         .from("product_option_groups")
@@ -236,13 +237,15 @@ export async function saveProductAsProxy(storeId: string, productId: string, val
                             name: option.name,
                             price: option.price,
                             sort_order: oIndex,
-                            is_available: option.is_available,
+                            is_available: option.is_available !== false,
                         };
 
                         if (option.id) {
-                            await adminClient.from("product_options").update(optionData).eq("id", option.id);
+                            const { error: uoError } = await adminClient.from("product_options").update(optionData).eq("id", option.id);
+                            if (uoError) throw uoError;
                         } else {
-                            await adminClient.from("product_options").insert(optionData);
+                            const { error: ioError } = await adminClient.from("product_options").insert(optionData);
+                            if (ioError) throw ioError;
                         }
                     }
                 }
