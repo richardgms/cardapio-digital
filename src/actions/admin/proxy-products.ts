@@ -241,8 +241,16 @@ export async function saveProductAsProxy(storeId: string, productId: string, val
                         };
 
                         if (option.id) {
-                            const { error: uoError } = await adminClient.from("product_options").update(optionData).eq("id", option.id);
+                            const { data: updRow, error: uoError } = await adminClient
+                                .from("product_options")
+                                .update(optionData)
+                                .eq("id", option.id)
+                                .select('id, name, is_available');
                             if (uoError) throw uoError;
+                            // DIAGNÓSTICO: lança erro se 0 linhas afetadas
+                            if (!updRow || updRow.length === 0) {
+                                throw new Error(`UPDATE atingiu 0 linhas para opção "${option.name}" (id=${option.id})`)
+                            }
                         } else {
                             const { error: ioError } = await adminClient.from("product_options").insert(optionData);
                             if (ioError) throw ioError;
