@@ -21,7 +21,8 @@ import {
     Settings,
     UtensilsCrossed,
     Clock,
-    ClipboardList
+    ClipboardList,
+    BarChart2,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -49,6 +50,11 @@ export function AppSidebar() {
                         title: 'Pedidos',
                         url: '/admin/pedidos',
                         icon: ClipboardList,
+                    },
+                    {
+                        title: 'Métricas',
+                        url: '/admin/metricas',
+                        icon: BarChart2,
                     }
                 ]
             },
@@ -107,7 +113,7 @@ export function AppSidebar() {
                                 </div>
                                 <div className="flex flex-col gap-0.5 leading-none">
                                     <span className="font-semibold">RMenu Digital</span>
-                                    <span className="">v1.0.0</span>
+                                    <span className="">v1.28.0</span>
                                 </div>
                             </div>
                         </SidebarMenuButton>

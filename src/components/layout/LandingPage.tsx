@@ -89,8 +89,13 @@ export function LandingPage() {
 
             {/* Footer */}
             <footer className="bg-gray-900 text-gray-400 py-12">
-                <div className="container mx-auto px-4 text-center">
+                <div className="container mx-auto px-4 text-center space-y-2">
                     <p>&copy; {new Date().getFullYear()} RMenu. Todos os direitos reservados.</p>
+                    <p className="text-sm">
+                        <Link href="/privacidade" className="hover:text-white underline transition-colors">
+                            Política de Privacidade
+                        </Link>
+                    </p>
                 </div>
             </footer>
         </div>
