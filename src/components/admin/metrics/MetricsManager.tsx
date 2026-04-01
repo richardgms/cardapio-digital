@@ -231,7 +231,7 @@ export function MetricsManager() {
         <div className="space-y-6">
             {/* Period selector */}
             <div className="flex gap-2">
-                {(Object.keys(PERIOD_LABELS) as Period[]).map(p => (
+                {(['today', '7d', '30d'] as Period[]).map(p => (
                     <Button
                         key={p}
                         variant={period === p ? 'default' : 'outline'}
@@ -390,7 +390,7 @@ export function MetricsManager() {
                                                     <span className="text-xs font-medium">{formatCurrency(product.revenue)}</span>
                                                 </div>
                                             </div>
-                                            <div className="h-1.5 bg-gray-100 rounded-full">
+                                            <div className="h-1.5 bg-muted rounded-full">
                                                 <div
                                                     className="h-1.5 bg-primary rounded-full transition-all"
                                                     style={{ width: `${pct}%` }}
@@ -464,7 +464,7 @@ function DistributionBar({
                     <span className="font-medium w-8 text-right">{pct}%</span>
                 </div>
             </div>
-            <div className="h-2 bg-gray-100 rounded-full">
+            <div className="h-2 bg-muted rounded-full">
                 <div
                     className="h-2 bg-primary rounded-full transition-all"
                     style={{ width: `${pct}%` }}

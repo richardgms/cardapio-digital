@@ -25,7 +25,7 @@ export default function PrivacidadePage() {
                 <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Política de Privacidade</h1>
                 <p className="text-sm text-gray-500 mb-10">Última atualização: março de 2026</p>
 
-                <div className="prose prose-gray max-w-none space-y-8 text-gray-700 leading-relaxed">
+                <div className="space-y-8 text-gray-700 leading-relaxed">
 
                     <section>
                         <h2 className="text-xl font-bold text-gray-900 mb-3">1. Quem somos</h2>

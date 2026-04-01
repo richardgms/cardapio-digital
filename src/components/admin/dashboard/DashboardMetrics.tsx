@@ -11,14 +11,14 @@ import {
     ChartTooltipContent,
     type ChartConfig,
 } from '@/components/ui/chart'
-import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer } from 'recharts'
+import { Bar, BarChart, XAxis, YAxis } from 'recharts'
 import { ShoppingBag, TrendingUp, TrendingDown, Minus, Trophy } from 'lucide-react'
 
 const DAYS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 const chartConfig: ChartConfig = {
-    esta: { label: 'Esta semana', color: 'hsl(var(--primary))' },
-    anterior: { label: 'Semana anterior', color: 'hsl(var(--muted-foreground) / 0.4)' },
+    esta: { label: 'Esta semana', color: 'var(--primary)' },
+    anterior: { label: 'Semana anterior', color: 'var(--border)' },
 }
 
 interface DailyComparison {
@@ -207,7 +207,7 @@ export function DashboardMetrics() {
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-sm font-medium">Comparativo Semanal</CardTitle>
                         {!loading && data && (
-                            <TrendBadge current={data.weekTotal} prev={data.prevWeekTotal} pct={weekPct} />
+                            <TrendBadge prev={data.prevWeekTotal} pct={weekPct} />
                         )}
                     </div>
                     {!loading && data && (
@@ -242,11 +242,9 @@ export function DashboardMetrics() {
 }
 
 function TrendBadge({
-    current,
     prev,
     pct,
 }: {
-    current: number
     prev: number
     pct: number | null
 }) {
