@@ -19,7 +19,8 @@ import {
     QrCode,
     Download,
     Clock
-} from "lucide-react";
+} from "lucide-react"
+import { DashboardMetrics } from "@/components/admin/dashboard/DashboardMetrics";
 import QRCode from "qrcode";
 import Link from "next/link";
 
@@ -303,6 +304,9 @@ export default function AdminDashboard() {
                     </Card>
                 </Link>
             </div>
+
+            {/* Métricas */}
+            <DashboardMetrics />
 
             {/* Ações Rápidas */}
             <h3 className="text-lg font-semibold mt-4">Ações Rápidas</h3>
