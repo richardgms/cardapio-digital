@@ -147,7 +147,65 @@ export function OrdersManager({ storeId, isImpersonating }: OrdersManagerProps) 
                 </Select>
             </div>
 
-            <div className="border border-zinc-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+            {/* Mobile: cards */}
+            <div className="md:hidden border border-zinc-200 rounded-2xl overflow-hidden bg-white shadow-sm divide-y divide-zinc-100">
+                {loading ? (
+                    [1, 2, 3, 4, 5].map(i => (
+                        <div key={i} className="p-4 space-y-2">
+                            <Skeleton className="h-5 w-3/4" />
+                            <Skeleton className="h-4 w-1/2" />
+                        </div>
+                    ))
+                ) : filteredOrders.length === 0 ? (
+                    <p className="py-16 text-center text-zinc-400 italic text-sm">
+                        Nenhum pedido encontrado no período.
+                    </p>
+                ) : (
+                    filteredOrders.map((order) => {
+                        const dt = deliveryTypeMap[order.delivery_type];
+                        const DeliveryIcon = dt.icon;
+                        return (
+                            <button
+                                key={order.id}
+                                onClick={() => openOrderDetail(order)}
+                                className="w-full text-left px-4 py-4 active:bg-zinc-50 transition-colors"
+                            >
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="font-mono text-xs text-zinc-400 shrink-0">
+                                            #{formatOrderNumber(order.order_number)}
+                                        </span>
+                                        <span className="font-bold text-black truncate">
+                                            {order.customer_name}
+                                        </span>
+                                    </div>
+                                    <span className="font-bold text-black shrink-0">
+                                        {formatCurrency(order.total)}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3 mt-1.5 text-xs text-zinc-500">
+                                    <span className="flex items-center gap-1">
+                                        <DeliveryIcon className="h-3.5 w-3.5" />
+                                        {dt.label}
+                                    </span>
+                                    <span>·</span>
+                                    <span>{paymentMethodMap[order.payment_method]}</span>
+                                    <span>·</span>
+                                    <span>
+                                        {new Date(order.created_at).toLocaleString("pt-BR", {
+                                            day: "2-digit", month: "2-digit",
+                                            hour: "2-digit", minute: "2-digit",
+                                        })}
+                                    </span>
+                                </div>
+                            </button>
+                        );
+                    })
+                )}
+            </div>
+
+            {/* Desktop: tabela */}
+            <div className="hidden md:block border border-zinc-200 rounded-2xl overflow-hidden bg-white shadow-sm">
                 <table className="w-full text-sm text-left">
                     <thead className="bg-zinc-50 border-b border-zinc-200">
                         <tr>
