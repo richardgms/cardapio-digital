@@ -88,15 +88,26 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
         paymentMethod !== null &&
         (paymentMethod !== 'cash' || (paymentMethod === 'cash' && changeFor.trim().length > 0))
 
-    // Load cached customer data on mount
+    // Load cached customer data on mount (personal data only)
     useEffect(() => {
         const cached = getCustomerData()
         if (cached.name) setCustomerName(cached.name)
         if (cached.phone) setCustomerPhone(formatPhone(cached.phone))
         if (cached.address) setAddress(cached.address)
         if (cached.complement) setComplement(cached.complement)
-        if (cached.deliveryZoneId) setDeliveryZoneId(cached.deliveryZoneId)
     }, [])
+
+    // Apply cached zone ID only after zones load and only if the zone exists in this store
+    // This prevents cross-store zone ID bleed that causes Select crashes
+    useEffect(() => {
+        if (zones.length > 0 && deliveryZoneId === "") {
+            const cached = getCustomerData()
+            if (cached.deliveryZoneId && zones.some(z => z.id === cached.deliveryZoneId)) {
+                setDeliveryZoneId(cached.deliveryZoneId)
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [zones])
 
     // Reset step when opening/closing
     useEffect(() => {
