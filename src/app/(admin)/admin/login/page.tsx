@@ -14,6 +14,7 @@ export default function AdminLoginPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
     const [error, setError] = useState("")
+    const [needsReload, setNeedsReload] = useState(false)
 
     const supabase = createClient()
 
@@ -48,7 +49,8 @@ export default function AdminLoginPage() {
 
             // Tradução de erros comuns do Supabase
             if (message.includes("Server Action") && message.includes("was not found")) {
-                message = "A página está desatualizada após uma atualização do sistema. Pressione F5 (ou Ctrl+Shift+R) para recarregar e tente novamente."
+                setNeedsReload(true)
+                return
             } else if (message.includes("only request this after")) {
                 const seconds = message.match(/\d+/)?.[0] || ""
                 message = `Por questões de segurança, você só pode solicitar isso após ${seconds} segundos.`
@@ -94,6 +96,20 @@ export default function AdminLoginPage() {
                                 />
                             </div>
                         </div>
+
+                        {needsReload && (
+                            <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm p-3 rounded-md space-y-2">
+                                <p className="font-medium">O sistema foi atualizado. Recarregue a página para continuar.</p>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full border-amber-300 text-amber-800 hover:bg-amber-100"
+                                    onClick={() => window.location.reload()}
+                                >
+                                    Recarregar página
+                                </Button>
+                            </div>
+                        )}
 
                         {error && (
                             <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-center gap-2">
