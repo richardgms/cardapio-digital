@@ -216,7 +216,16 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
 
     return (
         <Sheet open={open} onOpenChange={onClose}>
-            <SheetContent className="w-full sm:max-w-md flex flex-col p-0 gap-0 [&>button]:hidden">
+            <SheetContent
+                className="w-full sm:max-w-md flex flex-col p-0 gap-0 [&>button]:hidden"
+                onInteractOutside={(e) => {
+                    // Prevent Sheet from closing when tapping inside the Select dropdown portal
+                    const target = e.target as Element
+                    if (target?.closest?.('[data-radix-popper-content-wrapper]')) {
+                        e.preventDefault()
+                    }
+                }}
+            >
                 <SheetHeader className="p-6 border-b flex flex-row items-center justify-between space-y-0 text-left">
                     <div className="flex items-center gap-4">
                         {step !== 'cart' && (
@@ -466,7 +475,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                             <h3 className="font-semibold">Endereço de Entrega</h3>
                                             <div className="space-y-1">
                                                 <Label>Bairro / Região</Label>
-                                                <Select value={deliveryZoneId || undefined} onValueChange={setDeliveryZoneId} modal={false}>
+                                                <Select value={deliveryZoneId || undefined} onValueChange={setDeliveryZoneId}>
                                                     <SelectTrigger><SelectValue placeholder="Selecione seu bairro" /></SelectTrigger>
                                                     <SelectContent>
                                                         {zones.map(zone => (
