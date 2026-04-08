@@ -47,7 +47,9 @@ export default function AdminLoginPage() {
             let message = err.message || "Ocorreu um erro ao tentar entrar."
 
             // Tradução de erros comuns do Supabase
-            if (message.includes("only request this after")) {
+            if (message.includes("Server Action") && message.includes("was not found")) {
+                message = "A página está desatualizada após uma atualização do sistema. Pressione F5 (ou Ctrl+Shift+R) para recarregar e tente novamente."
+            } else if (message.includes("only request this after")) {
                 const seconds = message.match(/\d+/)?.[0] || ""
                 message = `Por questões de segurança, você só pode solicitar isso após ${seconds} segundos.`
             } else if (message.includes("email rate limit exceeded")) {
