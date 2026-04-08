@@ -466,7 +466,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                             <h3 className="font-semibold">Endereço de Entrega</h3>
                                             <div className="space-y-1">
                                                 <Label>Bairro / Região</Label>
-                                                <Select value={deliveryZoneId} onValueChange={setDeliveryZoneId}>
+                                                <Select value={deliveryZoneId || undefined} onValueChange={setDeliveryZoneId} modal={false}>
                                                     <SelectTrigger><SelectValue placeholder="Selecione seu bairro" /></SelectTrigger>
                                                     <SelectContent>
                                                         {zones.map(zone => (
