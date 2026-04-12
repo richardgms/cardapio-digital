@@ -54,6 +54,7 @@ const optionSchema = z.object({
     name: z.string().min(1, "Nome da opção é obrigatório"),
     price: z.coerce.number().min(0, "Preço inválido"),
     is_available: z.boolean().default(true),
+    image_url: z.string().nullable().optional(),
 });
 
 const optionGroupSchema = z.object({
@@ -143,6 +144,21 @@ const OptionsList = ({ nestIndex, control, pricingMode }: { nestIndex: number; c
                     <div key={item.id} className="flex flex-col sm:flex-row sm:items-start gap-3 p-3 sm:p-0 border sm:border-transparent rounded-lg sm:rounded-none bg-muted/10 sm:bg-transparent">
                         <FormField
                             control={control}
+                            name={`option_groups.${nestIndex}.options.${k}.image_url`}
+                            render={({ field }) => (
+                                <FormItem className="shrink-0">
+                                    <FormControl>
+                                        <ImageUpload
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                            compact
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={control}
                             name={`option_groups.${nestIndex}.options.${k}.name`}
                             render={({ field }) => (
                                 <FormItem className="w-full sm:flex-1">
@@ -185,7 +201,7 @@ const OptionsList = ({ nestIndex, control, pricingMode }: { nestIndex: number; c
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append({ name: "", price: 0, is_available: true })}
+                onClick={() => append({ name: "", price: 0, is_available: true, image_url: null })}
             >
                 <Plus className="mr-2 h-3 w-3" />
                 Adicionar Opção
@@ -503,7 +519,8 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
                             id: o.id,
                             name: o.name,
                             price: o.price,
-                            is_available: o.is_available ?? true
+                            is_available: o.is_available ?? true,
+                            image_url: o.image_url ?? null,
                         })) || []
                     })) || []).sort((a, b) => {
                         const aR = a.pricing_mode === 'replacement' ? -1 : 1
@@ -637,6 +654,7 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
                                 price: option.price,
                                 sort_order: oIndex,
                                 is_available: option.is_available !== false,
+                                image_url: option.image_url ?? null,
                             }));
 
                             const { error: ioError } = await supabase.from("product_options").insert(optionsToInsert);

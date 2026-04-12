@@ -110,6 +110,7 @@ export interface ProductOption {
     price: number
     sort_order: number
     is_available?: boolean
+    image_url?: string | null
 }
 
 // ── Orders ───────────────────────────────────────────────────────

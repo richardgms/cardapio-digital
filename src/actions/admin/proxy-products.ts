@@ -9,6 +9,7 @@ interface OptionValues {
     name: string
     price: number
     is_available: boolean
+    image_url?: string | null
 }
 
 interface OptionGroupValues {
@@ -242,6 +243,7 @@ export async function saveProductAsProxy(storeId: string, productId: string, val
                             price: option.price,
                             sort_order: oIndex,
                             is_available: option.is_available !== false,
+                            image_url: option.image_url ?? null,
                         };
 
                         if (option.id && existingOptIds.has(option.id)) {

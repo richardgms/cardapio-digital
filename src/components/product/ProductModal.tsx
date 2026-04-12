@@ -445,15 +445,24 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                                             onValueChange={(val) => handleOptionChange(group.id, val, true)}
                                         >
                                             {group.options?.map(option => (
-                                                <div key={option.id} className="flex items-center justify-between space-x-2 border p-3 rounded-lg bg-background">
-                                                    <div className="flex items-center space-x-2">
-                                                        <RadioGroupItem value={option.id} id={option.id} />
-                                                        <Label htmlFor={option.id} className="font-normal cursor-pointer w-full">
-                                                            {option.name}
-                                                        </Label>
+                                                <div key={option.id} className="flex items-center justify-between gap-2 border p-3 rounded-lg bg-background">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        {option.image_url && (
+                                                            <img
+                                                                src={option.image_url}
+                                                                alt={option.name}
+                                                                className="w-12 h-12 rounded-md object-cover shrink-0"
+                                                            />
+                                                        )}
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <RadioGroupItem value={option.id} id={option.id} />
+                                                            <Label htmlFor={option.id} className="font-normal cursor-pointer leading-tight">
+                                                                {option.name}
+                                                            </Label>
+                                                        </div>
                                                     </div>
                                                     {option.price > 0 && (
-                                                        <span className="text-sm text-muted-foreground">
+                                                        <span className="text-sm text-muted-foreground shrink-0">
                                                             {group.pricing_mode === 'replacement'
                                                                 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(option.price)
                                                                 : `+ ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(option.price)}`
@@ -466,19 +475,28 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                                     ) : (
                                         <div className="space-y-2">
                                             {group.options?.map(option => (
-                                                <div key={option.id} className="flex items-center justify-between space-x-2 border p-3 rounded-lg bg-background">
-                                                    <div className="flex items-center space-x-2">
-                                                        <Checkbox
-                                                            id={option.id}
-                                                            checked={selectedOptions[group.id]?.includes(option.id)}
-                                                            onCheckedChange={() => handleOptionChange(group.id, option.id, false)}
-                                                        />
-                                                        <Label htmlFor={option.id} className="font-normal cursor-pointer w-full">
-                                                            {option.name}
-                                                        </Label>
+                                                <div key={option.id} className="flex items-center justify-between gap-2 border p-3 rounded-lg bg-background">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        {option.image_url && (
+                                                            <img
+                                                                src={option.image_url}
+                                                                alt={option.name}
+                                                                className="w-12 h-12 rounded-md object-cover shrink-0"
+                                                            />
+                                                        )}
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <Checkbox
+                                                                id={option.id}
+                                                                checked={selectedOptions[group.id]?.includes(option.id)}
+                                                                onCheckedChange={() => handleOptionChange(group.id, option.id, false)}
+                                                            />
+                                                            <Label htmlFor={option.id} className="font-normal cursor-pointer leading-tight">
+                                                                {option.name}
+                                                            </Label>
+                                                        </div>
                                                     </div>
                                                     {option.price > 0 && (
-                                                        <span className="text-sm text-muted-foreground">
+                                                        <span className="text-sm text-muted-foreground shrink-0">
                                                             {group.pricing_mode === 'replacement'
                                                                 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(option.price)
                                                                 : `+ ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(option.price)}`
