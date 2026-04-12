@@ -3,6 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle as AlertDialogHeading,
+} from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Upload, X, Loader2, Image as ImageIcon, RefreshCw, Pencil, Camera, Trash2 } from "lucide-react";
@@ -29,6 +39,7 @@ export function ImageUpload({ value, onChange, disabled, className, compact, rep
     const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
     const [actionMenuOpen, setActionMenuOpen] = useState(false);
     const [sourceMenuOpen, setSourceMenuOpen] = useState(false);
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
     const [isTouchDevice, setIsTouchDevice] = useState(false);
     const replaceInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -129,10 +140,33 @@ export function ImageUpload({ value, onChange, disabled, className, compact, rep
         />
     );
 
+    const confirmDeleteDialog = (
+        <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogHeading>Excluir imagem?</AlertDialogHeading>
+                    <AlertDialogDescription>
+                        A imagem será removida. Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                        className="bg-destructive hover:bg-destructive/90"
+                        onClick={removeImage}
+                    >
+                        Excluir
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+
     if (inline) {
         return (
             <div className={cn("relative shrink-0", className)}>
                 {cropModal}
+                {confirmDeleteDialog}
 
                 {/* Inputs ocultos para câmera e galeria */}
                 <input
@@ -168,7 +202,7 @@ export function ImageUpload({ value, onChange, disabled, className, compact, rep
                         <Separator />
                         <button
                             type="button"
-                            onClick={() => { removeImage(); setActionMenuOpen(false); }}
+                            onClick={() => { setActionMenuOpen(false); setConfirmDeleteOpen(true); }}
                             className="flex w-full items-center gap-3 px-5 py-4 text-left text-sm font-medium text-destructive hover:bg-destructive/10 active:bg-destructive/10"
                         >
                             <Trash2 className="h-4 w-4" />
@@ -243,6 +277,7 @@ export function ImageUpload({ value, onChange, disabled, className, compact, rep
 
     return (
         <div className="flex flex-col gap-4">
+            {confirmDeleteDialog}
             <div className="flex items-center gap-4">
                 {value ? (
                     <div className={cn(
@@ -277,7 +312,7 @@ export function ImageUpload({ value, onChange, disabled, className, compact, rep
                                 type="button"
                                 variant="destructive"
                                 size="icon"
-                                onClick={removeImage}
+                                onClick={() => setConfirmDeleteOpen(true)}
                                 disabled={disabled || loading}
                                 className="h-6 w-6 rounded-full"
                             >
