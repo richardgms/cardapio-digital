@@ -1,9 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Loader2, Image as ImageIcon, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Upload, X, Loader2, Image as ImageIcon, RefreshCw, Pencil, Camera, Trash2 } from "lucide-react";
 import Image from "next/image";
 import imageCompression from "browser-image-compression";
 import { toast } from "sonner";
@@ -25,8 +27,17 @@ export function ImageUpload({ value, onChange, disabled, className, compact, rep
     const [loading, setLoading] = useState(false);
     const [cropModalOpen, setCropModalOpen] = useState(false);
     const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+    const [actionMenuOpen, setActionMenuOpen] = useState(false);
+    const [sourceMenuOpen, setSourceMenuOpen] = useState(false);
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
     const replaceInputRef = useRef<HTMLInputElement>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
+    const galleryInputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
+
+    useEffect(() => {
+        setIsTouchDevice(window.matchMedia("(hover: none)").matches);
+    }, []);
 
     const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -100,6 +111,14 @@ export function ImageUpload({ value, onChange, disabled, className, compact, rep
         onChange(null);
     };
 
+    const openFileSource = () => {
+        if (isTouchDevice) {
+            setSourceMenuOpen(true);
+        } else {
+            galleryInputRef.current?.click();
+        }
+    };
+
     const cropModal = (
         <ImageCropModal
             open={cropModalOpen}
@@ -114,40 +133,99 @@ export function ImageUpload({ value, onChange, disabled, className, compact, rep
         return (
             <div className={cn("relative shrink-0", className)}>
                 {cropModal}
+
+                {/* Inputs ocultos para câmera e galeria */}
+                <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={onFileSelect}
+                    disabled={disabled || loading}
+                />
+                <input
+                    ref={galleryInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={onFileSelect}
+                    disabled={disabled || loading}
+                />
+
+                {/* Dialog: Trocar ou Excluir */}
+                <Dialog open={actionMenuOpen} onOpenChange={setActionMenuOpen}>
+                    <DialogContent className="max-w-[280px] gap-0 overflow-hidden p-0">
+                        <DialogTitle className="sr-only">Opções da imagem</DialogTitle>
+                        <button
+                            type="button"
+                            onClick={() => { setActionMenuOpen(false); openFileSource(); }}
+                            className="flex w-full items-center gap-3 px-5 py-4 text-left text-sm font-medium hover:bg-muted active:bg-muted"
+                        >
+                            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                            Trocar imagem
+                        </button>
+                        <Separator />
+                        <button
+                            type="button"
+                            onClick={() => { removeImage(); setActionMenuOpen(false); }}
+                            className="flex w-full items-center gap-3 px-5 py-4 text-left text-sm font-medium text-destructive hover:bg-destructive/10 active:bg-destructive/10"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            Excluir
+                        </button>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Dialog: Câmera ou Galeria (mobile) */}
+                <Dialog open={sourceMenuOpen} onOpenChange={setSourceMenuOpen}>
+                    <DialogContent className="max-w-[280px] gap-0 overflow-hidden p-0">
+                        <DialogTitle className="sr-only">Escolher fonte</DialogTitle>
+                        <button
+                            type="button"
+                            onClick={() => { setSourceMenuOpen(false); setTimeout(() => cameraInputRef.current?.click(), 50); }}
+                            className="flex w-full items-center gap-3 px-5 py-4 text-left text-sm font-medium hover:bg-muted active:bg-muted"
+                        >
+                            <Camera className="h-4 w-4 text-muted-foreground" />
+                            Câmera
+                        </button>
+                        <Separator />
+                        <button
+                            type="button"
+                            onClick={() => { setSourceMenuOpen(false); setTimeout(() => galleryInputRef.current?.click(), 50); }}
+                            className="flex w-full items-center gap-3 px-5 py-4 text-left text-sm font-medium hover:bg-muted active:bg-muted"
+                        >
+                            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                            Galeria
+                        </button>
+                    </DialogContent>
+                </Dialog>
+
                 {value ? (
-                    <div className="relative h-11 w-11 overflow-hidden rounded-md border group">
+                    <div className="relative h-11 w-11 overflow-hidden rounded-md border">
                         <Image src={value} alt="" fill className="object-cover" />
-                        <div className="absolute inset-0 flex items-center justify-center gap-0.5 bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
-                            <button
-                                type="button"
-                                onClick={() => replaceInputRef.current?.click()}
-                                disabled={disabled || loading}
-                                className="rounded p-1 hover:bg-white/20 active:bg-white/30"
-                            >
-                                <RefreshCw className="h-3 w-3 text-white" />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={removeImage}
-                                disabled={disabled || loading}
-                                className="rounded p-1 hover:bg-white/20 active:bg-white/30"
-                            >
-                                <X className="h-3 w-3 text-white" />
-                            </button>
-                        </div>
-                        <input
-                            ref={replaceInputRef}
-                            type="file"
-                            className="hidden"
-                            onChange={onFileSelect}
-                            accept="image/*"
+                        <button
+                            type="button"
                             disabled={disabled || loading}
-                        />
+                            onClick={() => setActionMenuOpen(true)}
+                            className="absolute inset-0 flex items-end justify-end p-0.5"
+                        >
+                            <span className="flex h-5 w-5 items-center justify-center rounded bg-black/60">
+                                {loading ? (
+                                    <Loader2 className="h-3 w-3 animate-spin text-white" />
+                                ) : (
+                                    <Pencil className="h-3 w-3 text-white" />
+                                )}
+                            </span>
+                        </button>
                     </div>
                 ) : (
-                    <label
+                    <button
+                        type="button"
+                        disabled={disabled || loading}
+                        onClick={openFileSource}
                         className={cn(
-                            "relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-muted-foreground/25 bg-muted/40 transition-colors",
+                            "flex h-11 w-11 items-center justify-center rounded-md border-2 border-dashed border-muted-foreground/25 bg-muted/40 transition-colors",
                             "hover:border-primary/40 hover:bg-muted/60 active:bg-muted/80",
                             (disabled || loading) && "cursor-not-allowed opacity-50"
                         )}
@@ -157,14 +235,7 @@ export function ImageUpload({ value, onChange, disabled, className, compact, rep
                         ) : (
                             <ImageIcon className="h-4 w-4 text-muted-foreground/60" />
                         )}
-                        <input
-                            type="file"
-                            className="sr-only"
-                            onChange={onFileSelect}
-                            accept="image/*"
-                            disabled={disabled || loading}
-                        />
-                    </label>
+                    </button>
                 )}
             </div>
         );
