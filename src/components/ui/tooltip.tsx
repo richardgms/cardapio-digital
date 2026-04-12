@@ -27,4 +27,22 @@ const TooltipContent = React.forwardRef<
 ))
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+interface TooltipIconButtonProps extends React.ComponentPropsWithoutRef<"button"> {
+    tooltip: string;
+}
+
+const TooltipIconButton = React.forwardRef<HTMLButtonElement, TooltipIconButtonProps>(
+    ({ tooltip, children, ...props }, ref) => (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <button ref={ref} type="button" {...props}>
+                    {children}
+                </button>
+            </TooltipTrigger>
+            <TooltipContent>{tooltip}</TooltipContent>
+        </Tooltip>
+    )
+)
+TooltipIconButton.displayName = "TooltipIconButton"
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, TooltipIconButton }

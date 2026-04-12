@@ -17,9 +17,11 @@ interface ImageUploadProps {
     className?: string;
     compact?: boolean;
     replaceable?: boolean;
+    /** Renders as a small clickable square with no label or separate button below */
+    inline?: boolean;
 }
 
-export function ImageUpload({ value, onChange, disabled, className, compact, replaceable }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, disabled, className, compact, replaceable, inline }: ImageUploadProps) {
     const [loading, setLoading] = useState(false);
     const [cropModalOpen, setCropModalOpen] = useState(false);
     const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
@@ -97,6 +99,76 @@ export function ImageUpload({ value, onChange, disabled, className, compact, rep
     const removeImage = () => {
         onChange(null);
     };
+
+    const cropModal = (
+        <ImageCropModal
+            open={cropModalOpen}
+            imageSrc={rawImageSrc ?? ""}
+            onConfirm={handleCropConfirm}
+            onCancel={handleCropCancel}
+            aspectRatio={1}
+        />
+    );
+
+    if (inline) {
+        return (
+            <div className={cn("relative shrink-0", className)}>
+                {cropModal}
+                {value ? (
+                    <div className="relative h-11 w-11 overflow-hidden rounded-md border group">
+                        <Image src={value} alt="" fill className="object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center gap-0.5 bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
+                            <button
+                                type="button"
+                                onClick={() => replaceInputRef.current?.click()}
+                                disabled={disabled || loading}
+                                className="rounded p-1 hover:bg-white/20 active:bg-white/30"
+                            >
+                                <RefreshCw className="h-3 w-3 text-white" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={removeImage}
+                                disabled={disabled || loading}
+                                className="rounded p-1 hover:bg-white/20 active:bg-white/30"
+                            >
+                                <X className="h-3 w-3 text-white" />
+                            </button>
+                        </div>
+                        <input
+                            ref={replaceInputRef}
+                            type="file"
+                            className="hidden"
+                            onChange={onFileSelect}
+                            accept="image/*"
+                            disabled={disabled || loading}
+                        />
+                    </div>
+                ) : (
+                    <label
+                        className={cn(
+                            "relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-muted-foreground/25 bg-muted/40 transition-colors",
+                            "hover:border-primary/40 hover:bg-muted/60 active:bg-muted/80",
+                            (disabled || loading) && "cursor-not-allowed opacity-50"
+                        )}
+                    >
+                        {loading ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        ) : (
+                            <ImageIcon className="h-4 w-4 text-muted-foreground/60" />
+                        )}
+                        <input
+                            type="file"
+                            className="sr-only"
+                            onChange={onFileSelect}
+                            accept="image/*"
+                            disabled={disabled || loading}
+                        />
+                    </label>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-4">
@@ -187,16 +259,7 @@ export function ImageUpload({ value, onChange, disabled, className, compact, rep
                 </div>
             )}
 
-            {/* Crop Modal */}
-            {rawImageSrc && (
-                <ImageCropModal
-                    open={cropModalOpen}
-                    imageSrc={rawImageSrc}
-                    onConfirm={handleCropConfirm}
-                    onCancel={handleCropCancel}
-                    aspectRatio={1}
-                />
-            )}
+            {cropModal}
         </div>
     );
 }

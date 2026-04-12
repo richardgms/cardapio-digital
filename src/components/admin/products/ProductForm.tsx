@@ -39,8 +39,11 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { TooltipIconButton } from "@/components/ui/tooltip";
 import { ImageUpload } from "@/components/admin/ImageUpload";
-import { Trash2, Plus, GripVertical, SlidersHorizontal, Package } from "lucide-react";
+import { Trash2, Plus, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
@@ -95,7 +98,7 @@ const OptionItemSwitch = ({ control, nestIndex, k }: { control: Control<FormValu
             render={({ field }) => (
                 <FormItem className="flex items-center shrink-0 space-y-0">
                     <FormControl>
-                        <div className="flex items-center">
+                        <div className="flex h-11 items-center px-1 sm:h-auto sm:px-0">
                             <Switch
                                 checked={field.value}
                                 onCheckedChange={(checked) => {
@@ -138,74 +141,96 @@ const OptionsList = ({ nestIndex, control, pricingMode }: { nestIndex: number; c
     });
 
     return (
-        <div className="space-y-4">
-            <div className="space-y-3">
-                {fields.map((item, k) => (
-                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-start gap-3 p-3 sm:p-0 border sm:border-transparent rounded-lg sm:rounded-none bg-muted/10 sm:bg-transparent">
+        <div className="space-y-2">
+            {fields.length > 0 && (
+                <div className="hidden sm:grid items-center gap-2 px-1 pb-1 [grid-template-columns:44px_1fr_112px_auto]">
+                    <div />
+                    <span className="text-xs font-medium text-muted-foreground">Nome</span>
+                    <span className="text-xs font-medium text-muted-foreground">Preço</span>
+                    <div className="w-[84px]" />
+                </div>
+            )}
+
+            {fields.map((item, k) => (
+                <div
+                    key={item.id}
+                    className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3 shadow-sm sm:flex-nowrap sm:rounded-none sm:border-transparent sm:bg-transparent sm:p-0 sm:shadow-none"
+                >
+                    <FormField
+                        control={control}
+                        name={`option_groups.${nestIndex}.options.${k}.image_url`}
+                        render={({ field }) => (
+                            <FormItem className="shrink-0 space-y-0">
+                                <FormControl>
+                                    <ImageUpload value={field.value} onChange={field.onChange} inline />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={control}
+                        name={`option_groups.${nestIndex}.options.${k}.name`}
+                        render={({ field }) => (
+                            <FormItem className="min-w-0 flex-1 space-y-0">
+                                <FormControl>
+                                    <Input
+                                        placeholder="Nome da opção"
+                                        {...field}
+                                        className="h-11 text-base sm:h-9 sm:text-sm"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    {/* mobile: segunda linha; sm: continuação da linha única */}
+                    <div className="flex w-full items-center gap-2 sm:w-auto sm:flex-nowrap">
                         <FormField
                             control={control}
-                            name={`option_groups.${nestIndex}.options.${k}.image_url`}
+                            name={`option_groups.${nestIndex}.options.${k}.price`}
                             render={({ field }) => (
-                                <FormItem className="shrink-0">
+                                <FormItem className="min-w-0 flex-1 space-y-0 sm:w-28 sm:flex-none">
                                     <FormControl>
-                                        <ImageUpload
-                                            value={field.value}
-                                            onChange={field.onChange}
-                                            compact
-                                            replaceable
-                                            className="h-16 w-16"
-                                        />
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={control}
-                            name={`option_groups.${nestIndex}.options.${k}.name`}
-                            render={({ field }) => (
-                                <FormItem className="w-full sm:flex-1">
-                                    <FormControl>
-                                        <Input placeholder="Nome da opção" {...field} />
+                                        <div className="relative flex items-center">
+                                            <span className="absolute left-3 text-xs text-muted-foreground">
+                                                {pricingMode === 'replacement' ? 'R$' : 'R$+'}
+                                            </span>
+                                            <Input
+                                                type="number"
+                                                className="h-11 pl-9 text-right sm:h-9"
+                                                placeholder="0.00"
+                                                {...field}
+                                            />
+                                        </div>
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
-                        <div className="flex items-start gap-3 justify-between sm:justify-start w-full sm:w-auto">
-                            <FormField
-                                control={control}
-                                name={`option_groups.${nestIndex}.options.${k}.price`}
-                                render={({ field }) => (
-                                    <FormItem className="flex-1 sm:w-32">
-                                        <FormControl>
-                                            <div className="relative flex items-center">
-                                                <span className="absolute left-3 text-muted-foreground text-sm">
-                                                    {pricingMode === 'replacement' ? 'R$' : 'R$ +'}
-                                                </span>
-                                                <Input type="number" className="pl-10 text-right" placeholder="0.00" {...field} />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <div className="flex items-center gap-2 shrink-0 h-10">
-                                <OptionItemSwitch control={control} nestIndex={nestIndex} k={k} />
-                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(k)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
+
+                        <div className="flex shrink-0 items-center">
+                            <OptionItemSwitch control={control} nestIndex={nestIndex} k={k} />
+                            <TooltipIconButton
+                                tooltip="Remover opção"
+                                onClick={() => remove(k)}
+                                className="inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:text-destructive sm:h-9 sm:w-9"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </TooltipIconButton>
                         </div>
                     </div>
-                ))}
-            </div>
+                </div>
+            ))}
+
             <Button
                 type="button"
                 variant="outline"
-                size="sm"
+                className="mt-1 h-11 w-full border-dashed text-sm sm:h-9 sm:text-xs"
                 onClick={() => append({ name: "", price: 0, is_available: true, image_url: null })}
             >
-                <Plus className="mr-2 h-3 w-3" />
+                <Plus className="mr-2 h-4 w-4" />
                 Adicionar Opção
             </Button>
         </div>
@@ -227,10 +252,16 @@ interface GroupCardProps {
 }
 
 const GroupCard = ({ index, control, form, onRemove, replacementGroups }: GroupCardProps) => {
-    const currentPricingMode = useWatch({ control, name: `option_groups.${index}.pricing_mode` }) ?? 'addon';
-    const groupDbId = useWatch({ control, name: `option_groups.${index}.id` })
-    const groupTitle = useWatch({ control, name: `option_groups.${index}.title` })
-    const groupMaxSelect = useWatch({ control, name: `option_groups.${index}.max_select` })
+    const [rawPricingMode, groupDbId, groupTitle, groupMaxSelect] = useWatch({
+        control,
+        name: [
+            `option_groups.${index}.pricing_mode`,
+            `option_groups.${index}.id`,
+            `option_groups.${index}.title`,
+            `option_groups.${index}.max_select`,
+        ],
+    });
+    const currentPricingMode: 'addon' | 'replacement' = rawPricingMode ?? 'addon';
     const [openSizeRules, setOpenSizeRules] = useState(false)
 
     const showSizeRulesButton =
@@ -240,21 +271,30 @@ const GroupCard = ({ index, control, form, onRemove, replacementGroups }: GroupC
 
     return (
         <>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base font-medium">
-                    Grupo de Opções #{index + 1}
-                </CardTitle>
+        <Card className="overflow-hidden">
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-4 py-3">
                 <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="font-mono text-xs">
+                        #{index + 1}
+                    </Badge>
+                    <CardTitle className="text-sm font-semibold text-muted-foreground">
+                        Grupo de Opções
+                    </CardTitle>
+                </div>
+                <div className="flex items-center gap-1">
                     {showSizeRulesButton && (
-                        <Button type="button" variant="outline" size="sm" onClick={() => setOpenSizeRules(true)}>
-                            <SlidersHorizontal className="h-4 w-4 mr-1" />
-                            Regras por tamanho
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setOpenSizeRules(true)} className="h-11 px-3 sm:h-9">
+                            <SlidersHorizontal className="h-4 w-4 sm:mr-1.5" />
+                            <span className="hidden sm:inline">Regras por tamanho</span>
                         </Button>
                     )}
-                    <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <TooltipIconButton
+                        tooltip="Remover grupo"
+                        onClick={onRemove}
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:text-destructive sm:h-9 sm:w-9"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </TooltipIconButton>
                 </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
@@ -277,7 +317,10 @@ const GroupCard = ({ index, control, form, onRemove, replacementGroups }: GroupC
                         name={`option_groups.${index}.max_select`}
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Máximo de Seleções <span className="text-xs text-muted-foreground font-normal">(0 = ilimitado)</span></FormLabel>
+                                <FormLabel>
+                                    Máximo de Seleções{" "}
+                                    <span className="text-xs font-normal text-muted-foreground">(0 = ilimitado)</span>
+                                </FormLabel>
                                 <FormControl>
                                     <Input
                                         type="number"
@@ -295,20 +338,22 @@ const GroupCard = ({ index, control, form, onRemove, replacementGroups }: GroupC
 
                 <div className="flex flex-row items-center justify-between rounded-lg border p-3">
                     <div className="space-y-0.5">
-                        <FormLabel className="text-base">Obrigatório</FormLabel>
+                        <FormLabel className="text-sm font-medium">Obrigatório</FormLabel>
+                        <FormDescription className="text-xs">
+                            Cliente deve escolher ao menos uma opção
+                        </FormDescription>
                     </div>
-                    <FormControl>
-                        <FormField
-                            control={control}
-                            name={`option_groups.${index}.is_required`}
-                            render={({ field }) => (
-                                <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
-                            )}
-                        />
-                    </FormControl>
+                    <FormField
+                        control={control}
+                        name={`option_groups.${index}.is_required`}
+                        render={({ field }) => (
+                            <FormItem className="space-y-0">
+                                <FormControl>
+                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
                 </div>
 
                 <FormField
@@ -318,8 +363,8 @@ const GroupCard = ({ index, control, form, onRemove, replacementGroups }: GroupC
                         <FormItem>
                             <div className="flex flex-row items-center justify-between rounded-lg border p-3">
                                 <div className="space-y-0.5">
-                                    <FormLabel className="text-base">Tipo de Preço</FormLabel>
-                                    <FormDescription>
+                                    <FormLabel className="text-sm font-medium">Tipo de Preço</FormLabel>
+                                    <FormDescription className="text-xs">
                                         {currentPricingMode === 'replacement'
                                             ? 'Cada opção define o preço total (ex: tamanhos P/M/G)'
                                             : 'Cada opção soma ao preço base do produto'
@@ -349,8 +394,10 @@ const GroupCard = ({ index, control, form, onRemove, replacementGroups }: GroupC
                     )}
                 />
 
-                <div className="pl-4 border-l-2">
-                    <h4 className="text-sm font-medium mb-3">Opções</h4>
+                <Separator />
+
+                <div>
+                    <h4 className="mb-3 text-sm font-semibold">Opções</h4>
                     <OptionsList nestIndex={index} control={control} pricingMode={currentPricingMode} />
                 </div>
             </CardContent>
@@ -833,7 +880,12 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-semibold">Opções</h2>
-                            <Button type="button" variant="outline" size="sm" onClick={() => appendGroup({ title: "", is_required: false, max_select: 1, pricing_mode: 'addon', options: [] })}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => appendGroup({ title: "", is_required: false, max_select: 1, pricing_mode: 'addon', options: [] })}
+                            >
                                 <Plus className="mr-2 h-4 w-4" /> Novo Grupo
                             </Button>
                         </div>
@@ -850,14 +902,14 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
 
         {/* Barra de salvar fixada no bottom — apenas mobile, apenas com alterações pendentes */}
         {form.formState.isDirty && (
-            <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t px-4 py-3 flex items-center justify-between gap-3 shadow-lg">
-                <p className="text-sm text-muted-foreground">Alterações não salvas</p>
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t px-4 py-3 flex items-center justify-between gap-3 shadow-lg">
+                <p className="text-sm font-medium text-muted-foreground">Alterações não salvas</p>
                 <Button
-                    size="sm"
+                    className="h-11 px-6"
                     disabled={isSaving}
                     onClick={form.handleSubmit(onSubmit)}
                 >
-                    {isSaving ? "Salvando..." : "Salvar"}
+                    {isSaving ? "Salvando..." : "Salvar produto"}
                 </Button>
             </div>
         )}
