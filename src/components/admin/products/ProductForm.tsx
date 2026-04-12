@@ -152,6 +152,8 @@ const OptionsList = ({ nestIndex, control, pricingMode }: { nestIndex: number; c
                                             value={field.value}
                                             onChange={field.onChange}
                                             compact
+                                            replaceable
+                                            className="h-16 w-16"
                                         />
                                     </FormControl>
                                 </FormItem>

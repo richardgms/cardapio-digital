@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
+import { Upload, X, Loader2, Image as ImageIcon, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import imageCompression from "browser-image-compression";
 import { toast } from "sonner";
@@ -16,12 +16,14 @@ interface ImageUploadProps {
     disabled?: boolean;
     className?: string;
     compact?: boolean;
+    replaceable?: boolean;
 }
 
-export function ImageUpload({ value, onChange, disabled, className, compact }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, disabled, className, compact, replaceable }: ImageUploadProps) {
     const [loading, setLoading] = useState(false);
     const [cropModalOpen, setCropModalOpen] = useState(false);
     const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+    const replaceInputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
 
     const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,11 +103,33 @@ export function ImageUpload({ value, onChange, disabled, className, compact }: I
             <div className="flex items-center gap-4">
                 {value ? (
                     <div className={cn(
-                        compact ? "relative h-[120px] w-full" : "relative h-[200px] w-[200px]",
-                        "overflow-hidden rounded-md border",
+                        compact ? "relative h-[120px] w-[120px]" : "relative h-[200px] w-[200px]",
+                        "overflow-hidden rounded-md border shrink-0",
                         className
                     )}>
-                        <div className="absolute right-2 top-2 z-10">
+                        <div className="absolute right-2 top-2 z-10 flex gap-1">
+                            {replaceable && (
+                                <>
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="icon"
+                                        onClick={() => replaceInputRef.current?.click()}
+                                        disabled={disabled || loading}
+                                        className="h-6 w-6 rounded-full"
+                                    >
+                                        <RefreshCw className="h-3 w-3" />
+                                    </Button>
+                                    <input
+                                        ref={replaceInputRef}
+                                        type="file"
+                                        className="hidden"
+                                        onChange={onFileSelect}
+                                        accept="image/*"
+                                        disabled={disabled || loading}
+                                    />
+                                </>
+                            )}
                             <Button
                                 type="button"
                                 variant="destructive"
@@ -126,8 +150,8 @@ export function ImageUpload({ value, onChange, disabled, className, compact }: I
                     </div>
                 ) : (
                     <div className={cn(
-                        compact ? "flex h-[120px] w-full" : "flex h-[200px] w-[200px]",
-                        "items-center justify-center rounded-md border border-dashed bg-muted/50",
+                        compact ? "flex h-[120px] w-[120px]" : "flex h-[200px] w-[200px]",
+                        "items-center justify-center rounded-md border border-dashed bg-muted/50 shrink-0",
                         className
                     )}>
                         {loading ? (
