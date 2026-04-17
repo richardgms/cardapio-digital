@@ -28,11 +28,11 @@ export function CookieBanner() {
     if (!visible) return null
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 text-white shadow-2xl border-t border-gray-700">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-black text-white shadow-2xl border-t border-gray-800">
             <div className="container mx-auto max-w-5xl px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <p className="flex-1 text-sm text-gray-300 leading-relaxed">
                     Usamos cookies e armazenamento local para salvar seu carrinho e facilitar seus próximos pedidos.{' '}
-                    <Link href="/privacidade" className="underline text-white hover:text-gray-300 transition-colors">
+                    <Link href="/privacidade" className="underline text-white hover:text-gray-400 transition-colors">
                         Política de Privacidade
                     </Link>
                     .
@@ -41,13 +41,14 @@ export function CookieBanner() {
                     <Button
                         size="sm"
                         variant="ghost"
-                        className="text-gray-400 hover:text-white hover:bg-gray-700"
+                        className="text-gray-400 hover:text-white hover:bg-gray-800"
                         onClick={dismiss}
                     >
                         Recusar
                     </Button>
                     <Button
                         size="sm"
+                        className="bg-white text-black hover:bg-gray-200"
                         onClick={accept}
                     >
                         Aceitar cookies
