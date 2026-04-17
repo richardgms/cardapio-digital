@@ -15,7 +15,7 @@ import { openWhatsApp } from "@/lib/whatsapp"
 import { formatPhone } from "@/lib/validators"
 
 export function OrderConfirmationDialog() {
-    const { isPending, paymentMethod, whatsappNumber, dismiss } = useOrderConfirmationStore()
+    const { isPending, paymentMethod, whatsappNumber, message, dismiss } = useOrderConfirmationStore()
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
@@ -28,7 +28,7 @@ export function OrderConfirmationDialog() {
 
     const handleContact = () => {
         if (whatsappNumber) {
-            openWhatsApp(whatsappNumber, "Olá! Acabei de fazer um pedido pelo cardápio digital.")
+            openWhatsApp(whatsappNumber, message || "Olá! Acabei de fazer um pedido pelo cardápio digital.")
         }
         dismiss()
     }

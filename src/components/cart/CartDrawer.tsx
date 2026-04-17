@@ -203,6 +203,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
             setPending({
                 paymentMethod: paymentMethod!,
                 whatsappNumber: store.whatsapp,
+                message,
             })
             openWhatsApp(store.whatsapp, message)
             clearCart()
