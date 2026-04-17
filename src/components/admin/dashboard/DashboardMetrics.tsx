@@ -253,14 +253,14 @@ function TrendBadge({
     }
     if (pct > 0) {
         return (
-            <Badge className="gap-1 bg-green-100 text-green-700 hover:bg-green-100">
+            <Badge className="gap-1 bg-success/15 text-success hover:bg-success/15">
                 <TrendingUp className="h-3 w-3" />+{pct}%
             </Badge>
         )
     }
     if (pct < 0) {
         return (
-            <Badge className="gap-1 bg-red-100 text-red-700 hover:bg-red-100">
+            <Badge className="gap-1 bg-destructive/10 text-destructive hover:bg-destructive/10">
                 <TrendingDown className="h-3 w-3" />{pct}%
             </Badge>
         )

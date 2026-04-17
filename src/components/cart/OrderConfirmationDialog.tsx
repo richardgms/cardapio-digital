@@ -38,8 +38,8 @@ export function OrderConfirmationDialog() {
             <DialogContent className="sm:max-w-md rounded-2xl">
                 <DialogHeader className="items-center text-center space-y-4 pt-2">
                     {/* Success Icon */}
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 animate-in zoom-in-50 duration-300">
-                        <CheckCircle2 className="h-9 w-9 text-green-600" />
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/15 animate-in zoom-in-50 duration-300">
+                        <CheckCircle2 className="h-9 w-9 text-success" />
                     </div>
 
                     <div className="space-y-2">
@@ -68,7 +68,7 @@ export function OrderConfirmationDialog() {
                     {/* Contact Button */}
                     <Button
                         onClick={handleContact}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white gap-2"
+                        className="w-full bg-whatsapp hover:bg-whatsapp/90 text-whatsapp-foreground gap-2"
                         size="lg"
                     >
                         <MessageCircle className="h-5 w-5" />

@@ -49,7 +49,7 @@ export function CategoryNav({ categories, activeId, onSelect }: CategoryNavProps
       >
         {/* Marcador Animado */}
         <div
-          className="absolute top-3 bottom-3 bg-black rounded-full transition-all duration-300 ease-out shadow-md pointer-events-none"
+          className="absolute top-3 bottom-3 bg-primary rounded-full transition-all duration-300 ease-out shadow-md pointer-events-none"
           style={{
             left: `${indicatorStyle.left}px`,
             width: `${indicatorStyle.width}px`,

@@ -325,7 +325,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                                 <Button
                                     variant="secondary"
                                     size="icon"
-                                    className="absolute right-4 bottom-4 z-10 h-8 w-8 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white shadow-md"
+                                    className="absolute right-4 bottom-4 z-10 h-8 w-8 rounded-full bg-primary/60 text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground shadow-md"
                                     onClick={() => openFullscreen(activeImageIndex)}
                                 >
                                     <Maximize2 className="h-4 w-4" />
@@ -336,7 +336,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute right-4 top-4 z-10 h-8 w-8 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
+                                className="absolute right-4 top-4 z-10 h-8 w-8 rounded-full bg-primary/60 text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
                                 onClick={onClose}
                             >
                                 <X className="h-4 w-4" />
@@ -597,7 +597,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="absolute right-4 top-4 z-50 h-9 w-9 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white"
+                        className="absolute right-4 top-4 z-50 h-9 w-9 rounded-full bg-primary/60 text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground"
                         onClick={() => setIsImageOpen(false)}
                     >
                         <X className="h-5 w-5" />
@@ -609,7 +609,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white disabled:opacity-30"
+                                className="absolute left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 rounded-full bg-primary/60 text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground disabled:opacity-30"
                                 disabled={fullscreenIndex === 0}
                                 onClick={() => setFullscreenIndex(i => i - 1)}
                             >
@@ -618,7 +618,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white disabled:opacity-30"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 rounded-full bg-primary/60 text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground disabled:opacity-30"
                                 disabled={fullscreenIndex === allImages.length - 1}
                                 onClick={() => setFullscreenIndex(i => i + 1)}
                             >

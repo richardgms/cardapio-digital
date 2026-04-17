@@ -117,25 +117,25 @@ export function OrdersManager({ storeId, isImpersonating }: OrdersManagerProps) 
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-black">Histórico de Pedidos</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Histórico de Pedidos</h1>
                     <p className="text-muted-foreground mt-1 text-sm">
                         {isImpersonating ? "Visualizando histórico como Super Admin." : "Todos os pedidos realizados na sua loja."}
                     </p>
                 </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+            <div className="flex flex-wrap items-center gap-4 bg-muted/50 p-4 rounded-2xl border border-border">
                 <Tabs value={periodFilter} onValueChange={(v) => setPeriodFilter(v as PeriodFilter)}>
-                    <TabsList className="bg-white border border-zinc-200">
-                        <TabsTrigger value="today" className="data-[state=active]:bg-black data-[state=active]:text-white">Hoje</TabsTrigger>
-                        <TabsTrigger value="7days" className="data-[state=active]:bg-black data-[state=active]:text-white">7d</TabsTrigger>
-                        <TabsTrigger value="30days" className="data-[state=active]:bg-black data-[state=active]:text-white">30d</TabsTrigger>
-                        <TabsTrigger value="all" className="data-[state=active]:bg-black data-[state=active]:text-white">Todos</TabsTrigger>
+                    <TabsList className="bg-background border border-border">
+                        <TabsTrigger value="today" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Hoje</TabsTrigger>
+                        <TabsTrigger value="7days" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">7d</TabsTrigger>
+                        <TabsTrigger value="30days" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">30d</TabsTrigger>
+                        <TabsTrigger value="all" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Todos</TabsTrigger>
                     </TabsList>
                 </Tabs>
 
                 <Select value={deliveryFilter} onValueChange={(v) => setDeliveryFilter(v as DeliveryType | "all")}>
-                    <SelectTrigger className="w-[180px] bg-white border-zinc-200">
+                    <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Tipo de entrega" />
                     </SelectTrigger>
                     <SelectContent>
@@ -148,7 +148,7 @@ export function OrdersManager({ storeId, isImpersonating }: OrdersManagerProps) 
             </div>
 
             {/* Mobile: cards */}
-            <div className="md:hidden border border-zinc-200 rounded-2xl overflow-hidden bg-white shadow-sm divide-y divide-zinc-100">
+            <div className="md:hidden border border-border rounded-2xl overflow-hidden bg-background shadow-sm divide-y divide-border">
                 {loading ? (
                     [1, 2, 3, 4, 5].map(i => (
                         <div key={i} className="p-4 space-y-2">
@@ -157,7 +157,7 @@ export function OrdersManager({ storeId, isImpersonating }: OrdersManagerProps) 
                         </div>
                     ))
                 ) : filteredOrders.length === 0 ? (
-                    <p className="py-16 text-center text-zinc-400 italic text-sm">
+                    <p className="py-16 text-center text-muted-foreground italic text-sm">
                         Nenhum pedido encontrado no período.
                     </p>
                 ) : (
@@ -168,22 +168,22 @@ export function OrdersManager({ storeId, isImpersonating }: OrdersManagerProps) 
                             <button
                                 key={order.id}
                                 onClick={() => openOrderDetail(order)}
-                                className="w-full text-left px-4 py-4 active:bg-zinc-50 transition-colors"
+                                className="w-full text-left px-4 py-4 active:bg-muted transition-colors"
                             >
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex items-center gap-2 min-w-0">
-                                        <span className="font-mono text-xs text-zinc-400 shrink-0">
+                                        <span className="font-mono text-xs text-muted-foreground shrink-0">
                                             #{formatOrderNumber(order.order_number)}
                                         </span>
-                                        <span className="font-bold text-black truncate">
+                                        <span className="font-bold text-foreground truncate">
                                             {order.customer_name}
                                         </span>
                                     </div>
-                                    <span className="font-bold text-black shrink-0">
+                                    <span className="font-bold text-foreground shrink-0">
                                         {formatCurrency(order.total)}
                                     </span>
                                 </div>
-                                <div className="flex items-center gap-3 mt-1.5 text-xs text-zinc-500">
+                                <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
                                     <span className="flex items-center gap-1">
                                         <DeliveryIcon className="h-3.5 w-3.5" />
                                         {dt.label}
@@ -205,47 +205,47 @@ export function OrdersManager({ storeId, isImpersonating }: OrdersManagerProps) 
             </div>
 
             {/* Desktop: tabela */}
-            <div className="hidden md:block border border-zinc-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+            <div className="hidden md:block border border-border rounded-2xl overflow-hidden bg-background shadow-sm">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-zinc-50 border-b border-zinc-200">
+                    <thead className="bg-muted/50 border-b border-border">
                         <tr>
-                            <th className="px-6 py-4 font-bold text-black w-[80px]">#</th>
-                            <th className="px-6 py-4 font-bold text-black">Cliente</th>
-                            <th className="px-6 py-4 font-bold text-black">Tipo</th>
-                            <th className="px-6 py-4 font-bold text-black">Total</th>
-                            <th className="px-6 py-4 font-bold text-black">Data/Hora</th>
-                            <th className="px-6 py-4 font-bold text-black text-right">Ações</th>
+                            <th className="px-6 py-4 font-bold text-foreground w-[80px]">#</th>
+                            <th className="px-6 py-4 font-bold text-foreground">Cliente</th>
+                            <th className="px-6 py-4 font-bold text-foreground">Tipo</th>
+                            <th className="px-6 py-4 font-bold text-foreground">Total</th>
+                            <th className="px-6 py-4 font-bold text-foreground">Data/Hora</th>
+                            <th className="px-6 py-4 font-bold text-foreground text-right">Ações</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100">
+                    <tbody className="divide-y divide-border">
                         {loading ? (
-                            [1, 2, 3, 4, 5].map(i => <tr key={i}><td colSpan={6} className="px-6 py-4"><Skeleton className="h-6 w-full bg-zinc-50" /></td></tr>)
+                            [1, 2, 3, 4, 5].map(i => <tr key={i}><td colSpan={6} className="px-6 py-4"><Skeleton className="h-6 w-full bg-muted" /></td></tr>)
                         ) : filteredOrders.length === 0 ? (
-                            <tr><td colSpan={6} className="px-6 py-20 text-center text-zinc-400 italic">Nenhum pedido encontrado no período.</td></tr>
+                            <tr><td colSpan={6} className="px-6 py-20 text-center text-muted-foreground italic">Nenhum pedido encontrado no período.</td></tr>
                         ) : (
                             filteredOrders.map((order) => {
                                 const dt = deliveryTypeMap[order.delivery_type];
                                 return (
-                                    <tr key={order.id} onClick={() => openOrderDetail(order)} className="hover:bg-zinc-50/50 cursor-pointer transition-colors group">
-                                        <td className="px-6 py-4 font-mono font-bold text-zinc-400 group-hover:text-black">
+                                    <tr key={order.id} onClick={() => openOrderDetail(order)} className="hover:bg-muted/50 cursor-pointer transition-colors group">
+                                        <td className="px-6 py-4 font-mono font-bold text-muted-foreground group-hover:text-foreground">
                                             {formatOrderNumber(order.order_number)}
                                         </td>
-                                        <td className="px-6 py-4 font-bold text-black">
+                                        <td className="px-6 py-4 font-bold text-foreground">
                                             {order.customer_name}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="flex items-center gap-2 text-zinc-500">
+                                            <span className="flex items-center gap-2 text-muted-foreground">
                                                 <dt.icon className="h-4 w-4" /> {dt.label}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 font-bold text-black">
+                                        <td className="px-6 py-4 font-bold text-foreground">
                                             {formatCurrency(order.total)}
                                         </td>
-                                        <td className="px-6 py-4 text-zinc-500 text-xs">
+                                        <td className="px-6 py-4 text-muted-foreground text-xs">
                                             {new Date(order.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <Button variant="ghost" size="icon" className="group-hover:bg-black group-hover:text-white transition-all rounded-full">
+                                            <Button variant="ghost" size="icon" className="group-hover:bg-primary group-hover:text-primary-foreground transition-all rounded-full">
                                                 <Eye className="h-4 w-4" />
                                             </Button>
                                         </td>
@@ -258,86 +258,86 @@ export function OrdersManager({ storeId, isImpersonating }: OrdersManagerProps) 
             </div>
 
             <Sheet open={!!selectedOrder} onOpenChange={(o) => !o && setSelectedOrder(null)}>
-                <SheetContent className="sm:max-w-md bg-white border-l border-zinc-200 p-0">
+                <SheetContent className="sm:max-w-md border-l border-border p-0">
                     {selectedOrder && (
                         <div className="flex flex-col h-full">
-                            <div className="p-6 border-b border-zinc-100">
-                                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-1">Detalhes do Pedido</span>
-                                <h2 className="text-2xl font-black text-black flex items-center gap-2">
+                            <div className="p-6 border-b border-border">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Detalhes do Pedido</span>
+                                <h2 className="text-2xl font-black text-foreground flex items-center gap-2">
                                     <ReceiptText className="h-6 w-6" /> #{formatOrderNumber(selectedOrder.order_number)}
                                 </h2>
-                                <p className="text-xs text-zinc-500 mt-1">
+                                <p className="text-xs text-muted-foreground mt-1">
                                     Realizado em {new Date(selectedOrder.created_at).toLocaleString("pt-BR")}
                                 </p>
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-6 space-y-8">
                                 <section className="space-y-4">
-                                    <h3 className="text-xs font-black uppercase text-zinc-400">Dados do Cliente</h3>
-                                    <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                                        <p className="font-bold text-black">{selectedOrder.customer_name}</p>
-                                        <a href={`tel:${selectedOrder.customer_phone}`} className="flex items-center gap-2 text-sm text-zinc-500 mt-1 hover:text-black">
+                                    <h3 className="text-xs font-black uppercase text-muted-foreground">Dados do Cliente</h3>
+                                    <div className="bg-muted/50 p-4 rounded-2xl border border-border">
+                                        <p className="font-bold text-foreground">{selectedOrder.customer_name}</p>
+                                        <a href={`tel:${selectedOrder.customer_phone}`} className="flex items-center gap-2 text-sm text-muted-foreground mt-1 hover:text-foreground">
                                             <Phone className="h-3.5 w-3.5" /> {selectedOrder.customer_phone}
                                         </a>
                                     </div>
                                 </section>
 
                                 <section className="space-y-4">
-                                    <h3 className="text-xs font-black uppercase text-zinc-400">Entrega e Pagamento</h3>
+                                    <h3 className="text-xs font-black uppercase text-muted-foreground">Entrega e Pagamento</h3>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                                            <p className="text-[10px] font-bold text-zinc-400 uppercase">Tipo</p>
-                                            <p className="font-bold text-black mt-1">{deliveryTypeMap[selectedOrder.delivery_type].label}</p>
+                                        <div className="bg-muted/50 p-4 rounded-2xl border border-border">
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Tipo</p>
+                                            <p className="font-bold text-foreground mt-1">{deliveryTypeMap[selectedOrder.delivery_type].label}</p>
                                         </div>
-                                        <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                                            <p className="text-[10px] font-bold text-zinc-400 uppercase">Pagamento</p>
-                                            <p className="font-bold text-black mt-1">{paymentMethodMap[selectedOrder.payment_method]}</p>
+                                        <div className="bg-muted/50 p-4 rounded-2xl border border-border">
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Pagamento</p>
+                                            <p className="font-bold text-foreground mt-1">{paymentMethodMap[selectedOrder.payment_method]}</p>
                                         </div>
                                     </div>
                                     {selectedOrder.delivery_address && (
-                                        <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 flex items-start gap-3">
-                                            <MapPin className="h-4 w-4 text-zinc-400 shrink-0 mt-0.5" />
+                                        <div className="bg-muted/50 p-4 rounded-2xl border border-border flex items-start gap-3">
+                                            <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                                             <div>
-                                                <p className="text-[10px] font-bold text-zinc-400 uppercase">Endereço</p>
-                                                <p className="text-sm font-medium text-black mt-1 leading-relaxed">{selectedOrder.delivery_address}</p>
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase">Endereço</p>
+                                                <p className="text-sm font-medium text-foreground mt-1 leading-relaxed">{selectedOrder.delivery_address}</p>
                                             </div>
                                         </div>
                                     )}
                                 </section>
 
                                 <section className="space-y-4">
-                                    <h3 className="text-xs font-black uppercase text-zinc-400">Itens do Pedido</h3>
+                                    <h3 className="text-xs font-black uppercase text-muted-foreground">Itens do Pedido</h3>
                                     <div className="space-y-3">
                                         {loadingItems ? (
-                                            [1, 2].map(i => <Skeleton key={i} className="h-14 w-full bg-zinc-50 rounded-xl" />)
+                                            [1, 2].map(i => <Skeleton key={i} className="h-14 w-full bg-muted rounded-xl" />)
                                         ) : selectedOrder.items.map((item) => (
-                                            <div key={item.id} className="flex justify-between items-start gap-4 pb-3 border-b border-zinc-50 last:border-0">
+                                            <div key={item.id} className="flex justify-between items-start gap-4 pb-3 border-b border-border last:border-0">
                                                 <div>
-                                                    <p className="font-bold text-black">{item.quantity}x {item.product_name}</p>
+                                                    <p className="font-bold text-foreground">{item.quantity}x {item.product_name}</p>
                                                     {item.selected_options.map((opt, i) => (
-                                                        <p key={i} className="text-[11px] text-zinc-500 font-medium">+ {opt.group}: {opt.option}</p>
+                                                        <p key={i} className="text-[11px] text-muted-foreground font-medium">+ {opt.group}: {opt.option}</p>
                                                     ))}
-                                                    {item.observations && <p className="text-[11px] italic text-zinc-400 mt-1">Obs: {item.observations}</p>}
+                                                    {item.observations && <p className="text-[11px] italic text-muted-foreground mt-1">Obs: {item.observations}</p>}
                                                 </div>
-                                                <span className="text-sm font-bold text-black">{formatCurrency(item.item_total)}</span>
+                                                <span className="text-sm font-bold text-foreground">{formatCurrency(item.item_total)}</span>
                                             </div>
                                         ))}
                                     </div>
                                 </section>
                             </div>
 
-                            <div className="p-6 bg-zinc-50 border-t border-zinc-100 space-y-2">
-                                <div className="flex justify-between text-zinc-500 text-sm">
+                            <div className="p-6 bg-muted/50 border-t border-border space-y-2">
+                                <div className="flex justify-between text-muted-foreground text-sm">
                                     <span>Subtotal</span>
                                     <span>{formatCurrency(selectedOrder.subtotal)}</span>
                                 </div>
                                 {selectedOrder.delivery_fee > 0 && (
-                                    <div className="flex justify-between text-zinc-500 text-sm">
+                                    <div className="flex justify-between text-muted-foreground text-sm">
                                         <span>Taxa de Entrega</span>
                                         <span>{formatCurrency(selectedOrder.delivery_fee)}</span>
                                     </div>
                                 )}
-                                <div className="flex justify-between text-black font-black text-xl pt-2">
+                                <div className="flex justify-between text-foreground font-black text-xl pt-2">
                                     <span>TOTAL</span>
                                     <span>{formatCurrency(selectedOrder.total)}</span>
                                 </div>

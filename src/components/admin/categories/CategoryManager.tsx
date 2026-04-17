@@ -102,7 +102,7 @@ function SortableCategoryItem({ category, onEdit, onDelete }: {
                     variant="ghost"
                     size="icon"
                     onClick={() => onEdit(category)}
-                    className="text-muted-foreground hover:text-black"
+                    className="text-muted-foreground hover:text-foreground"
                 >
                     <Pencil className="h-4 w-4" />
                 </Button>
@@ -299,7 +299,7 @@ export function CategoryManager({ storeId, isImpersonating }: CategoryManagerPro
         <div className="space-y-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-black">Categorias</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Categorias</h1>
                     <p className="text-muted-foreground mt-1 text-sm">
                         {isImpersonating ? "Gerenciando categorias como Super Admin." : "Gerencie suas categorias do cardápio."}
                     </p>
@@ -308,10 +308,10 @@ export function CategoryManager({ storeId, isImpersonating }: CategoryManagerPro
                 <div className="flex flex-wrap items-center gap-2">
                     {hasOrderChanged && (
                         <>
-                            <Button variant="outline" size="sm" onClick={handleRevertOrder} disabled={isSavingOrder} className="border-black">
+                            <Button variant="outline" size="sm" onClick={handleRevertOrder} disabled={isSavingOrder} className="border-primary">
                                 <X className="mr-2 h-4 w-4" /> Cancelar
                             </Button>
-                            <Button onClick={handleSaveOrder} disabled={isSavingOrder} className="bg-black text-white hover:bg-zinc-800">
+                            <Button onClick={handleSaveOrder} disabled={isSavingOrder} className="bg-primary text-primary-foreground hover:bg-primary/90">
                                 <Save className="mr-2 h-4 w-4" /> {isSavingOrder ? "Salvando..." : "Salvar Ordem"}
                             </Button>
                         </>
@@ -319,25 +319,24 @@ export function CategoryManager({ storeId, isImpersonating }: CategoryManagerPro
 
                     <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                         <DialogTrigger asChild>
-                            <Button disabled={hasOrderChanged} className="bg-black text-white hover:bg-zinc-800">
+                            <Button disabled={hasOrderChanged} className="bg-primary text-primary-foreground hover:bg-primary/90">
                                 <Plus className="mr-2 h-4 w-4" /> Nova Categoria
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-white border border-zinc-200">
+                        <DialogContent className="border-border">
                             <DialogHeader>
-                                <DialogTitle className="text-black">Criar Categoria</DialogTitle>
+                                <DialogTitle className="text-foreground">Criar Categoria</DialogTitle>
                             </DialogHeader>
                             <div className="py-4">
                                 <Input
                                     placeholder="Nome da categoria"
                                     value={newCategoryName}
                                     onChange={(e) => setNewCategoryName(e.target.value)}
-                                    className="border-zinc-300 focus:ring-black"
                                 />
                             </div>
                             <DialogFooter>
                                 <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-                                <Button onClick={handleCreate} className="bg-black text-white">Criar</Button>
+                                <Button onClick={handleCreate} className="bg-primary text-primary-foreground">Criar</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
@@ -347,10 +346,10 @@ export function CategoryManager({ storeId, isImpersonating }: CategoryManagerPro
             <div className="mt-6">
                 {loading ? (
                     <div className="space-y-4">
-                        {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full rounded-xl bg-zinc-100" />)}
+                        {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full rounded-xl bg-muted" />)}
                     </div>
                 ) : categories.length === 0 ? (
-                    <div className="text-center py-20 border-2 border-dashed border-zinc-200 rounded-2xl bg-zinc-50/50">
+                    <div className="text-center py-20 border-2 border-dashed border-border rounded-2xl bg-muted/50">
                         <p className="text-muted-foreground italic">Nenhuma categoria encontrada.</p>
                     </div>
                 ) : (
@@ -373,23 +372,23 @@ export function CategoryManager({ storeId, isImpersonating }: CategoryManagerPro
 
             {/* Dialogs de Edição e Exclusão (P&B) */}
             <Dialog open={!!editingId} onOpenChange={(o) => !o && setEditingId(null)}>
-                <DialogContent className="bg-white border-zinc-200">
-                    <DialogHeader><DialogTitle className="text-black">Editar Categoria</DialogTitle></DialogHeader>
+                <DialogContent className="border-border">
+                    <DialogHeader><DialogTitle className="text-foreground">Editar Categoria</DialogTitle></DialogHeader>
                     <div className="py-4"><Input value={editingName} onChange={(e) => setEditingName(e.target.value)} /></div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setEditingId(null)}>Cancelar</Button>
-                        <Button onClick={saveEdit} className="bg-black text-white">Salvar</Button>
+                        <Button onClick={saveEdit} className="bg-primary text-primary-foreground">Salvar</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
             <Dialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
-                <DialogContent className="bg-white border-zinc-200">
-                    <DialogHeader><DialogTitle className="text-black">Excluir Categoria?</DialogTitle></DialogHeader>
-                    <div className="py-4 text-zinc-500 text-sm">Esta ação é irreversível e removerá a categoria do cardápio.</div>
+                <DialogContent className="border-border">
+                    <DialogHeader><DialogTitle className="text-foreground">Excluir Categoria?</DialogTitle></DialogHeader>
+                    <div className="py-4 text-muted-foreground text-sm">Esta ação é irreversível e removerá a categoria do cardápio.</div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setDeleteId(null)}>Manter</Button>
-                        <Button variant="destructive" onClick={confirmDelete} className="bg-black text-white hover:bg-zinc-900 border-none">Excluir</Button>
+                        <Button variant="destructive" onClick={confirmDelete}>Excluir</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -3,6 +3,57 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * ============================================================
+ * DESIGN SYSTEM — rmenu digital
+ * ============================================================
+ *
+ * Tema único: claro. Dark mode não implementado.
+ * Espaço de cor: oklch. Tailwind v4 com @theme inline.
+ *
+ * PALETA
+ * ──────────────────────────────────────────────────────────
+ * --background          #ffffff   fundo geral da página
+ * --foreground          #0a0a0a   texto principal
+ * --card                #ffffff   superfície de card/painel
+ * --card-foreground     #0a0a0a   texto sobre card
+ * --popover             #ffffff   dropdown, tooltip
+ * --popover-foreground  #0a0a0a   texto sobre popover
+ * --primary             #171717   preto-marca (botões primários, indicadores ativos)
+ * --primary-foreground  #fafafa   texto sobre primary
+ * --secondary           #f5f5f5   botão secundário, fundo alternativo leve
+ * --secondary-foreground #171717  texto sobre secondary
+ * --muted               #f5f5f5   fundo desabilitado, thead de tabela
+ * --muted-foreground    #737373   texto secundário, placeholders, labels
+ * --accent              #f5f5f5   hover sutil, highlight passivo
+ * --accent-foreground   #171717   texto sobre accent
+ * --destructive         #e53935   vermelho erro/exclusão
+ * --destructive-foreground #fafafa texto sobre destructive
+ * --border              #e5e5e5   bordas de inputs, cards, dividers
+ * --input               #e5e5e5   borda padrão de input
+ * --ring                #a3a3a3   anel de foco (keyboard nav only)
+ *
+ * TOKENS CUSTOMIZADOS
+ * ──────────────────────────────────────────────────────────
+ * --success             verde escuro   loja aberta, pedido confirmado, status positivo
+ * --success-foreground  #fafafa
+ * --whatsapp            verde claro    botão de ação externa para o WhatsApp
+ * --whatsapp-foreground #fafafa
+ *
+ * REGRAS DE USO
+ * ──────────────────────────────────────────────────────────
+ * • Nunca usar cores hardcoded (black, white, zinc-*, gray-*).
+ *   Sempre usar os tokens semânticos acima.
+ * • `primary` = ação principal, CTA, elemento ativo.
+ *   `foreground` = texto corrido. São propositalmente diferentes.
+ * • Botão primário padrão: bg-primary text-primary-foreground hover:bg-primary/90
+ * • Botão outline cancel (ao lado de primary): border-primary text-foreground
+ * • Status positivo/aberto: bg-success/15 text-success
+ * • Status negativo/fechado: bg-destructive/10 text-destructive
+ * • Exceção aprovada: text-amber-500 no ícone Trophy (DashboardMetrics)
+ * ============================================================
+ */
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -29,6 +80,15 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.625rem;
+
+  /* Success — loja aberta, pedido confirmado */
+  --success: oklch(0.527 0.154 150);
+  --success-foreground: oklch(0.985 0 0);
+
+  /* WhatsApp — botão de ação externa */
+  --whatsapp: oklch(0.741 0.197 149);
+  --whatsapp-foreground: oklch(0.985 0 0);
+
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -37,41 +97,6 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
 }
 
 @theme inline {
@@ -96,6 +121,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-whatsapp: var(--whatsapp);
+  --color-whatsapp-foreground: var(--whatsapp-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);

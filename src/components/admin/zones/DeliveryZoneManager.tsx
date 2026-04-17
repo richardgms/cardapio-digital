@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Breadcrumb } from "@/components/admin/Breadcrumb";
 import { DeliveryZone } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -161,51 +160,50 @@ export function DeliveryZoneManager({ storeId, isImpersonating }: DeliveryZoneMa
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-black">Zonas de Entrega</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Zonas de Entrega</h1>
                     <p className="text-muted-foreground mt-1 text-sm">
                         {isImpersonating ? "Gerenciando zonas de entrega como Super Admin." : "Gerencie as taxas de entrega por bairro."}
                     </p>
                 </div>
-                <Button onClick={openCreateModal} className="bg-black text-white hover:bg-zinc-800">
+                <Button onClick={openCreateModal} className="bg-primary text-primary-foreground hover:bg-primary/90">
                     <Plus className="mr-2 h-4 w-4" /> Nova Zona
                 </Button>
             </div>
 
-            <div className="border border-zinc-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+            <div className="border border-border rounded-2xl overflow-hidden shadow-sm">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-zinc-50 border-b border-zinc-200">
+                    <thead className="bg-muted/50 border-b border-border">
                         <tr>
-                            <th className="px-6 py-4 font-semibold text-black">Bairro / Região</th>
-                            <th className="px-6 py-4 font-semibold text-black text-center">Taxa</th>
-                            <th className="px-6 py-4 font-semibold text-black text-center">Status</th>
-                            <th className="px-6 py-4 font-semibold text-black text-right">Ações</th>
+                            <th className="px-6 py-4 font-semibold text-foreground">Bairro / Região</th>
+                            <th className="px-6 py-4 font-semibold text-foreground text-center">Taxa</th>
+                            <th className="px-6 py-4 font-semibold text-foreground text-center">Status</th>
+                            <th className="px-6 py-4 font-semibold text-foreground text-right">Ações</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100">
+                    <tbody className="divide-y divide-border">
                         {loading ? (
                             [1, 2, 3].map(i => (
-                                <tr key={i}><td colSpan={4} className="px-6 py-4"><Skeleton className="h-6 w-full bg-zinc-100" /></td></tr>
+                                <tr key={i}><td colSpan={4} className="px-6 py-4"><Skeleton className="h-6 w-full bg-muted" /></td></tr>
                             ))
                         ) : zones.length === 0 ? (
-                            <tr><td colSpan={4} className="px-6 py-20 text-center text-zinc-400 italic">Nenhuma zona cadastrada.</td></tr>
+                            <tr><td colSpan={4} className="px-6 py-20 text-center text-muted-foreground italic">Nenhuma zona cadastrada.</td></tr>
                         ) : (
                             zones.map((zone) => (
-                                <tr key={zone.id} className="hover:bg-zinc-50/50 transition-colors">
-                                    <td className="px-6 py-4 font-medium text-black flex items-center gap-3">
-                                        <MapPin className="h-4 w-4 text-zinc-400" /> {zone.name}
+                                <tr key={zone.id} className="hover:bg-muted/50 transition-colors">
+                                    <td className="px-6 py-4 font-medium text-foreground flex items-center gap-3">
+                                        <MapPin className="h-4 w-4 text-muted-foreground" /> {zone.name}
                                     </td>
-                                    <td className="px-6 py-4 text-center text-zinc-600">
+                                    <td className="px-6 py-4 text-center text-muted-foreground">
                                         {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(zone.price)}
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <Switch
                                             checked={zone.is_active}
                                             onCheckedChange={() => toggleActive(zone)}
-                                            className="data-[state=checked]:bg-black"
                                         />
                                     </td>
                                     <td className="px-6 py-4 text-right space-x-2">
-                                        <Button variant="ghost" size="icon" onClick={() => openEditModal(zone)} className="hover:text-black">
+                                        <Button variant="ghost" size="icon" onClick={() => openEditModal(zone)} className="hover:text-foreground">
                                             <Pencil className="h-4 w-4" />
                                         </Button>
                                         <Button variant="ghost" size="icon" onClick={() => setDeleteId(zone.id)} className="hover:text-destructive">
@@ -220,34 +218,34 @@ export function DeliveryZoneManager({ storeId, isImpersonating }: DeliveryZoneMa
             </div>
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="bg-white border-zinc-200">
+                <DialogContent className="border-border">
                     <DialogHeader>
-                        <DialogTitle className="text-black">{editingZone ? "Editar Zona" : "Nova Zona de Entrega"}</DialogTitle>
+                        <DialogTitle className="text-foreground">{editingZone ? "Editar Zona" : "Nova Zona de Entrega"}</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase text-zinc-500">Nome do Bairro</label>
-                            <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ex: Centro" className="border-zinc-300" />
+                            <label className="text-xs font-bold uppercase text-muted-foreground">Nome do Bairro</label>
+                            <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ex: Centro" />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase text-zinc-500">Taxa de Entrega (R$)</label>
-                            <Input type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} placeholder="0,00" className="border-zinc-300" />
+                            <label className="text-xs font-bold uppercase text-muted-foreground">Taxa de Entrega (R$)</label>
+                            <Input type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} placeholder="0,00" />
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                        <Button onClick={handleSave} className="bg-black text-white px-8">Salvar</Button>
+                        <Button onClick={handleSave} className="bg-primary text-primary-foreground px-8">Salvar</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
             <Dialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
-                <DialogContent className="bg-white border-zinc-200">
-                    <DialogHeader><DialogTitle className="text-black font-bold">Excluir Zona?</DialogTitle></DialogHeader>
-                    <div className="py-4 text-zinc-500 text-sm">A zona de entrega será removida e não poderá ser recuperada.</div>
+                <DialogContent className="border-border">
+                    <DialogHeader><DialogTitle className="text-foreground font-bold">Excluir Zona?</DialogTitle></DialogHeader>
+                    <div className="py-4 text-muted-foreground text-sm">A zona de entrega será removida e não poderá ser recuperada.</div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setDeleteId(null)}>Manter</Button>
-                        <Button variant="destructive" onClick={confirmDelete} className="bg-black text-white hover:bg-zinc-900 border-none">Excluir</Button>
+                        <Button variant="destructive" onClick={confirmDelete}>Excluir</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

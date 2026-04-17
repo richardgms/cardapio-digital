@@ -207,7 +207,7 @@ export function ProductManager({ initialProducts, storeId, isImpersonating = fal
                         <Button variant="outline" onClick={() => setDeleteId(null)}>
                             Cancelar
                         </Button>
-                        <Button variant="destructive" onClick={confirmDelete} className="text-white font-bold">
+                        <Button variant="destructive" onClick={confirmDelete}>
                             Excluir
                         </Button>
                     </DialogFooter>

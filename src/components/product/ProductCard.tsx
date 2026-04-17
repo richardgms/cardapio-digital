@@ -70,7 +70,7 @@ export function ProductCard({ product, onSelect, disabled = false, priority = fa
                             priority={priority}
                         />
                     ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
+                        <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
                             <span className="text-xs">Sem foto</span>
                         </div>
                     )}
@@ -80,7 +80,7 @@ export function ProductCard({ product, onSelect, disabled = false, priority = fa
                 {!disabled && isAvailable && (
                     <Button
                         size="sm"
-                        className="absolute bottom-1 right-1 h-7 w-7 p-0 rounded-full bg-white hover:bg-white/90 text-primary shadow-sm border border-gray-100 z-10"
+                        className="absolute bottom-1 right-1 h-7 w-7 p-0 rounded-full bg-background hover:bg-muted text-primary shadow-sm border border-border z-10"
                         onClick={handleAddClick}
                     >
                         <Plus className="h-4 w-4" />

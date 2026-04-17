@@ -425,7 +425,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                 onBlur={() => markTouched('name')}
                                                 className={cn(
                                                     touched.name && nameError && "border-destructive focus-visible:ring-destructive",
-                                                    touched.name && !nameError && customerName.length > 0 && "border-green-500 focus-visible:ring-green-500"
+                                                    touched.name && !nameError && customerName.length > 0 && "border-success focus-visible:ring-success"
                                                 )}
                                             />
                                             {touched.name && nameError && (
@@ -435,7 +435,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                 </p>
                                             )}
                                             {touched.name && !nameError && customerName.length > 0 && (
-                                                <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                                                <p className="text-xs text-success flex items-center gap-1 mt-1">
                                                     <CheckCircle2 className="h-3 w-3" />
                                                     Nome válido
                                                 </p>
@@ -452,7 +452,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                 maxLength={15}
                                                 className={cn(
                                                     deliveryType !== 'table' && touched.phone && phoneError && "border-destructive focus-visible:ring-destructive",
-                                                    deliveryType !== 'table' && touched.phone && !phoneError && customerPhone.length > 0 && "border-green-500 focus-visible:ring-green-500"
+                                                    deliveryType !== 'table' && touched.phone && !phoneError && customerPhone.length > 0 && "border-success focus-visible:ring-success"
                                                 )}
                                             />
                                             {deliveryType !== 'table' && touched.phone && phoneError && (
@@ -462,7 +462,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                 </p>
                                             )}
                                             {deliveryType !== 'table' && touched.phone && !phoneError && customerPhone.length > 0 && (
-                                                <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                                                <p className="text-xs text-success flex items-center gap-1 mt-1">
                                                     <CheckCircle2 className="h-3 w-3" />
                                                     Telefone válido
                                                 </p>
@@ -628,7 +628,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                             {step === 'payment' && (
                                 <div className="space-y-2">
                                     <Button
-                                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                                        className="w-full bg-whatsapp hover:bg-whatsapp/90 text-whatsapp-foreground"
                                         size="lg"
                                         disabled={!isPaymentValid || !isCurrentlyOpen || isSending}
                                         onClick={handleCheckout}

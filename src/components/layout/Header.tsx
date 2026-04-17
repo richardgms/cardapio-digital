@@ -55,8 +55,8 @@ export function Header({ onCartClick, onSearchClick }: HeaderProps) {
                         <Badge
                             variant={isOpen ? 'default' : 'secondary'}
                             className={`${isOpen
-                                ? 'bg-green-100 text-green-800 hover:bg-green-100 hover:text-green-800 border-green-200'
-                                : 'bg-red-100 text-red-800 hover:bg-red-100 hover:text-red-800 border-red-200'
+                                ? 'bg-success/15 text-success hover:bg-success/15 hover:text-success border-success/30'
+                                : 'bg-destructive/10 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20'
                                 }`}
                         >
                             {isOpen ? 'Aberto' : 'Fechado'}

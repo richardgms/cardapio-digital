@@ -113,7 +113,7 @@ export function AppSidebar() {
                                 </div>
                                 <div className="flex flex-col gap-0.5 leading-none">
                                     <span className="font-semibold">RMenu Digital</span>
-                                    <span className="">v1.31.3</span>
+                                    <span className="">v1.32.0</span>
                                 </div>
                             </div>
                         </SidebarMenuButton>
