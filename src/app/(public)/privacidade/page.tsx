@@ -62,7 +62,7 @@ export default function PrivacidadePage() {
                             <li><strong>Dados técnicos de navegação</strong> — como identificação do subdomínio da loja, gerenciados pelos servidores de forma automática.</li>
                         </ul>
 
-                        <p className="mt-3 text-sm bg-blue-50 border border-blue-100 rounded-lg p-3">
+                        <p className="mt-3 text-sm bg-gray-50 border border-gray-200 rounded-lg p-3">
                             Não coletamos dados de cartão de crédito, CPF, RG ou qualquer dado sensível definido pela LGPD.
                             Pagamentos em dinheiro, Pix ou outras formas ocorrem diretamente entre você e o estabelecimento.
                         </p>

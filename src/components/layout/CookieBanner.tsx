@@ -38,14 +38,12 @@ export function CookieBanner() {
                     .
                 </p>
                 <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-gray-400 hover:text-white hover:bg-gray-800"
+                    <button
                         onClick={dismiss}
+                        className="text-sm px-3 py-1.5 rounded-md text-gray-400 bg-gray-800 hover:bg-gray-600 hover:text-white transition-colors"
                     >
                         Recusar
-                    </Button>
+                    </button>
                     <Button
                         size="sm"
                         className="bg-white text-black hover:bg-gray-200"
