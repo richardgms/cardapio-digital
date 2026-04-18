@@ -51,7 +51,7 @@ export function validatePhone(value: string): string | null {
  * Retorna mensagem de erro ou null se válido.
  */
 export function validateName(value: string): string | null {
-    const trimmed = value.trim()
+    const trimmed = value.trim().replace(/\.+$/, '')
 
     if (trimmed.length === 0) return 'Informe seu nome'
     if (trimmed.length < 3) return 'Nome muito curto'

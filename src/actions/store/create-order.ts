@@ -115,7 +115,10 @@ export async function createOrder(input: unknown): Promise<CreateOrderResult> {
 
         if (orderError || !order) {
             console.error("Erro ao criar pedido:", orderError)
-            return { success: false, error: "Erro ao salvar pedido" }
+            const devDetail = process.env.NODE_ENV === 'development' && orderError?.message
+                ? `: ${orderError.message}`
+                : ''
+            return { success: false, error: `Erro ao salvar pedido${devDetail}` }
         }
 
         // 4. Inserir itens do pedido

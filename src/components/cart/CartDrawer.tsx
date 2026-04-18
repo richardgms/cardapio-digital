@@ -96,7 +96,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     const isCartValid = total >= minOrder
 
     const isDeliveryValid = deliveryType === 'delivery'
-        ? (deliveryZoneId !== "" && address.trim().length > 5)
+        ? (deliveryZoneId !== "" && address.trim().length > 0)
         : deliveryType === 'table'
             ? tableNumber.trim().length > 0
             : true
@@ -107,7 +107,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
 
     const isPaymentValid =
         paymentMethod !== null &&
-        (paymentMethod !== 'cash' || (paymentMethod === 'cash' && changeFor.trim().length > 0))
+        (paymentMethod !== 'cash' || (paymentMethod === 'cash' && parseChangeFor(changeFor) >= finalTotal))
 
     // Load cached customer data on mount (personal data only)
     useEffect(() => {
@@ -142,13 +142,21 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
         }
     }, [open])
 
+    function parseChangeFor(value: string): number {
+        const cleaned = value.replace(/[R$\s]/g, '')
+        if (cleaned.includes(',')) {
+            return parseFloat(cleaned.replace(/\./g, '').replace(',', '.'))
+        }
+        return parseFloat(cleaned) || 0
+    }
+
     // Handle coupon application
     const handleApplyCoupon = async () => {
         if (!couponCode.trim() || !store?.id) return
-        
+
         setIsValidatingCoupon(true)
         setCouponError("")
-        
+
         try {
             const result = await validateCoupon({
                 code: couponCode,
@@ -157,7 +165,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                 deliveryType,
                 customerPhone: cleanPhone(customerPhone),
             })
-            
+
             if (result.valid && result.coupon) {
                 setAppliedCoupon(result.coupon)
                 setDiscountValue(result.discountAmount)
@@ -173,7 +181,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
             setIsValidatingCoupon(false)
         }
     }
-    
+
     const handleRemoveCoupon = () => {
         setAppliedCoupon(null)
         setDiscountValue(0)
@@ -189,6 +197,13 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
 
         if (!paymentMethod) {
             toast.error("Selecione uma forma de pagamento")
+            return
+        }
+
+        if (deliveryType === 'delivery' && !zones.some(z => z.id === deliveryZoneId)) {
+            toast.error("Zona de entrega indisponível. Selecione outra região.")
+            setDeliveryZoneId("")
+            setStep('details')
             return
         }
 
@@ -215,7 +230,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                 delivery_zone_name: deliveryType === 'delivery' && selectedZone ? selectedZone.name : null,
                 delivery_address: deliveryType === 'delivery' ? address.trim() : null,
                 payment_method: paymentMethod,
-                change_for: paymentMethod === 'cash' && changeFor ? parseInt(changeFor.replace(/\D/g, '')) : null,
+                change_for: paymentMethod === 'cash' && changeFor ? parseChangeFor(changeFor) : null,
                 subtotal: total,
                 delivery_fee: deliveryFee,
                 discount_value: currentDiscount > 0 ? currentDiscount : null,
@@ -545,8 +560,15 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                             <h3 className="font-semibold">Endereço de Entrega</h3>
                                             <div className="space-y-1">
                                                 <Label>Bairro / Região</Label>
-                                                <Select value={deliveryZoneId || undefined} onValueChange={setDeliveryZoneId}>
-                                                    <SelectTrigger><SelectValue placeholder="Selecione seu bairro" /></SelectTrigger>
+                                                <Select
+                                                    value={deliveryZoneId || undefined}
+                                                    onValueChange={(v) => { setDeliveryZoneId(v); markTouched('zone') }}
+                                                >
+                                                    <SelectTrigger className={cn(
+                                                        touched.zone && !deliveryZoneId && "border-destructive focus:ring-destructive"
+                                                    )}>
+                                                        <SelectValue placeholder="Selecione seu bairro" />
+                                                    </SelectTrigger>
                                                     <SelectContent>
                                                         {zones.map(zone => (
                                                             <SelectItem key={zone.id} value={zone.id}>
@@ -555,10 +577,30 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
+                                                {touched.zone && !deliveryZoneId && (
+                                                    <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                                                        <AlertCircle className="h-3 w-3" />
+                                                        Selecione seu bairro
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="space-y-1">
                                                 <Label>Endereço Completo</Label>
-                                                <Input placeholder="Rua, Número" value={address} onChange={(e) => setAddress(e.target.value)} />
+                                                <Input
+                                                    placeholder="Rua, Número"
+                                                    value={address}
+                                                    onChange={(e) => setAddress(e.target.value)}
+                                                    onBlur={() => markTouched('address')}
+                                                    className={cn(
+                                                        touched.address && address.trim().length === 0 && "border-destructive focus-visible:ring-destructive"
+                                                    )}
+                                                />
+                                                {touched.address && address.trim().length === 0 && (
+                                                    <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                                                        <AlertCircle className="h-3 w-3" />
+                                                        Informe seu endereço
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="space-y-1">
                                                 <Label>Complemento (Opcional)</Label>
@@ -756,14 +798,20 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
 
                             {step === 'details' && (
                                 <div className="space-y-2">
-                                    <Button
-                                        className="w-full"
-                                        size="lg"
-                                        disabled={!isDetailsValid || !isCurrentlyOpen}
-                                        onClick={() => setStep('payment')}
+                                    <div
+                                        onClick={() => {
+                                            setTouched({ name: true, phone: true, address: true, zone: true })
+                                            if (isDetailsValid) setStep('payment')
+                                        }}
                                     >
-                                        Continuar para Pagamento
-                                    </Button>
+                                        <Button
+                                            className="w-full"
+                                            size="lg"
+                                            disabled={!isDetailsValid || !isCurrentlyOpen}
+                                        >
+                                            Continuar para Pagamento
+                                        </Button>
+                                    </div>
                                     {!isDetailsValid && isCurrentlyOpen && (
                                         <p className="text-xs text-center text-destructive font-medium animate-pulse">
                                             Preencha todos os dados obrigatórios
@@ -784,7 +832,9 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                     </Button>
                                     {!isPaymentValid && isCurrentlyOpen && (
                                         <p className="text-xs text-center text-destructive font-medium animate-pulse">
-                                            Selecione uma forma de pagamento
+                                            {paymentMethod === 'cash' && parseChangeFor(changeFor) > 0
+                                                ? `Troco deve ser maior que o total (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finalTotal)})`
+                                                : 'Selecione uma forma de pagamento'}
                                         </p>
                                     )}
                                 </div>
