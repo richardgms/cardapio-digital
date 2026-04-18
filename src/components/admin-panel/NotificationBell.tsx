@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { Bell } from "lucide-react"
+import { Bell, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     Popover,
@@ -88,7 +88,7 @@ export function NotificationBell() {
                                 {notifications.map(n => {
                                     const truncated = n.message.length > PREVIEW_LIMIT
                                     const preview = truncated
-                                        ? n.message.slice(0, PREVIEW_LIMIT).trimEnd() + '…'
+                                        ? n.message.slice(0, PREVIEW_LIMIT).trimEnd() + '...'
                                         : n.message
 
                                     return (
@@ -110,9 +110,10 @@ export function NotificationBell() {
                                                         {truncated && (
                                                             <button
                                                                 onClick={e => handleVerMais(e, n)}
-                                                                className="ml-1 text-foreground underline underline-offset-2 hover:opacity-70 transition-opacity whitespace-nowrap"
+                                                                className="ml-1 inline-flex items-center gap-0.5 text-foreground underline underline-offset-2 hover:opacity-70 transition-opacity whitespace-nowrap cursor-pointer"
                                                             >
-                                                                ver mais
+                                                                Ver mais
+                                                                <ChevronRight className="h-3 w-3" style={{ textDecoration: 'none' }} />
                                                             </button>
                                                         )}
                                                     </p>
