@@ -119,7 +119,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 w-full">
                                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                                     <UtensilsCrossed className="size-4" />
                                 </div>
@@ -127,7 +127,9 @@ export function AppSidebar() {
                                     <span className="font-semibold">RMenu Digital</span>
                                     <span className="">v1.34.0</span>
                                 </div>
-                                <NotificationBell />
+                                <div className="ml-auto">
+                                    <NotificationBell />
+                                </div>
                             </div>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
