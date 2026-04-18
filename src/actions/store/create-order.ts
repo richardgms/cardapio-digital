@@ -41,6 +41,8 @@ const CreateOrderSchema = z.object({
     change_for: z.coerce.number().min(0).nullable().optional(),
     subtotal: z.coerce.number().min(0),
     delivery_fee: z.coerce.number().min(0).default(0),
+    discount_value: z.coerce.number().min(0).default(0),
+    coupon_code: z.string().max(50).nullable().optional(),
     total: z.coerce.number().min(0),
     notes: z.string().max(500).nullable().optional(),
     items: z.array(OrderItemSchema).min(1),
@@ -103,6 +105,8 @@ export async function createOrder(input: unknown): Promise<CreateOrderResult> {
                 change_for: data.payment_method === "cash" ? data.change_for : null,
                 subtotal: data.subtotal,
                 delivery_fee: data.delivery_fee,
+                discount_value: data.discount_value || null,
+                coupon_code: data.coupon_code?.toUpperCase() || null,
                 total: data.total,
                 notes: data.notes?.trim() || null,
             })
@@ -140,6 +144,31 @@ export async function createOrder(input: unknown): Promise<CreateOrderResult> {
                 .update({ status: "cancelled", notes: "Erro ao inserir itens" })
                 .eq("id", order.id)
             return { success: false, error: "Erro ao salvar itens do pedido" }
+        }
+
+        // 5. Registrar uso do cupom se foi aplicado
+        if (data.coupon_code && data.discount_value > 0) {
+            try {
+                // Buscar o ID do cupom
+                const { data: coupon } = await supabase
+                    .from("coupons")
+                    .select("id")
+                    .eq("store_id", data.store_id)
+                    .eq("code", data.coupon_code.toUpperCase())
+                    .single()
+
+                if (coupon) {
+                    await supabase.from("coupon_usages").insert({
+                        coupon_id: coupon.id,
+                        order_id: order.id,
+                        customer_phone: data.customer_phone.replace(/\D/g, ""),
+                        discount_applied: data.discount_value,
+                    })
+                }
+            } catch (couponError) {
+                // Não falhar o pedido se houver erro ao registrar o cupom
+                console.error("Erro ao registrar uso do cupom:", couponError)
+            }
         }
 
         return {

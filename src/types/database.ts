@@ -145,6 +145,8 @@ export interface Order {
     change_for: number | null
     subtotal: number
     delivery_fee: number
+    discount_value: number | null
+    coupon_code: string | null
     total: number
     status: OrderStatus
     notes: string | null
@@ -167,5 +169,33 @@ export interface OrderItem {
     is_half_half: boolean
     half_half_items: HalfHalfItem[] | null
     item_total: number
+    created_at: string
+}
+
+export interface Coupon {
+    id: string
+    store_id: string
+    code: string
+    description: string | null
+    discount_type: 'percentage' | 'fixed' | 'free_delivery'
+    discount_value: number
+    min_order_value: number
+    max_discount_value: number | null
+    valid_from: string
+    valid_until: string | null
+    usage_limit: number | null
+    usage_count: number
+    is_active: boolean
+    applies_to: 'all' | 'first_purchase' | 'delivery' | 'pickup'
+    created_at: string
+    updated_at: string
+}
+
+export interface CouponUsage {
+    id: string
+    coupon_id: string
+    order_id: string
+    customer_phone: string
+    discount_applied: number
     created_at: string
 }

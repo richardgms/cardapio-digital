@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Trash2, AlertCircle, ArrowLeft, Bike, Store, Pencil, Minus, Plus, CreditCard, Banknote, X, CheckCircle2, UtensilsCrossed } from "lucide-react"
+import { Trash2, AlertCircle, ArrowLeft, Bike, Store, Pencil, Minus, Plus, CreditCard, Banknote, X, CheckCircle2, UtensilsCrossed, TicketPercent, Tag } from "lucide-react"
 import NextImage from "next/image"
 import { useCartStore } from "@/stores/cartStore"
 import { usePublicStore } from "@/hooks/usePublicStore"
@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils"
 import { getCustomerData, saveCustomerData } from "@/lib/customer-cache"
 import { formatPhone, cleanPhone, validatePhone, validateName } from "@/lib/validators"
 import { createOrder } from "@/actions/store/create-order"
+import { validateCoupon } from "@/actions/store/coupons"
+import type { Coupon } from "@/types/database"
 
 // Since Input component might not exist in ui folder yet (I only created some), 
 // I'll assume I need to use standard HTML input or create a simple wrapper if needed.
@@ -53,6 +55,13 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     const [changeFor, setChangeFor] = useState("")
     const [tableNumber, setTableNumber] = useState("")
 
+    // Coupon State
+    const [couponCode, setCouponCode] = useState("")
+    const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null)
+    const [discountValue, setDiscountValue] = useState(0)
+    const [couponError, setCouponError] = useState("")
+    const [isValidatingCoupon, setIsValidatingCoupon] = useState(false)
+
     // Touched state — errors only show after field is touched
     const [touched, setTouched] = useState<Record<string, boolean>>({})
     const markTouched = useCallback((field: string) => {
@@ -67,7 +76,19 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     const total = items.reduce((acc, item) => acc + item.item_total, 0)
     const selectedZone = zones.find(z => z.id === deliveryZoneId)
     const deliveryFee = deliveryType === 'delivery' && selectedZone ? selectedZone.price : 0
-    const finalTotal = total + deliveryFee
+    
+    // Calculate discount
+    const calculateDiscount = () => {
+        if (!appliedCoupon) return 0
+        
+        if (appliedCoupon.discount_type === 'free_delivery') {
+            return deliveryFee
+        }
+        return discountValue
+    }
+    
+    const currentDiscount = calculateDiscount()
+    const finalTotal = total + deliveryFee - currentDiscount
     const minOrder = store?.minimum_order || 0
     const remainingForMinOrder = Math.max(0, minOrder - total)
 
@@ -111,8 +132,54 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
 
     // Reset step when opening/closing
     useEffect(() => {
-        if (open) setStep('cart')
+        if (open) {
+            setStep('cart')
+            // Reset coupon when opening
+            setCouponCode("")
+            setAppliedCoupon(null)
+            setDiscountValue(0)
+            setCouponError("")
+        }
     }, [open])
+
+    // Handle coupon application
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim() || !store?.id) return
+        
+        setIsValidatingCoupon(true)
+        setCouponError("")
+        
+        try {
+            const result = await validateCoupon({
+                code: couponCode,
+                storeId: store.id,
+                subtotal: total,
+                deliveryType,
+                customerPhone: cleanPhone(customerPhone),
+            })
+            
+            if (result.valid && result.coupon) {
+                setAppliedCoupon(result.coupon)
+                setDiscountValue(result.discountAmount)
+                toast.success(result.message)
+            } else {
+                setCouponError(result.message || "Cupom inválido")
+                setAppliedCoupon(null)
+                setDiscountValue(0)
+            }
+        } catch (error) {
+            setCouponError("Erro ao validar cupom")
+        } finally {
+            setIsValidatingCoupon(false)
+        }
+    }
+    
+    const handleRemoveCoupon = () => {
+        setAppliedCoupon(null)
+        setDiscountValue(0)
+        setCouponCode("")
+        setCouponError("")
+    }
 
     const handleCheckout = async () => {
         if (!store?.whatsapp) {
@@ -151,6 +218,8 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                 change_for: paymentMethod === 'cash' && changeFor ? parseInt(changeFor.replace(/\D/g, '')) : null,
                 subtotal: total,
                 delivery_fee: deliveryFee,
+                discount_value: currentDiscount > 0 ? currentDiscount : null,
+                coupon_code: appliedCoupon?.code || null,
                 total: finalTotal,
                 notes: null,
                 items: items.map((item) => ({
@@ -571,6 +640,67 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                 {items.length > 0 && (
                     <SheetFooter className="p-6 border-t bg-muted/10 sm:justify-center">
                         <div className="w-full space-y-4">
+                            {/* Coupon Section */}
+                            {step === 'cart' && (
+                                <div className="space-y-2">
+                                    {appliedCoupon ? (
+                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Tag className="h-4 w-4 text-green-600" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-green-800">
+                                                            Cupom {appliedCoupon.code} aplicado
+                                                        </p>
+                                                        <p className="text-xs text-green-600">
+                                                            {appliedCoupon.discount_type === 'free_delivery' 
+                                                                ? 'Frete grátis' 
+                                                                : `Desconto de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentDiscount)}`}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={handleRemoveCoupon}
+                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                >
+                                                    Remover
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <TicketPercent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                    <Input
+                                                        placeholder="Digite o código do cupom"
+                                                        value={couponCode}
+                                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                                        onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                                                        className="pl-10"
+                                                    />
+                                                </div>
+                                                <Button
+                                                    onClick={handleApplyCoupon}
+                                                    disabled={!couponCode.trim() || isValidatingCoupon}
+                                                    variant="outline"
+                                                >
+                                                    {isValidatingCoupon ? "..." : "Aplicar"}
+                                                </Button>
+                                            </div>
+                                            {couponError && (
+                                                <p className="text-xs text-destructive flex items-center gap-1">
+                                                    <AlertCircle className="h-3 w-3" />
+                                                    {couponError}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Subtotal</span>
@@ -579,7 +709,24 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                 {deliveryType === 'delivery' && (
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">Taxa de Entrega</span>
-                                        <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(deliveryFee)}</span>
+                                        <span>
+                                            {appliedCoupon?.discount_type === 'free_delivery' ? (
+                                                <span className="line-through text-muted-foreground mr-2">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(deliveryFee)}
+                                                </span>
+                                            ) : null}
+                                            <span className={appliedCoupon?.discount_type === 'free_delivery' ? 'text-green-600' : ''}>
+                                                {appliedCoupon?.discount_type === 'free_delivery' 
+                                                    ? 'Grátis' 
+                                                    : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(deliveryFee)}
+                                            </span>
+                                        </span>
+                                    </div>
+                                )}
+                                {currentDiscount > 0 && appliedCoupon?.discount_type !== 'free_delivery' && (
+                                    <div className="flex justify-between text-green-600">
+                                        <span>Desconto</span>
+                                        <span>- {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentDiscount)}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between font-bold text-lg pt-2 border-t">

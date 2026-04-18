@@ -11,6 +11,7 @@ next-env.d.ts
 
 # env
 .env*
+.env*.local
 !.env.example
 
 # misc
@@ -47,6 +48,14 @@ scripts/
 # arquivos pessoais soltos na raiz
 *.pdf
 *.txt
+Snipaste_*.png
+Snipaste_*.jpg
+
+# qoder IDE
+.qoder/
+
+# supabase (SQL executado manualmente no editor)
+supabase/
 
 # PWA (gerado automaticamente em cada build)
 public/sw.js
