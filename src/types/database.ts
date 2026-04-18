@@ -199,3 +199,18 @@ export interface CouponUsage {
     discount_applied: number
     created_at: string
 }
+
+export interface Notification {
+    id: string
+    title: string
+    message: string
+    is_active: boolean
+    created_at: string
+}
+
+export interface NotificationRead {
+    id: string
+    notification_id: string
+    store_id: string
+    read_at: string
+}

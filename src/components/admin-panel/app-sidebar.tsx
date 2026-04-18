@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/sidebar'
 import { NavGroup } from './nav-group'
 import { NavUser } from './nav-user'
+import { NotificationBell } from './NotificationBell'
 import {
     LayoutDashboard,
     Package,
@@ -126,6 +127,7 @@ export function AppSidebar() {
                                     <span className="font-semibold">RMenu Digital</span>
                                     <span className="">v1.33.0</span>
                                 </div>
+                                <NotificationBell />
                             </div>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

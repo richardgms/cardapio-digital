@@ -12,6 +12,7 @@ import { DeleteRestaurantDialog } from '@/components/admin/super/delete-restaura
 import { EditRestaurantDialog } from '@/components/admin/super/edit-restaurant-dialog'
 import { UtensilsCrossed, Monitor } from 'lucide-react'
 import Link from 'next/link'
+import { NotificationManager } from '@/components/admin/notifications/NotificationManager'
 
 export default async function SuperAdminPage() {
     const [users, restaurants] = await Promise.all([
@@ -54,6 +55,7 @@ export default async function SuperAdminPage() {
                 <TabsList>
                     <TabsTrigger value="restaurants">Restaurantes</TabsTrigger>
                     <TabsTrigger value="users">Usuários</TabsTrigger>
+                    <TabsTrigger value="notifications">Notificações</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="restaurants">
@@ -189,6 +191,10 @@ export default async function SuperAdminPage() {
                             </Table>
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                <TabsContent value="notifications">
+                    <NotificationManager />
                 </TabsContent>
             </Tabs>
         </div>
