@@ -10,6 +10,11 @@ const withPWA = withPWAInit({
   extendDefaultRuntimeCaching: true,
   workboxOptions: {
     disableDevLogs: true,
+    // Wait for client to call SKIP_WAITING — required so SwUpdateToast can prompt
+    // the user before the new SW activates. Without this, reg.waiting is null
+    // by the time the toast renders and the "Recarregar" button does nothing.
+    skipWaiting: false,
+    clientsClaim: true,
     // Never cache API routes or admin pages — auth state must always be fresh.
     // This also prevents the service worker from interfering with Set-Cookie
     // headers returned by the auth callback.

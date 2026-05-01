@@ -1,30 +1,14 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import { toast } from 'sonner'
 import { getEffectiveMaxSelect } from '@/lib/sizeRules'
+import { safeJSONStorageAdapter, safeStorage } from '@/lib/safe-storage'
 import type { CartState, CartActions } from '@/types/cart'
 
 export const useCartStore = create<CartState & CartActions>()(
     persist(
-        (set, get) => ({
+        (set) => ({
             items: [],
-            customer: {
-                name: '',
-                phone: '',
-                address: '',
-                complement: '',
-                reference: '',
-            },
-            delivery: {
-                type: 'delivery',
-                zone_id: null,
-                zone_name: '',
-                zone_price: 0,
-            },
-            payment: {
-                method: 'pix',
-                cash_change: null,
-            },
 
             addItem: (item) => set((state) => ({
                 items: [...state.items, { ...item, id: crypto.randomUUID() }]
@@ -42,28 +26,12 @@ export const useCartStore = create<CartState & CartActions>()(
                 )
             })),
 
-            setCustomer: (customer) => set((state) => ({
-                customer: { ...state.customer, ...customer }
-            })),
-
-            setDelivery: (delivery) => set({ delivery }),
-
-            setPayment: (payment) => set({ payment }),
-
-            clearCart: () => set({
-                items: [],
-                customer: { name: '', phone: '', address: '', complement: '', reference: '' },
-                delivery: { type: 'delivery', zone_id: null, zone_name: '', zone_price: 0 },
-                payment: { method: 'pix', cash_change: null },
-            }),
-
-            getSubtotal: () => get().items.reduce((acc, item) => acc + item.item_total, 0),
-
-            getTotal: () => get().getSubtotal() + get().delivery.zone_price,
+            clearCart: () => set({ items: [] }),
         }),
         {
             name: 'cardapio-cart',
             version: 2,
+            storage: createJSONStorage(() => safeJSONStorageAdapter),
             migrate: (persistedState: any, version: number) => {
                 let state = persistedState as any
 
@@ -92,13 +60,11 @@ export const useCartStore = create<CartState & CartActions>()(
                     let truncated = false
 
                     const migratedItems = state.items.map((item: any) => {
-                        // Skip half-half items — they don't use option groups directly
                         if (item.half_half?.enabled) return item
 
                         const groups: any[] = item.product?.option_groups ?? []
                         const repGroups = groups.filter((g: any) => g.pricing_mode === 'replacement')
 
-                        // Build selectedOptionsByGroupId by matching names to IDs in the product snapshot
                         const selectedByGroupId: Record<string, string[]> = {}
                         for (const opt of (item.selected_options ?? [])) {
                             const group = groups.find((g: any) => g.title === opt.group_name)
@@ -114,8 +80,6 @@ export const useCartStore = create<CartState & CartActions>()(
                         for (const group of groups) {
                             if (group.pricing_mode === 'replacement') continue
 
-                            // getEffectiveMaxSelect uses size_rules from the snapshot when available,
-                            // falls back to group.max_select for pre-deploy items (size_rules undefined)
                             const effectiveMax = getEffectiveMaxSelect(group, selectedByGroupId, repGroups)
 
                             let seen = 0
@@ -141,8 +105,18 @@ export const useCartStore = create<CartState & CartActions>()(
                     state = { ...state, items: migratedItems }
                 }
 
+                // Strip dead fields persisted from older versions
+                if (state) {
+                    delete state.customer
+                    delete state.delivery
+                    delete state.payment
+                }
+
                 return state
             },
+            // Only persist `items` — older versions stored customer/delivery/payment
+            // that turned out to be dead state. Do not rehydrate them.
+            partialize: (state) => ({ items: state.items }),
             onRehydrateStorage: () => (_state) => {
                 if (typeof window !== 'undefined' && sessionStorage.getItem('cart-truncated') === '1') {
                     sessionStorage.removeItem('cart-truncated')

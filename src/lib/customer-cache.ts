@@ -1,3 +1,5 @@
+import { safeStorage } from './safe-storage'
+
 const CACHE_KEY = 'rmenu_customer_data'
 
 export interface CustomerData {
@@ -17,9 +19,9 @@ const EMPTY: CustomerData = {
 }
 
 export function getCustomerData(): CustomerData {
+    const raw = safeStorage.getItem(CACHE_KEY)
+    if (!raw) return EMPTY
     try {
-        const raw = localStorage.getItem(CACHE_KEY)
-        if (!raw) return EMPTY
         const parsed = JSON.parse(raw)
         return { ...EMPTY, ...parsed }
     } catch {
@@ -28,10 +30,6 @@ export function getCustomerData(): CustomerData {
 }
 
 export function saveCustomerData(data: Partial<CustomerData>): void {
-    try {
-        const current = getCustomerData()
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ ...current, ...data }))
-    } catch {
-        // localStorage indisponível (ex: privado no Safari)
-    }
+    const current = getCustomerData()
+    safeStorage.setItem(CACHE_KEY, JSON.stringify({ ...current, ...data }))
 }

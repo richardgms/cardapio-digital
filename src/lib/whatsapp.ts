@@ -130,12 +130,39 @@ export function generateWhatsAppMessage(order: OrderData): string {
     return messageBody.replace(/\n{3,}/g, '\n\n')
 }
 
-export function openWhatsApp(phoneNumber: string, message: string) {
-    // Remove non-digits from phone number
+export function buildWhatsAppUrl(phoneNumber: string, message: string): string {
     const cleanPhone = phoneNumber.replace(/\D/g, '')
-    // Add Brazil country code if missing
     const finalPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`
-
     const encodedMessage = encodeURIComponent(message)
-    window.open(`https://wa.me/${finalPhone}?text=${encodedMessage}`, '_blank')
+    return `https://wa.me/${finalPhone}?text=${encodedMessage}`
+}
+
+/**
+ * Abre o WhatsApp em uma janela pré-aberta (preserva o gesto do clique no
+ * Safari iOS, que bloqueia popups disparados depois de awaits). Quando
+ * `popupRef` é null, faz fallback pro window.open tradicional.
+ *
+ * Retorna `true` se a navegação foi disparada, `false` se popup foi bloqueado
+ * — caller pode mostrar fallback com link clicável.
+ */
+export function navigateToWhatsApp(
+    popupRef: Window | null,
+    phoneNumber: string,
+    message: string
+): boolean {
+    const url = buildWhatsAppUrl(phoneNumber, message)
+    if (popupRef && !popupRef.closed) {
+        try {
+            popupRef.location.href = url
+            return true
+        } catch {
+            popupRef.close()
+        }
+    }
+    const fallback = window.open(url, '_blank')
+    return fallback !== null
+}
+
+export function openWhatsApp(phoneNumber: string, message: string): boolean {
+    return navigateToWhatsApp(null, phoneNumber, message)
 }

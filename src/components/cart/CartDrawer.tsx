@@ -13,21 +13,17 @@ import NextImage from "next/image"
 import { useCartStore } from "@/stores/cartStore"
 import { usePublicStore } from "@/hooks/usePublicStore"
 import { useDeliveryZones } from "@/hooks/useDeliveryZones"
-import { generateWhatsAppMessage, openWhatsApp } from "@/lib/whatsapp"
+import { generateWhatsAppMessage, navigateToWhatsApp } from "@/lib/whatsapp"
+import { setCheckoutLock } from "@/components/pwa/SwUpdateToast"
 import { useOrderConfirmationStore } from "@/stores/orderConfirmationStore"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { getCustomerData, saveCustomerData } from "@/lib/customer-cache"
 import { formatPhone, cleanPhone, validatePhone, validateName } from "@/lib/validators"
 import { createOrder } from "@/actions/store/create-order"
+import { markOrderHandoff } from "@/actions/store/mark-order-handoff"
 import { validateCoupon } from "@/actions/store/coupons"
 import type { Coupon } from "@/types/database"
-
-// Since Input component might not exist in ui folder yet (I only created some), 
-// I'll assume I need to use standard HTML input or create a simple wrapper if needed.
-// But wait, I didn't create Input.tsx in the previous steps. 
-// I should probably create it or use a standard input with tailwind classes.
-// For now, I'll use standard input with tailwind classes to be safe and avoid "Module not found".
 
 interface CartDrawerProps {
     open: boolean
@@ -38,11 +34,14 @@ interface CartDrawerProps {
 export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     const { items, removeItem, updateQuantity, clearCart } = useCartStore()
     const { store, isCurrentlyOpen } = usePublicStore()
-    const { zones } = useDeliveryZones()
+    const { zones, loading: zonesLoading } = useDeliveryZones()
     const setPending = useOrderConfirmationStore(s => s.setPending)
 
     const [step, setStep] = useState<'cart' | 'details' | 'payment'>('cart')
     const [isSending, setIsSending] = useState(false)
+    const [idempotencyKey, setIdempotencyKey] = useState<string>(() =>
+        typeof crypto !== 'undefined' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`
+    )
 
     // Form State
     const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup' | 'table'>('delivery')
@@ -94,20 +93,32 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
 
     // Validation
     const isCartValid = total >= minOrder
+    const noZonesAvailable = !zonesLoading && zones.length === 0
+    const tableModeAvailable = !!store?.table_mode_enabled
 
     const isDeliveryValid = deliveryType === 'delivery'
         ? (deliveryZoneId !== "" && address.trim().length > 0)
         : deliveryType === 'table'
-            ? tableNumber.trim().length > 0
+            ? (tableNumber.trim().length > 0 && parseInt(tableNumber, 10) > 0)
             : true
 
     const isDetailsValid = deliveryType === 'table'
-        ? (!nameError && isDeliveryValid) // phone optional for table
+        ? (!nameError && isDeliveryValid)
         : (!nameError && !phoneError && isDeliveryValid)
 
-    const isPaymentValid =
-        paymentMethod !== null &&
-        (paymentMethod !== 'cash' || (paymentMethod === 'cash' && parseChangeFor(changeFor) >= finalTotal))
+    const paymentError: string | null = (() => {
+        if (!paymentMethod) return 'Selecione uma forma de pagamento'
+        if (paymentMethod === 'cash') {
+            if (!changeFor.trim()) return 'Informe o valor do troco'
+            const change = parseChangeFor(changeFor)
+            if (!Number.isFinite(change) || change <= 0) return 'Informe um valor de troco válido'
+            if (change < finalTotal) {
+                return `Troco precisa ser maior ou igual a ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finalTotal)}`
+            }
+        }
+        return null
+    })()
+    const isPaymentValid = paymentError === null
 
     // Load cached customer data on mount (personal data only)
     useEffect(() => {
@@ -139,8 +150,27 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
             setAppliedCoupon(null)
             setDiscountValue(0)
             setCouponError("")
+            // Nova sessão de checkout = nova idempotency key.
+            setIdempotencyKey(typeof crypto !== 'undefined' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`)
         }
     }, [open])
+
+    // Bloqueia auto-reload do PWA enquanto o checkout está em andamento.
+    // Sem isso, um update do SW pode disparar window.location.reload() e
+    // limpar todos os campos `useState` que NÃO são persistidos.
+    useEffect(() => {
+        if (!open || items.length === 0) return
+        setCheckoutLock(true)
+        return () => setCheckoutLock(false)
+    }, [open, items.length])
+
+    // Se a loja não tem zonas configuradas, força retirada — caso contrário
+    // o usuário fica preso no step de detalhes sem saber por quê.
+    useEffect(() => {
+        if (noZonesAvailable && deliveryType === 'delivery') {
+            setDeliveryType('pickup')
+        }
+    }, [noZonesAvailable, deliveryType])
 
     function parseChangeFor(value: string): number {
         const cleaned = value.replace(/[R$\s]/g, '')
@@ -190,6 +220,8 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     }
 
     const handleCheckout = async () => {
+        if (isSending) return
+
         if (!store?.whatsapp) {
             toast.error("Erro: Telefone da loja não configurado.")
             return
@@ -207,10 +239,13 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
             return
         }
 
+        // CRÍTICO iOS Safari: abrir popup ANTES de qualquer await, pra preservar
+        // o gesto do clique. Popups disparados depois de await são bloqueados.
+        const popupRef = window.open('about:blank', '_blank')
+
         setIsSending(true)
 
         try {
-            // Save customer data to cache for next order
             saveCustomerData({
                 name: customerName,
                 phone: cleanPhone(customerPhone),
@@ -222,6 +257,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
             // 1. Salvar pedido no banco via Server Action
             const orderResult = await createOrder({
                 store_id: store.id,
+                idempotency_key: idempotencyKey,
                 customer_name: customerName,
                 customer_phone: cleanPhone(customerPhone),
                 delivery_type: deliveryType,
@@ -233,7 +269,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                 change_for: paymentMethod === 'cash' && changeFor ? parseChangeFor(changeFor) : null,
                 subtotal: total,
                 delivery_fee: deliveryFee,
-                discount_value: currentDiscount > 0 ? currentDiscount : null,
+                discount_value: currentDiscount,
                 coupon_code: appliedCoupon?.code || null,
                 total: finalTotal,
                 notes: null,
@@ -248,6 +284,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                         group: o.group_name,
                         option: o.option_name,
                         price: o.price,
+                        is_replacement: o.is_replacement ?? false,
                     })),
                     observations: item.observation || null,
                     is_half_half: item.half_half?.enabled || false,
@@ -260,11 +297,11 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
             })
 
             if (!orderResult.success) {
+                popupRef?.close()
                 toast.error(orderResult.error)
                 return
             }
 
-            // 2. Gerar mensagem WhatsApp (inclui numero do pedido)
             const message = generateWhatsAppMessage({
                 customerName,
                 customerPhone: cleanPhone(customerPhone),
@@ -283,16 +320,35 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                 orderNumber: orderResult.order_number,
             })
 
-            // 3. Confirmar e redirecionar
+            const opened = navigateToWhatsApp(popupRef, store.whatsapp, message)
+
+            // Sempre exibe o dialog de confirmação — serve como ack do pedido E
+            // como fallback caso o popup tenha sido bloqueado (botão re-tenta
+            // com gesto novo).
             setPending({
                 paymentMethod: paymentMethod!,
                 whatsappNumber: store.whatsapp,
                 message,
             })
-            openWhatsApp(store.whatsapp, message)
+
+            if (!opened) {
+                // Não limpa o carrinho: usuário precisa do dialog pra reabrir.
+                toast.warning("Não conseguimos abrir o WhatsApp automaticamente. Use o botão no aviso para enviar seu pedido.", {
+                    duration: 8000,
+                })
+                return
+            }
+
+            // Fire-and-forget: registra que o handoff aconteceu. Não bloqueia o usuário.
+            markOrderHandoff({
+                order_id: orderResult.order_id,
+                status: 'whatsapp_opened',
+            }).catch(() => undefined)
+
             clearCart()
             onClose()
         } catch {
+            popupRef?.close()
             toast.error("Erro ao enviar pedido. Tente novamente.")
         } finally {
             setIsSending(false)
@@ -304,9 +360,26 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
             <SheetContent
                 className="w-full sm:max-w-md flex flex-col p-0 gap-0 [&>button]:hidden"
                 onInteractOutside={(e) => {
-                    // Prevent Sheet from closing when tapping inside the Select dropdown portal
-                    const target = e.target as Element
-                    if (target?.closest?.('[data-radix-popper-content-wrapper]')) {
+                    // Não fechar quando o tap aterrissa em um portal do Radix
+                    // (Select, Popover) ou no Toaster do sonner — em iOS Safari
+                    // o target às vezes é o overlay do Sheet, então cobrimos
+                    // múltiplos seletores.
+                    const target = e.target as Element | null
+                    if (
+                        target?.closest?.(
+                            '[data-radix-popper-content-wrapper], [data-radix-select-content], [data-radix-select-viewport], [data-sonner-toaster], [role="listbox"], [role="option"]'
+                        )
+                    ) {
+                        e.preventDefault()
+                    }
+                }}
+                onPointerDownOutside={(e) => {
+                    const target = e.target as Element | null
+                    if (
+                        target?.closest?.(
+                            '[data-radix-popper-content-wrapper], [data-radix-select-content], [data-radix-select-viewport], [data-sonner-toaster], [role="listbox"], [role="option"]'
+                        )
+                    ) {
                         e.preventDefault()
                     }
                 }}
@@ -458,11 +531,24 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                             {step === 'details' && (
                                 /* STEP 2: DETAILS FORM */
                                 <div className="space-y-6">
+                                    {noZonesAvailable && (
+                                        <div className="bg-muted border border-border rounded-lg p-3 flex items-start gap-2 text-sm" role="status">
+                                            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                                            <p>Esta loja não está fazendo entregas no momento. Selecione retirada{tableModeAvailable ? ' ou pedido na mesa' : ''}.</p>
+                                        </div>
+                                    )}
                                     {/* Delivery Type Toggle */}
                                     <div className={cn(
                                         "grid gap-2 p-1 bg-muted rounded-lg",
-                                        store?.table_mode_enabled ? "grid-cols-3" : "grid-cols-2"
+                                        (() => {
+                                            const cols =
+                                                (noZonesAvailable ? 0 : 1) /* delivery */ +
+                                                1 /* pickup */ +
+                                                (tableModeAvailable ? 1 : 0)
+                                            return cols === 3 ? "grid-cols-3" : cols === 2 ? "grid-cols-2" : "grid-cols-1"
+                                        })()
                                     )}>
+                                        {!noZonesAvailable && (
                                         <button
                                             className={cn(
                                                 "flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all",
@@ -473,6 +559,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                             <Bike className="h-4 w-4" />
                                             Entrega
                                         </button>
+                                        )}
                                         <button
                                             className={cn(
                                                 "flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all",
@@ -505,7 +592,14 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                             <Input
                                                 placeholder="Como devemos te chamar?"
                                                 value={customerName}
-                                                onChange={(e) => setCustomerName(e.target.value)}
+                                                autoComplete="name"
+                                                enterKeyHint="next"
+                                                autoCapitalize="words"
+                                                onChange={(e) => {
+                                                    setCustomerName(e.target.value)
+                                                    // Autofill iOS dispara onChange com valor completo sem blur.
+                                                    if (!touched.name && e.target.value.trim().length >= 3) markTouched('name')
+                                                }}
                                                 onBlur={() => markTouched('name')}
                                                 className={cn(
                                                     touched.name && nameError && "border-destructive focus-visible:ring-destructive",
@@ -530,8 +624,20 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                             <Input
                                                 placeholder="(11) 99999-9999"
                                                 inputMode="tel"
+                                                autoComplete="tel"
+                                                enterKeyHint="next"
                                                 value={customerPhone}
-                                                onChange={(e) => setCustomerPhone(formatPhone(e.target.value))}
+                                                onChange={(e) => {
+                                                    const formatted = formatPhone(e.target.value)
+                                                    setCustomerPhone(formatted)
+                                                    if (!touched.phone && cleanPhone(formatted).length >= 10) markTouched('phone')
+                                                }}
+                                                onPaste={(e) => {
+                                                    e.preventDefault()
+                                                    const pasted = e.clipboardData.getData('text')
+                                                    setCustomerPhone(formatPhone(pasted))
+                                                    markTouched('phone')
+                                                }}
                                                 onBlur={() => markTouched('phone')}
                                                 maxLength={15}
                                                 className={cn(
@@ -572,7 +678,9 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                     <SelectContent>
                                                         {zones.map(zone => (
                                                             <SelectItem key={zone.id} value={zone.id}>
-                                                                {zone.name} (+ {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(zone.price)})
+                                                                {zone.name} {zone.price > 0
+                                                                    ? `(+ ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(zone.price)})`
+                                                                    : '(Grátis)'}
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -589,6 +697,8 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                 <Input
                                                     placeholder="Rua, Número"
                                                     value={address}
+                                                    autoComplete="street-address"
+                                                    enterKeyHint="next"
                                                     onChange={(e) => setAddress(e.target.value)}
                                                     onBlur={() => markTouched('address')}
                                                     className={cn(
@@ -604,7 +714,13 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                             </div>
                                             <div className="space-y-1">
                                                 <Label>Complemento (Opcional)</Label>
-                                                <Input placeholder="Apto, Bloco, Ponto de referência..." value={complement} onChange={(e) => setComplement(e.target.value)} />
+                                                <Input
+                                                    placeholder="Apto, Bloco, Ponto de referência..."
+                                                    value={complement}
+                                                    autoComplete="address-line2"
+                                                    enterKeyHint="done"
+                                                    onChange={(e) => setComplement(e.target.value)}
+                                                />
                                             </div>
                                         </div>
                                     )}
@@ -618,6 +734,8 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                 <Input
                                                     placeholder="Ex: 5"
                                                     inputMode="numeric"
+                                                    pattern="[0-9]*"
+                                                    enterKeyHint="done"
                                                     value={tableNumber}
                                                     onChange={(e) => setTableNumber(e.target.value.replace(/\D/g, ''))}
                                                     maxLength={3}
@@ -668,7 +786,13 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                         {paymentMethod === 'cash' && (
                                             <div className="space-y-1 animate-in fade-in slide-in-from-top-2 pt-2">
                                                 <Label>Troco para quanto?</Label>
-                                                <Input placeholder="Ex: R$ 50,00" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} />
+                                                <Input
+                                                    placeholder="Ex: R$ 50,00"
+                                                    inputMode="decimal"
+                                                    enterKeyHint="done"
+                                                    value={changeFor}
+                                                    onChange={(e) => setChangeFor(e.target.value)}
+                                                />
                                             </div>
                                         )}
                                     </div>
@@ -684,9 +808,9 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                         <div className="w-full space-y-4">
                             {/* Coupon Section */}
                             {step === 'cart' && (
-                                <div className="space-y-2">
+                                <div className="space-y-2" aria-live="polite" aria-atomic="true">
                                     {appliedCoupon ? (
-                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3" role="status">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <Tag className="h-4 w-4 text-green-600" />
@@ -733,7 +857,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                 </Button>
                                             </div>
                                             {couponError && (
-                                                <p className="text-xs text-destructive flex items-center gap-1">
+                                                <p className="text-xs text-destructive flex items-center gap-1" role="alert">
                                                     <AlertCircle className="h-3 w-3" />
                                                     {couponError}
                                                 </p>
@@ -830,11 +954,9 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                     >
                                         {isSending ? "Enviando..." : "Enviar Pedido no WhatsApp"}
                                     </Button>
-                                    {!isPaymentValid && isCurrentlyOpen && (
-                                        <p className="text-xs text-center text-destructive font-medium animate-pulse">
-                                            {paymentMethod === 'cash' && parseChangeFor(changeFor) > 0
-                                                ? `Troco deve ser maior que o total (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finalTotal)})`
-                                                : 'Selecione uma forma de pagamento'}
+                                    {!isPaymentValid && isCurrentlyOpen && paymentError && (
+                                        <p className="text-xs text-center text-destructive font-medium animate-pulse" role="alert">
+                                            {paymentError}
                                         </p>
                                     )}
                                 </div>

@@ -9,6 +9,7 @@ const SelectedOptionSchema = z.object({
     group: z.string().min(1),
     option: z.string().min(1),
     price: z.coerce.number(),
+    is_replacement: z.boolean().optional(),
 })
 
 const HalfHalfItemSchema = z.object({
@@ -30,8 +31,10 @@ const OrderItemSchema = z.object({
 
 const CreateOrderSchema = z.object({
     store_id: z.string().uuid(),
+    idempotency_key: z.string().min(8).max(64).optional(),
     customer_name: z.string().min(3).max(100),
-    customer_phone: z.string().min(10).max(15),
+    // Phone is optional for table orders (eat-in); required otherwise.
+    customer_phone: z.string().max(15).default(""),
     delivery_type: z.enum(["delivery", "pickup", "table"]),
     table_number: z.number().int().min(1).nullable().optional(),
     delivery_zone_id: z.string().uuid().nullable().optional(),
@@ -41,7 +44,7 @@ const CreateOrderSchema = z.object({
     change_for: z.coerce.number().min(0).nullable().optional(),
     subtotal: z.coerce.number().min(0),
     delivery_fee: z.coerce.number().min(0).default(0),
-    discount_value: z.coerce.number().min(0).default(0),
+    discount_value: z.coerce.number().min(0).nullable().default(0),
     coupon_code: z.string().max(50).nullable().optional(),
     total: z.coerce.number().min(0),
     notes: z.string().max(500).nullable().optional(),
@@ -52,6 +55,9 @@ const CreateOrderSchema = z.object({
 ).refine(
     (data) => data.delivery_type !== "table" || (data.table_number && data.table_number > 0),
     { message: "Numero da mesa obrigatorio", path: ["table_number"] }
+).refine(
+    (data) => data.delivery_type === "table" || (data.customer_phone?.length ?? 0) >= 10,
+    { message: "Telefone obrigatorio", path: ["customer_phone"] }
 )
 
 // ── Tipo de retorno ──────────────────────────────────────────────
@@ -78,7 +84,25 @@ export async function createOrder(input: unknown): Promise<CreateOrderResult> {
     try {
         const supabase = await createAdminClient()
 
-        // 2. Verificar que a loja existe
+        // Idempotência — se já existe pedido com essa key, retorna o existente.
+        if (data.idempotency_key) {
+            const { data: existing } = await supabase
+                .from("orders")
+                .select("id, order_number")
+                .eq("store_id", data.store_id)
+                .eq("idempotency_key", data.idempotency_key)
+                .maybeSingle()
+
+            if (existing) {
+                return {
+                    success: true,
+                    order_id: existing.id,
+                    order_number: existing.order_number,
+                }
+            }
+        }
+
+        // Verificar que a loja existe
         const { data: store, error: storeError } = await supabase
             .from("store_config")
             .select("id")
@@ -89,29 +113,83 @@ export async function createOrder(input: unknown): Promise<CreateOrderResult> {
             return { success: false, error: "Loja nao encontrada" }
         }
 
+        // Server é fonte da verdade pro frete e nome da zona — ignora o que veio do client.
+        let resolvedDeliveryFee = 0
+        let resolvedZoneName: string | null = null
+        if (data.delivery_type === "delivery") {
+            if (!data.delivery_zone_id) {
+                return { success: false, error: "Zona de entrega obrigatoria para delivery" }
+            }
+            const { data: zone, error: zoneError } = await supabase
+                .from("delivery_zones")
+                .select("id, price, name, is_active")
+                .eq("id", data.delivery_zone_id)
+                .eq("store_id", data.store_id) // CRÍTICO: previne uso de zona de outra loja
+                .single()
+
+            if (zoneError || !zone) {
+                return { success: false, error: "Zona de entrega indisponível" }
+            }
+            if (!zone.is_active) {
+                return { success: false, error: "Zona de entrega desativada" }
+            }
+            resolvedDeliveryFee = Number(zone.price)
+            resolvedZoneName = zone.name
+        }
+
+        // Recalcula total — se divergir mais de 1 centavo do que o client mandou,
+        // rejeita. Indica que o estado do client desatualizou (zona mudou) ou
+        // tentativa de manipulação.
+        const computedSubtotal = data.items.reduce((acc, item) => acc + Number(item.item_total), 0)
+        const computedDiscount = Number(data.discount_value ?? 0)
+        const computedTotal = computedSubtotal + resolvedDeliveryFee - computedDiscount
+
+        if (Math.abs(computedTotal - Number(data.total)) > 0.01) {
+            return {
+                success: false,
+                error: "Valores do pedido desatualizados. Recarregue o carrinho.",
+            }
+        }
+
         // 3. Inserir pedido (order_number e gerado automaticamente pelo trigger)
         const { data: order, error: orderError } = await supabase
             .from("orders")
             .insert({
                 store_id: data.store_id,
+                idempotency_key: data.idempotency_key ?? null,
+                handoff_status: 'pending_handoff',
                 customer_name: data.customer_name.trim(),
                 customer_phone: data.customer_phone.replace(/\D/g, ""),
                 delivery_type: data.delivery_type,
                 table_number: data.delivery_type === "table" ? data.table_number : null,
                 delivery_zone_id: data.delivery_type === "delivery" ? data.delivery_zone_id : null,
-                delivery_zone_name: data.delivery_type === "delivery" ? data.delivery_zone_name : null,
+                delivery_zone_name: data.delivery_type === "delivery" ? resolvedZoneName : null,
                 delivery_address: data.delivery_type === "delivery" ? data.delivery_address?.trim() : null,
                 payment_method: data.payment_method,
                 change_for: data.payment_method === "cash" ? data.change_for : null,
-                subtotal: data.subtotal,
-                delivery_fee: data.delivery_fee,
-                discount_value: data.discount_value || null,
+                subtotal: computedSubtotal,
+                delivery_fee: resolvedDeliveryFee,
+                discount_value: computedDiscount > 0 ? computedDiscount : null,
                 coupon_code: data.coupon_code?.toUpperCase() || null,
-                total: data.total,
+                total: computedTotal,
                 notes: data.notes?.trim() || null,
             })
             .select("id, order_number")
             .single()
+
+        if (orderError?.code === '23505' && data.idempotency_key) {
+            // Outra request com mesma idempotency_key venceu a corrida.
+            // Buscar e retornar o pedido criado pela outra request.
+            const { data: winner } = await supabase
+                .from("orders")
+                .select("id, order_number")
+                .eq("store_id", data.store_id)
+                .eq("idempotency_key", data.idempotency_key)
+                .maybeSingle()
+            if (winner) {
+                return { success: true, order_id: winner.id, order_number: winner.order_number }
+            }
+        }
 
         if (orderError || !order) {
             console.error("Erro ao criar pedido:", orderError)
@@ -150,7 +228,7 @@ export async function createOrder(input: unknown): Promise<CreateOrderResult> {
         }
 
         // 5. Registrar uso do cupom se foi aplicado
-        if (data.coupon_code && data.discount_value > 0) {
+        if (data.coupon_code && (data.discount_value ?? 0) > 0) {
             try {
                 // Buscar o ID do cupom
                 const { data: coupon } = await supabase
@@ -165,7 +243,7 @@ export async function createOrder(input: unknown): Promise<CreateOrderResult> {
                         coupon_id: coupon.id,
                         order_id: order.id,
                         customer_phone: data.customer_phone.replace(/\D/g, ""),
-                        discount_applied: data.discount_value,
+                        discount_applied: data.discount_value ?? 0,
                     })
                 }
             } catch (couponError) {
