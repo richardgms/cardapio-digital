@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ImageUpload } from "@/components/admin/ImageUpload";
 import { toast } from "sonner";
-import { Loader2, Lock, AlertCircle, UtensilsCrossed } from "lucide-react";
+import { Loader2, Lock, AlertCircle, UtensilsCrossed, Wallet } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { updateStoreConfigAsProxy } from "@/actions/admin/proxy-config";
 
@@ -47,6 +47,9 @@ const formSchema = z.object({
     pix_key: z.string().optional().nullable(),
     table_mode_enabled: z.boolean().optional(),
     table_count: z.coerce.number().min(1, "Mínimo 1 mesa").max(200, "Máximo 200 mesas").optional(),
+    accept_pix: z.boolean().optional(),
+    accept_cash: z.boolean().optional(),
+    accept_card: z.boolean().optional(),
 }).superRefine((data, ctx) => {
     if (!data.pix_key) return;
     
@@ -131,6 +134,9 @@ export function ConfigManager({ initialData, storeId, isImpersonating = false, t
             pix_key: initialData.pix_key || "",
             table_mode_enabled: initialData.table_mode_enabled || false,
             table_count: initialData.table_count || 10,
+            accept_pix: initialData.accept_pix !== false,
+            accept_cash: initialData.accept_cash !== false,
+            accept_card: initialData.accept_card !== false,
         },
     });
 
@@ -467,6 +473,79 @@ export function ConfigManager({ initialData, storeId, isImpersonating = false, t
                                 )}
                             />
                         </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="flex items-center gap-2">
+                            <Wallet className="h-5 w-5" />
+                            Métodos de Pagamento Aceitos
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <FormField
+                            control={form.control}
+                            name="accept_pix"
+                            render={({ field }) => (
+                                <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-base">Aceitar PIX</FormLabel>
+                                        <FormDescription>
+                                            Permite que clientes paguem via PIX. Lembre-se de configurar a chave PIX acima.
+                                        </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                        <Switch
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="accept_card"
+                            render={({ field }) => (
+                                <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-base">Aceitar Cartão (Maquineta)</FormLabel>
+                                        <FormDescription>
+                                            Permite pagamento com cartão de crédito/débito via maquineta física na entrega ou no local.
+                                        </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                        <Switch
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="accept_cash"
+                            render={({ field }) => (
+                                <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-base">Aceitar Dinheiro</FormLabel>
+                                        <FormDescription>
+                                            Permite que clientes paguem em dinheiro na entrega ou no local (com opção de troco).
+                                        </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                        <Switch
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
                     </CardContent>
                 </Card>
 

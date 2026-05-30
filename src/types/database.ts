@@ -25,6 +25,9 @@ export interface StoreConfig {
     table_mode_available: boolean
     table_mode_enabled: boolean
     table_count: number
+    accept_pix: boolean | null
+    accept_cash: boolean | null
+    accept_card: boolean | null
 }
 
 export interface BusinessHour {

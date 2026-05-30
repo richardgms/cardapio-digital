@@ -34,6 +34,9 @@ interface CartDrawerProps {
 export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     const { items, removeItem, updateQuantity, clearCart } = useCartStore()
     const { store, isCurrentlyOpen } = usePublicStore()
+    const acceptPix = store?.accept_pix !== false
+    const acceptCash = store?.accept_cash !== false
+    const acceptCard = store?.accept_card !== false
     const { zones, loading: zonesLoading } = useDeliveryZones()
     const setPending = useOrderConfirmationStore(s => s.setPending)
 
@@ -758,29 +761,42 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                             {deliveryType !== 'delivery' && (
                                                 <p className="text-sm font-medium text-muted-foreground mb-1">Pagamento no caixa</p>
                                             )}
-                                            <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('pix')}>
-                                                <RadioGroupItem value="pix" id="pix" />
-                                                <div className="flex items-center gap-3 flex-1">
-                                                    <NextImage src="/icons/pix.svg" alt="PIX" width={20} height={20} />
-                                                    <Label htmlFor="pix" className="flex-1 cursor-pointer">PIX</Label>
+                                            
+                                            {acceptPix && (
+                                                <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('pix')}>
+                                                    <RadioGroupItem value="pix" id="pix" />
+                                                    <div className="flex items-center gap-3 flex-1">
+                                                        <NextImage src="/icons/pix.svg" alt="PIX" width={20} height={20} />
+                                                        <Label htmlFor="pix" className="flex-1 cursor-pointer">PIX</Label>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            {deliveryType !== 'delivery' && (
+                                            )}
+
+                                            {acceptCard && (
                                                 <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('card')}>
                                                     <RadioGroupItem value="card" id="card" />
                                                     <div className="flex items-center gap-3 flex-1">
                                                         <CreditCard className="h-5 w-5" />
-                                                        <Label htmlFor="card" className="flex-1 cursor-pointer">Cartão</Label>
+                                                        <Label htmlFor="card" className="flex-1 cursor-pointer">
+                                                            {deliveryType === 'delivery' ? 'Cartão (Maquineta na entrega)' : 'Cartão'}
+                                                        </Label>
                                                     </div>
                                                 </div>
                                             )}
-                                            <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('cash')}>
-                                                <RadioGroupItem value="cash" id="cash" />
-                                                <div className="flex items-center gap-3 flex-1">
-                                                    <Banknote className="h-5 w-5" />
-                                                    <Label htmlFor="cash" className="flex-1 cursor-pointer">Dinheiro</Label>
+
+                                            {acceptCash && (
+                                                <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('cash')}>
+                                                    <RadioGroupItem value="cash" id="cash" />
+                                                    <div className="flex items-center gap-3 flex-1">
+                                                        <Banknote className="h-5 w-5" />
+                                                        <Label htmlFor="cash" className="flex-1 cursor-pointer">Dinheiro</Label>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
+
+                                            {!acceptPix && !acceptCard && !acceptCash && (
+                                                <p className="text-sm text-destructive font-medium">Nenhum método de pagamento disponível no momento.</p>
+                                            )}
                                         </RadioGroup>
 
                                         {paymentMethod === 'cash' && (
