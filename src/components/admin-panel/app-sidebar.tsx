@@ -140,7 +140,7 @@ export function AppSidebar() {
                                                 className="text-xs text-muted-foreground hover:text-primary cursor-pointer hover:underline transition-all"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
-                                                v1.35.9
+                                                v1.35.10
                                             </span>
                                         </DialogTrigger>
                                         <DialogContent className="max-w-md max-h-[80vh] flex flex-col p-0 overflow-hidden">

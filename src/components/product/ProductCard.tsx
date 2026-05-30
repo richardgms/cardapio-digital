@@ -59,13 +59,17 @@ export function ProductCard({ product, onSelect, disabled = false, priority = fa
                     const hasPromo = product.promo_price !== null && product.promo_price !== undefined && product.promo_price > 0 && product.promo_price < product.price
 
                     if (hasPromo) {
+                        const discount = Math.round(((product.price - product.promo_price!) / product.price) * 100)
                         return (
-                            <div className="flex items-baseline gap-2 mt-2">
+                            <div className="flex items-center gap-2 mt-2">
                                 <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                                     {formatCurrency(product.promo_price!)}
                                 </span>
                                 <span className="line-through text-muted-foreground text-sm font-normal">
                                     {formatCurrency(product.price)}
+                                </span>
+                                <span className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold px-1.5 py-0.5 rounded border border-emerald-100 dark:border-emerald-950/50">
+                                    -{discount}%
                                 </span>
                             </div>
                         )

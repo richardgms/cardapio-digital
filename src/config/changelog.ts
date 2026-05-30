@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelogHistory: ChangelogEntry[] = [
   {
+    version: "1.35.10",
+    date: "30/05/2026",
+    title: "Destaque de Promoções no Menu Público",
+    changes: [
+      "Injeção automática da categoria virtual 'Promoções' no topo da barra de navegação se houver itens promocionais ativos.",
+      "Scroll spy e scroll suave integrados nativamente com a nova seção de Promoções.",
+      "Exibição discreta de tag inline com porcentagem de desconto (ex: -15%) ao lado do preço com promoção no card."
+    ]
+  },
+  {
     version: "1.35.9",
     date: "30/05/2026",
     title: "Módulo de Descontos e Preços Promocionais",

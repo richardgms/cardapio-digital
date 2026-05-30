@@ -25,6 +25,21 @@ export default function HomePage() {
     const { zones, loading: loadingZones } = useDeliveryZones()
     // const cartItems = useCartStore((state) => state.items) // Not needed for layout logic anymore
 
+    const promoProducts = products.filter(p => p.promo_price !== null && p.promo_price !== undefined && p.promo_price > 0 && p.promo_price < p.price)
+    const hasPromoProducts = promoProducts.length > 0
+    const virtualCategories = hasPromoProducts
+        ? [
+            {
+                id: 'promocoes',
+                name: 'Promoções',
+                store_id: store?.id || '',
+                sort_order: -1,
+                created_at: new Date().toISOString()
+            },
+            ...categories
+          ]
+        : categories
+
     const [activeCategory, setActiveCategory] = useState<string | null>(null)
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
     const [isCartOpen, setIsCartOpen] = useState(false)
@@ -32,10 +47,10 @@ export default function HomePage() {
 
     // Set default active category
     useEffect(() => {
-        if (!activeCategory && categories.length > 0) {
-            setActiveCategory(categories[0].id)
+        if (!activeCategory && virtualCategories.length > 0) {
+            setActiveCategory(virtualCategories[0].id)
         }
-    }, [categories, activeCategory])
+    }, [virtualCategories, activeCategory])
 
     // Scroll Spy Logic
     useEffect(() => {
@@ -45,7 +60,7 @@ export default function HomePage() {
 
             let currentId = null
 
-            for (const category of categories) {
+            for (const category of virtualCategories) {
                 const element = document.getElementById(category.id)
                 if (element) {
                     // Check if scroll reached this element
@@ -62,7 +77,7 @@ export default function HomePage() {
 
         window.addEventListener('scroll', handleScroll, { passive: true })
         return () => window.removeEventListener('scroll', handleScroll)
-    }, [categories, activeCategory])
+    }, [virtualCategories, activeCategory])
 
     const handleCategorySelect = (id: string) => {
         setActiveCategory(id)
@@ -159,7 +174,7 @@ export default function HomePage() {
                     {showBanner && <StoreBanner />}
 
                     <CategoryNav
-                        categories={categories}
+                        categories={virtualCategories}
                         activeId={activeCategory}
                         onSelect={handleCategorySelect}
                     />
@@ -168,8 +183,11 @@ export default function HomePage() {
 
             <main className="w-full px-4 py-6 space-y-8 max-w-screen-lg mx-auto bg-white border-x border-gray-200 min-h-screen flex flex-col">
                 <div className="flex-1 space-y-8">
-                    {categories.map((category) => {
-                        const categoryProducts = products.filter(p => p.category_id === category.id)
+                    {virtualCategories.map((category) => {
+                        const isPromoCategory = category.id === 'promocoes'
+                        const categoryProducts = isPromoCategory
+                            ? promoProducts
+                            : products.filter(p => p.category_id === category.id)
 
                         if (categoryProducts.length === 0) return null
 
