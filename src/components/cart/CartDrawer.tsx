@@ -781,7 +781,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                             <span className="font-semibold text-sm">Cartão</span>
                                                             {deliveryType === 'delivery' && (
                                                                 <span className="text-xs text-muted-foreground font-normal">
-                                                                    Maquineta na entrega
+                                                                    Maquininha na entrega
                                                                 </span>
                                                             )}
                                                         </Label>
