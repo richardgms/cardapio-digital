@@ -270,3 +270,137 @@ export async function saveProductAsProxy(storeId: string, productId: string, val
         return { success: true, productId: targetProductId };
     });
 }
+
+/**
+ * Duplica um produto via proxy (Super Admin)
+ */
+export async function duplicateProductAsProxy(storeId: string, productId: string) {
+    return withSuperAdmin(async (adminClient, user) => {
+        // 1. Fetch source product
+        const { data: fullProduct, error: fetchError } = await adminClient
+            .from('products')
+            .select(`
+                *,
+                option_groups:product_option_groups(
+                    *,
+                    options:product_options(*),
+                    size_rules:group_size_rules!group_size_rules_group_id_fkey(*)
+                )
+            `)
+            .eq('id', productId)
+            .eq('store_id', storeId)
+            .single();
+
+        if (fetchError || !fullProduct) {
+            console.error('[PROXY] Error fetching product for duplicate:', fetchError);
+            throw new Error(`Erro ao buscar produto: ${fetchError?.message || 'Produto não encontrado'}`);
+        }
+
+        // 2. Insert new product
+        const newProductData = {
+            store_id: storeId,
+            name: `${fullProduct.name} (Cópia)`,
+            description: fullProduct.description,
+            price: fullProduct.price,
+            category_id: fullProduct.category_id,
+            is_available: fullProduct.is_available,
+            allows_half_half: fullProduct.allows_half_half,
+            image_url: fullProduct.image_url,
+            additional_images: fullProduct.additional_images || [],
+            sort_order: fullProduct.sort_order,
+        };
+
+        const { data: newProduct, error: insertError } = await adminClient
+            .from('products')
+            .insert(newProductData)
+            .select()
+            .single();
+
+        if (insertError || !newProduct) {
+            console.error('[PROXY] Error inserting duplicated product:', insertError);
+            throw new Error(`Erro ao duplicar produto: ${insertError?.message || 'Dados inválidos'}`);
+        }
+
+        // 3. Track old IDs to new IDs
+        const groupMap: Record<string, string> = {};
+        const optionMap: Record<string, string> = {};
+
+        // 4. Duplicate option groups
+        if (fullProduct.option_groups && fullProduct.option_groups.length > 0) {
+            for (const group of fullProduct.option_groups) {
+                const { data: newGroup, error: groupInsertError } = await adminClient
+                    .from('product_option_groups')
+                    .insert({
+                        product_id: newProduct.id,
+                        title: group.title,
+                        is_required: group.is_required,
+                        max_select: group.max_select,
+                        pricing_mode: group.pricing_mode,
+                        sort_order: group.sort_order
+                    })
+                    .select()
+                    .single();
+                
+                if (groupInsertError || !newGroup) throw groupInsertError || new Error("Erro ao duplicar grupo");
+                groupMap[group.id] = newGroup.id;
+
+                // Duplicate options for this group
+                if (group.options && group.options.length > 0) {
+                    for (const option of group.options) {
+                        const { data: newOption, error: optionInsertError } = await adminClient
+                            .from('product_options')
+                            .insert({
+                                group_id: newGroup.id,
+                                name: option.name,
+                                price: option.price,
+                                sort_order: option.sort_order,
+                                is_available: option.is_available,
+                                image_url: option.image_url
+                            })
+                            .select()
+                            .single();
+                        
+                        if (optionInsertError || !newOption) throw optionInsertError || new Error("Erro ao duplicar opção");
+                        optionMap[option.id] = newOption.id;
+                    }
+                }
+            }
+
+            // 5. Duplicate group size rules (if any)
+            for (const group of fullProduct.option_groups) {
+                if (group.size_rules && group.size_rules.length > 0) {
+                    for (const rule of group.size_rules) {
+                        const newGroupId = groupMap[rule.group_id];
+                        const newSourceGroupId = groupMap[rule.source_group_id];
+                        const newSizeOptionId = optionMap[rule.size_option_id];
+
+                        if (newGroupId && newSourceGroupId && newSizeOptionId) {
+                            const { error: ruleInsertError } = await adminClient
+                                .from('group_size_rules')
+                                .insert({
+                                    group_id: newGroupId,
+                                    source_group_id: newSourceGroupId,
+                                    size_option_id: newSizeOptionId,
+                                    max_select: rule.max_select
+                                });
+                            
+                            if (ruleInsertError) throw ruleInsertError;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Auditoria
+        await recordAuditLog(adminClient, user.id, storeId, 'duplicate', 'products', {
+            originalProductId: productId,
+            duplicatedProductId: newProduct.id,
+            productName: newProduct.name
+        });
+
+        revalidatePath(`/admin/super/lojista/${storeId}/produtos`);
+
+        return { success: true, duplicatedProduct: newProduct };
+    });
+}
+

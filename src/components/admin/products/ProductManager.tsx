@@ -12,12 +12,12 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, Plus, Pencil, Package } from "lucide-react";
+import { Trash2, Plus, Pencil, Package, Copy, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
-import { toggleProductAvailabilityAsProxy, deleteProductAsProxy } from "@/actions/admin/proxy-products";
+import { toggleProductAvailabilityAsProxy, deleteProductAsProxy, duplicateProductAsProxy } from "@/actions/admin/proxy-products";
 
 // Extended type for Join
 export interface ProductWithCategory extends Product {
@@ -36,8 +36,157 @@ interface ProductManagerProps {
 export function ProductManager({ initialProducts, storeId, isImpersonating = false, basePath }: ProductManagerProps) {
     const [products, setProducts] = useState<ProductWithCategory[]>(initialProducts);
     const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
     const supabase = createClient();
+
+    // Duplicate Handler
+    const handleDuplicate = async (product: ProductWithCategory) => {
+        setDuplicatingId(product.id);
+        const toastId = toast.loading("Duplicando produto...");
+
+        try {
+            if (isImpersonating) {
+                // Duplicar via Proxy Action (Super Admin)
+                const result = await duplicateProductAsProxy(storeId, product.id);
+                
+                if (result.success && result.duplicatedProduct) {
+                    const newProdWithCat: ProductWithCategory = {
+                        ...result.duplicatedProduct,
+                        categories: product.categories
+                    };
+                    setProducts(prev => [newProdWithCat, ...prev]);
+                    toast.success("Produto duplicado com sucesso!", { id: toastId });
+                } else {
+                    throw new Error("Falha ao duplicar produto");
+                }
+            } else {
+                // Client-side execution (RLS)
+                // 1. Buscar produto completo com grupos, opções e regras de tamanho
+                const { data: fullProduct, error: fetchError } = await supabase
+                    .from("products")
+                    .select(`
+                        *,
+                        option_groups:product_option_groups(
+                            *,
+                            options:product_options(*),
+                            size_rules:group_size_rules!group_size_rules_group_id_fkey(*)
+                        )
+                    `)
+                    .eq("id", product.id)
+                    .single();
+
+                if (fetchError || !fullProduct) {
+                    throw new Error(fetchError?.message || "Produto não encontrado");
+                }
+
+                // 2. Inserir novo produto
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error("Usuário não autenticado");
+
+                const newProductData = {
+                    store_id: user.id,
+                    name: `${fullProduct.name} (Cópia)`,
+                    description: fullProduct.description,
+                    price: fullProduct.price,
+                    category_id: fullProduct.category_id,
+                    is_available: fullProduct.is_available,
+                    allows_half_half: fullProduct.allows_half_half,
+                    image_url: fullProduct.image_url,
+                    additional_images: fullProduct.additional_images || [],
+                    sort_order: fullProduct.sort_order,
+                };
+
+                const { data: newProduct, error: insertError } = await supabase
+                    .from("products")
+                    .insert(newProductData)
+                    .select()
+                    .single();
+
+                if (insertError || !newProduct) throw insertError;
+
+                const groupMap: Record<string, string> = {};
+                const optionMap: Record<string, string> = {};
+
+                // 3. Duplicar grupos de opções e opções
+                if (fullProduct.option_groups && fullProduct.option_groups.length > 0) {
+                    for (const group of fullProduct.option_groups) {
+                        const { data: newGroup, error: groupInsertError } = await supabase
+                            .from("product_option_groups")
+                            .insert({
+                                product_id: newProduct.id,
+                                title: group.title,
+                                is_required: group.is_required,
+                                max_select: group.max_select,
+                                pricing_mode: group.pricing_mode,
+                                sort_order: group.sort_order
+                            })
+                            .select()
+                            .single();
+
+                        if (groupInsertError || !newGroup) throw groupInsertError;
+                        groupMap[group.id] = newGroup.id;
+
+                        if (group.options && group.options.length > 0) {
+                            for (const option of group.options) {
+                                const { data: newOption, error: optionInsertError } = await supabase
+                                    .from("product_options")
+                                    .insert({
+                                        group_id: newGroup.id,
+                                        name: option.name,
+                                        price: option.price,
+                                        sort_order: option.sort_order,
+                                        is_available: option.is_available,
+                                        image_url: option.image_url
+                                    })
+                                    .select()
+                                    .single();
+
+                                if (optionInsertError || !newOption) throw optionInsertError;
+                                optionMap[option.id] = newOption.id;
+                            }
+                        }
+                    }
+
+                    // 4. Duplicar regras de tamanho
+                    for (const group of fullProduct.option_groups) {
+                        if (group.size_rules && group.size_rules.length > 0) {
+                            for (const rule of group.size_rules) {
+                                const newGroupId = groupMap[rule.group_id];
+                                const newSourceGroupId = groupMap[rule.source_group_id];
+                                const newSizeOptionId = optionMap[rule.size_option_id];
+
+                                if (newGroupId && newSourceGroupId && newSizeOptionId) {
+                                    const { error: ruleInsertError } = await supabase
+                                        .from("group_size_rules")
+                                        .insert({
+                                            group_id: newGroupId,
+                                            source_group_id: newSourceGroupId,
+                                            size_option_id: newSizeOptionId,
+                                            max_select: rule.max_select
+                                        });
+
+                                    if (ruleInsertError) throw ruleInsertError;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                const newProdWithCat: ProductWithCategory = {
+                    ...newProduct,
+                    categories: product.categories
+                };
+                setProducts(prev => [newProdWithCat, ...prev]);
+                toast.success("Produto duplicado com sucesso!", { id: toastId });
+            }
+        } catch (error: any) {
+            console.error("Erro ao duplicar produto:", error);
+            toast.error(error.message || "Erro ao duplicar produto", { id: toastId });
+        } finally {
+            setDuplicatingId(null);
+        }
+    };
 
     // Toggle Availability
     const toggleAvailability = async (product: ProductWithCategory) => {
@@ -172,8 +321,21 @@ export function ProductManager({ initialProducts, storeId, isImpersonating = fal
                                             />
                                         </td>
                                         <td className="p-4 align-middle text-right gap-2 flex justify-end items-center h-[80px]">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleDuplicate(product)}
+                                                disabled={duplicatingId !== null}
+                                                title="Duplicar Produto"
+                                            >
+                                                {duplicatingId === product.id ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                                ) : (
+                                                    <Copy className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                                                )}
+                                            </Button>
                                             <Link href={`${basePath}/produtos/${product.id}`}>
-                                                <Button variant="ghost" size="icon">
+                                                <Button variant="ghost" size="icon" disabled={duplicatingId !== null}>
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
                                             </Link>
@@ -182,6 +344,7 @@ export function ProductManager({ initialProducts, storeId, isImpersonating = fal
                                                 size="icon"
                                                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                                 onClick={() => setDeleteId(product.id)}
+                                                disabled={duplicatingId !== null}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
