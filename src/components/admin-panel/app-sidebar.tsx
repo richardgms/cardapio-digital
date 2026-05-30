@@ -15,6 +15,15 @@ import { NavGroup } from './nav-group'
 import { NavUser } from './nav-user'
 import { NotificationBell } from './NotificationBell'
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { changelogHistory } from "@/config/changelog"
+import {
     LayoutDashboard,
     Package,
     Folder,
@@ -125,9 +134,48 @@ export function AppSidebar() {
                                 </div>
                                 <div className="flex flex-col gap-0.5 leading-none">
                                     <span className="font-semibold">RMenu Digital</span>
-                                    <span className="">v1.35.9</span>
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <span 
+                                                className="text-xs text-muted-foreground hover:text-primary cursor-pointer hover:underline transition-all"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                v1.35.9
+                                            </span>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-md max-h-[80vh] flex flex-col p-0 overflow-hidden">
+                                            <DialogHeader className="p-6 pb-4 border-b">
+                                                <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                                                    Histórico de Atualizações
+                                                </DialogTitle>
+                                                <DialogDescription>
+                                                    Novidades e melhorias do RMenu Digital.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+                                                {changelogHistory.map((item) => (
+                                                    <div key={item.version} className="space-y-2 border-b last:border-b-0 pb-6 last:pb-0">
+                                                        <div className="flex items-center justify-between">
+                                                            <h4 className="font-bold text-base text-foreground flex items-center gap-2">
+                                                                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-semibold">
+                                                                    v{item.version}
+                                                                </span>
+                                                                {item.title}
+                                                            </h4>
+                                                            <span className="text-xs text-muted-foreground">{item.date}</span>
+                                                        </div>
+                                                        <ul className="list-disc pl-5 space-y-1.5 text-sm text-muted-foreground">
+                                                            {item.changes.map((change, idx) => (
+                                                                <li key={idx}>{change}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
                                 </div>
-                                <div className="ml-auto">
+                                <div className="ml-auto" onClick={(e) => e.stopPropagation()}>
                                     <NotificationBell />
                                 </div>
                             </div>
