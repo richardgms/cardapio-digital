@@ -5,6 +5,14 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 import {
     TrendingUp,
     ShoppingBag,
@@ -18,7 +26,7 @@ import {
 } from 'lucide-react'
 import type { DeliveryType, OrderStatus, PaymentMethod } from '@/types/database'
 
-type Period = 'today' | '7d' | '30d'
+type Period = 'today' | '7days' | '30days' | 'all'
 
 interface DailyData {
     date: string
@@ -39,8 +47,9 @@ interface MetricsData {
 
 const PERIOD_LABELS: Record<Period, string> = {
     today: 'Hoje',
-    '7d': '7 dias',
-    '30d': '30 dias',
+    '7days': '7 dias',
+    '30days': '30 dias',
+    all: 'Todos',
 }
 
 const DELIVERY_LABELS: Record<DeliveryType, string> = {
@@ -82,12 +91,12 @@ function getPeriodStart(period: Period): Date {
         brasilia.setHours(0, 0, 0, 0)
         return new Date(brasilia.getTime() + diff)
     }
-    if (period === '7d') {
+    if (period === '7days') {
         brasilia.setDate(brasilia.getDate() - 6)
         brasilia.setHours(0, 0, 0, 0)
         return new Date(brasilia.getTime() + diff)
     }
-    // 30d
+    // 30days
     brasilia.setDate(brasilia.getDate() - 29)
     brasilia.setHours(0, 0, 0, 0)
     return new Date(brasilia.getTime() + diff)
@@ -100,7 +109,8 @@ function getDayLabel(dateStr: string, period: Period): string {
 }
 
 export function MetricsManager() {
-    const [period, setPeriod] = useState<Period>('7d')
+    const [period, setPeriod] = useState<Period>('7days')
+    const [deliveryFilter, setDeliveryFilter] = useState<DeliveryType | 'all'>('all')
     const [metrics, setMetrics] = useState<MetricsData | null>(null)
     const [loading, setLoading] = useState(true)
 
@@ -112,14 +122,22 @@ export function MetricsManager() {
                 const { data: { user } } = await supabase.auth.getUser()
                 if (!user) return
 
-                const periodStart = getPeriodStart(period)
-
-                // Fetch orders
-                const { data: orders } = await supabase
+                let query = supabase
                     .from('orders')
                     .select('id, status, delivery_type, payment_method, total, created_at')
                     .eq('store_id', user.id)
-                    .gte('created_at', periodStart.toISOString())
+
+                if (period !== 'all') {
+                    const periodStart = getPeriodStart(period)
+                    query = query.gte('created_at', periodStart.toISOString())
+                }
+
+                if (deliveryFilter !== 'all') {
+                    query = query.eq('delivery_type', deliveryFilter)
+                }
+
+                // Fetch orders
+                const { data: orders } = await query
                     .order('created_at', { ascending: true })
 
                 if (!orders || orders.length === 0) {
@@ -199,7 +217,7 @@ export function MetricsManager() {
                 }
 
                 // Fill missing days
-                const days = period === '7d' ? 7 : period === '30d' ? 30 : 1
+                const days = period === '7days' ? 7 : period === '30days' ? 30 : 1
                 const dailyData: DailyData[] = []
                 for (let i = days - 1; i >= 0; i--) {
                     const d = new Date()
@@ -225,22 +243,32 @@ export function MetricsManager() {
         }
 
         fetchMetrics()
-    }, [period])
+    }, [period, deliveryFilter])
 
     return (
         <div className="space-y-6">
-            {/* Period selector */}
-            <div className="flex gap-2">
-                {(['today', '7d', '30d'] as Period[]).map(p => (
-                    <Button
-                        key={p}
-                        variant={period === p ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setPeriod(p)}
-                    >
-                        {PERIOD_LABELS[p]}
-                    </Button>
-                ))}
+            {/* Filtros unificados */}
+            <div className="flex flex-wrap items-center gap-4 bg-muted/50 p-4 rounded-2xl border border-border">
+                <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
+                    <TabsList className="bg-background border border-border">
+                        <TabsTrigger value="today" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Hoje</TabsTrigger>
+                        <TabsTrigger value="7days" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">7d</TabsTrigger>
+                        <TabsTrigger value="30days" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">30d</TabsTrigger>
+                        <TabsTrigger value="all" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Todos</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+
+                <Select value={deliveryFilter} onValueChange={(v) => setDeliveryFilter(v as DeliveryType | "all")}>
+                    <SelectTrigger className="w-[180px] bg-background border border-border">
+                        <SelectValue placeholder="Tipo de entrega" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos os tipos</SelectItem>
+                        <SelectItem value="delivery">Delivery</SelectItem>
+                        <SelectItem value="pickup">Retirada</SelectItem>
+                        <SelectItem value="table">Mesa</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             {/* KPI Cards */}
@@ -271,8 +299,8 @@ export function MetricsManager() {
                 />
             </div>
 
-            {/* Daily chart (skip for 'today') */}
-            {period !== 'today' && (
+            {/* Daily chart (skip for 'today' and 'all') */}
+            {period !== 'today' && period !== 'all' && (
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -479,7 +507,7 @@ function DailyChart({ data, period }: { data: DailyData[]; period: Period }) {
     if (data.length === 0) return <EmptyState />
 
     const maxOrders = Math.max(...data.map(d => d.orders), 1)
-    const showEvery = period === '30d' ? 5 : 1
+    const showEvery = period === '30days' ? 5 : 1
 
     return (
         <div className="space-y-1">
