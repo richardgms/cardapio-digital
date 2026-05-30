@@ -776,9 +776,14 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                 <div className="flex items-center space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setPaymentMethod('card')}>
                                                     <RadioGroupItem value="card" id="card" />
                                                     <div className="flex items-center gap-3 flex-1">
-                                                        <CreditCard className="h-5 w-5" />
-                                                        <Label htmlFor="card" className="flex-1 cursor-pointer">
-                                                            {deliveryType === 'delivery' ? 'Cartão (Maquineta na entrega)' : 'Cartão'}
+                                                        <CreditCard className="h-5 w-5 text-muted-foreground" />
+                                                        <Label htmlFor="card" className="flex-1 cursor-pointer flex flex-col">
+                                                            <span className="font-semibold text-sm">Cartão</span>
+                                                            {deliveryType === 'delivery' && (
+                                                                <span className="text-xs text-muted-foreground font-normal">
+                                                                    Maquineta na entrega
+                                                                </span>
+                                                            )}
                                                         </Label>
                                                     </div>
                                                 </div>
