@@ -44,12 +44,39 @@ export function ProductCard({ product, onSelect, disabled = false, priority = fa
                         {product.description}
                     </p>
                 )}
-                <p className="text-foreground font-semibold mt-2">
-                    {minReplacementPrice !== null
-                        ? `A partir de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(minReplacementPrice)}`
-                        : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)
+                {(() => {
+                    const formatCurrency = (val: number) =>
+                        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+
+                    if (minReplacementPrice !== null) {
+                        return (
+                            <p className="text-foreground font-semibold mt-2">
+                                {`A partir de ${formatCurrency(minReplacementPrice)}`}
+                            </p>
+                        )
                     }
-                </p>
+
+                    const hasPromo = product.promo_price !== null && product.promo_price !== undefined && product.promo_price > 0 && product.promo_price < product.price
+
+                    if (hasPromo) {
+                        return (
+                            <div className="flex items-baseline gap-2 mt-2">
+                                <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                                    {formatCurrency(product.promo_price!)}
+                                </span>
+                                <span className="line-through text-muted-foreground text-sm font-normal">
+                                    {formatCurrency(product.price)}
+                                </span>
+                            </div>
+                        )
+                    }
+
+                    return (
+                        <p className="text-foreground font-semibold mt-2">
+                            {formatCurrency(product.price)}
+                        </p>
+                    )
+                })()}
                 {!isAvailable && (
                     <span className="text-xs font-bold text-destructive mt-1 block">
                         Esgotado

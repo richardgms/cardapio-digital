@@ -25,6 +25,7 @@ export interface ProductSaveValues {
     name: string
     description?: string
     price: number
+    promo_price?: number | null
     category_id: string
     is_available: boolean
     allows_half_half: boolean
@@ -142,6 +143,7 @@ export async function saveProductAsProxy(storeId: string, productId: string, val
             name: values.name,
             description: values.description,
             price: values.price,
+            promo_price: values.promo_price ?? null,
             category_id: values.category_id,
             is_available: values.is_available,
             allows_half_half: values.allows_half_half,
@@ -302,6 +304,7 @@ export async function duplicateProductAsProxy(storeId: string, productId: string
             name: `${fullProduct.name} (Cópia)`,
             description: fullProduct.description,
             price: fullProduct.price,
+            promo_price: fullProduct.promo_price,
             category_id: fullProduct.category_id,
             is_available: fullProduct.is_available,
             allows_half_half: fullProduct.allows_half_half,

@@ -169,9 +169,10 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
         let addonsTotal = 0
 
         // 1. Definir o preço base inicial (produto ou meio-a-meio)
+        const hasPromo = product.promo_price !== null && product.promo_price !== undefined && product.promo_price > 0 && product.promo_price < product.price
         const initialBase = halfHalfSelection.enabled && halfHalfSelection.finalPrice > 0
             ? halfHalfSelection.finalPrice
-            : product.price
+            : (hasPromo ? product.promo_price! : product.price)
 
         // 2. Processar grupos de opções para encontrar replacements e somar addons
         product.option_groups?.forEach(group => {
@@ -383,11 +384,27 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                                         </p>
                                     )
                                 }
-                                return (
-                                    <p className="mt-2 font-semibold text-lg text-primary">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
-                                    </p>
-                                )
+                                return (() => {
+                                    const hasPromo = product.promo_price !== null && product.promo_price !== undefined && product.promo_price > 0 && product.promo_price < product.price
+                                    const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+                                    if (hasPromo) {
+                                        return (
+                                            <div className="flex items-baseline gap-2 mt-2">
+                                                <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
+                                                    {fmt(product.promo_price!)}
+                                                </span>
+                                                <span className="line-through text-muted-foreground text-sm font-normal">
+                                                    {fmt(product.price)}
+                                                </span>
+                                            </div>
+                                        )
+                                    }
+                                    return (
+                                        <p className="mt-2 font-semibold text-lg text-primary">
+                                            {fmt(product.price)}
+                                        </p>
+                                    )
+                                })()
                             })()}
                         </div>
 

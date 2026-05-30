@@ -75,13 +75,23 @@ const formSchema = z.object({
     name: z.string().min(3, "Mínimo 3 caracteres"),
     description: z.string().optional(),
     price: z.coerce.number().min(0, "Preço inválido"),
+    promo_price: z.preprocess(
+        (val) => (val === "" || val === undefined || val === null ? null : Number(val)),
+        z.number().min(0, "Preço inválido").nullable()
+    ).optional(),
     category_id: z.string().min(1, "Selecione uma categoria"),
     is_available: z.boolean().default(true),
     allows_half_half: z.boolean().default(false),
     image_url: z.string().nullable().optional(),
     additional_images: z.array(z.string()).max(MAX_ADDITIONAL_IMAGES).optional(),
     option_groups: z.array(optionGroupSchema),
-});
+}).refine(
+    (data) => !data.promo_price || data.promo_price < data.price,
+    {
+        message: "O preço promocional deve ser menor que o preço original",
+        path: ["promo_price"],
+    }
+);
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -446,6 +456,44 @@ const PriceField = ({ control }: { control: Control<FormValues> }) => {
     );
 };
 
+const PromoPriceField = ({ control }: { control: Control<FormValues> }) => {
+    const groups = useWatch({ control, name: 'option_groups' });
+    const hasReplacement = groups?.some((g: any) => g.pricing_mode === 'replacement') ?? false;
+
+    return (
+        <FormField
+            control={control}
+            name="promo_price"
+            render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Preço Promocional (R$)</FormLabel>
+                    <FormControl>
+                        <Input
+                            type="number"
+                            step="0.01"
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value === "" ? null : parseFloat(e.target.value))}
+                            disabled={hasReplacement}
+                            placeholder="Opcional"
+                            className={hasReplacement ? 'opacity-50' : ''}
+                        />
+                    </FormControl>
+                    {hasReplacement ? (
+                        <FormDescription className="text-muted-foreground">
+                            Ignorado — o preço é definido pelas opções de tamanho
+                        </FormDescription>
+                    ) : (
+                        <FormDescription className="text-muted-foreground">
+                            Se definido, substitui o preço original e exibe como promoção
+                        </FormDescription>
+                    )}
+                    <FormMessage />
+                </FormItem>
+            )}
+        />
+    );
+};
+
 // --- Exported Component ---
 
 interface ProductFormProps {
@@ -471,6 +519,7 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
             name: "",
             description: "",
             price: 0,
+            promo_price: null,
             category_id: "",
             is_available: true,
             allows_half_half: false,
@@ -581,6 +630,7 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
                         name: product.name,
                         description: product.description || "",
                         price: product.price,
+                        promo_price: product.promo_price ?? null,
                         category_id: product.category_id,
                         is_available: product.is_available,
                         allows_half_half: product.allows_half_half,
@@ -616,6 +666,7 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
                     name: values.name,
                     description: values.description,
                     price: values.price,
+                    promo_price: values.promo_price ?? null,
                     category_id: values.category_id,
                     is_available: values.is_available,
                     allows_half_half: values.allows_half_half,
@@ -823,7 +874,7 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
                                 }}
                             />
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="name"
@@ -836,6 +887,7 @@ export function ProductForm({ productId, isImpersonating = false, storeId }: Pro
                                     )}
                                 />
                                 <PriceField control={form.control} />
+                                <PromoPriceField control={form.control} />
                             </div>
 
                             <FormField

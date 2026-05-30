@@ -70,6 +70,7 @@ export interface Product {
     name: string
     description: string | null
     price: number
+    promo_price: number | null
     image_url: string | null
     additional_images?: string[] | null
     is_available: boolean

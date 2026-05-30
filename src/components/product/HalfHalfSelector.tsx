@@ -16,6 +16,21 @@ interface HalfHalfSelectorProps {
     }) => void
 }
 
+const getActivePrice = (product: Product) => {
+    const hasPromo = product.promo_price !== null && product.promo_price !== undefined && product.promo_price > 0 && product.promo_price < product.price
+    return hasPromo ? product.promo_price! : product.price
+}
+
+const formatPrice = (product: Product) => {
+    const activePrice = getActivePrice(product)
+    const hasPromo = product.promo_price !== null && product.promo_price !== undefined && product.promo_price > 0 && product.promo_price < product.price
+    const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+    if (hasPromo) {
+        return `${fmt(activePrice)} (Promo)`
+    }
+    return fmt(activePrice)
+}
+
 export function HalfHalfSelector({ categoryId, currentProduct, onSelectionChange }: HalfHalfSelectorProps) {
     const { products } = useProducts()
     const [enabled, setEnabled] = useState(false)
@@ -46,9 +61,9 @@ export function HalfHalfSelector({ categoryId, currentProduct, onSelectionChange
         // Calculate price: Max of the two halves
         let finalPrice = 0
         if (firstHalf && secondHalf) {
-            finalPrice = Math.max(firstHalf.price, secondHalf.price)
+            finalPrice = Math.max(getActivePrice(firstHalf), getActivePrice(secondHalf))
         } else if (firstHalf) {
-            finalPrice = firstHalf.price
+            finalPrice = getActivePrice(firstHalf)
         }
 
         onSelectionChange({
@@ -103,7 +118,7 @@ export function HalfHalfSelector({ categoryId, currentProduct, onSelectionChange
                             <SelectContent>
                                 {eligibleProducts.map(product => (
                                     <SelectItem key={product.id} value={product.id}>
-                                        {product.name} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
+                                        {product.name} - {formatPrice(product)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
