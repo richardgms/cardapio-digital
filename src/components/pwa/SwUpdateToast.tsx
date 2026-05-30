@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { usePathname } from "next/navigation"
 import { toast } from "sonner"
 
 const TOAST_ID = "sw-update"
@@ -25,7 +26,10 @@ function isCheckoutActive(): boolean {
 }
 
 export function SwUpdateToast() {
+    const pathname = usePathname()
+
     useEffect(() => {
+        if (pathname.startsWith("/admin") || pathname.startsWith("/auth")) return
         if (!("serviceWorker" in navigator)) return
 
         let reloadPending = false
@@ -63,6 +67,10 @@ export function SwUpdateToast() {
                 action: {
                     label: "Recarregar",
                     onClick: () => activate(waiting),
+                },
+                cancel: {
+                    label: "Depois",
+                    onClick: () => {},
                 },
             })
         }

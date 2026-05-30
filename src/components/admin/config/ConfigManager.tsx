@@ -28,10 +28,13 @@ import { updateStoreConfigAsProxy } from "@/actions/admin/proxy-config";
 
 const formSchema = z.object({
     name: z.string().min(3, "Mínimo 3 caracteres").max(50, "Máximo 50 caracteres"),
-    whatsapp: z.string()
-        .min(10, "Mínimo 10 dígitos (DDD + Número)")
-        .max(13, "Máximo 13 dígitos")
-        .regex(/^\d+$/, "Apenas números"),
+    whatsapp: z.union([
+        z.string()
+            .min(10, "Mínimo 10 dígitos (DDD + Número)")
+            .max(13, "Máximo 13 dígitos")
+            .regex(/^\d+$/, "Apenas números"),
+        z.literal("")
+    ]),
     minimum_order: z.coerce.number().min(0, "Valor não pode ser negativo"),
     logo_url: z.string().nullable().optional(),
     admin_email: z.union([z.string().email(), z.literal("")]).optional(), // Readonly
@@ -274,7 +277,7 @@ export function ConfigManager({ initialData, storeId, isImpersonating = false, t
                                                     value={(() => {
                                                         let v = field.value || "";
                                                         v = v.replace(/\D/g, "");
-                                                        if (v.startsWith("55") && v.length > 11) {
+                                                        if (v.startsWith("55")) {
                                                             v = v.substring(2);
                                                         }
                                                         v = v.slice(0, 11);

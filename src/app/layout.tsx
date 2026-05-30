@@ -62,7 +62,7 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         {children}
-        <Toaster />
+        <Toaster closeButton />
         <SwUpdateToast />
       </body>
     </html>

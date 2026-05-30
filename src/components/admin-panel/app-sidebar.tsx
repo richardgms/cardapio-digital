@@ -125,7 +125,7 @@ export function AppSidebar() {
                                 </div>
                                 <div className="flex flex-col gap-0.5 leading-none">
                                     <span className="font-semibold">RMenu Digital</span>
-                                    <span className="">v1.35.5</span>
+                                    <span className="">v1.35.6</span>
                                 </div>
                                 <div className="ml-auto">
                                     <NotificationBell />
