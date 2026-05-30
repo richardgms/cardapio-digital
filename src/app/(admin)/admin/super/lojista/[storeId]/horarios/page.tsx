@@ -1,5 +1,10 @@
 import { BusinessHoursManager } from "@/components/admin/hours/BusinessHoursManager";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Simulador - Horários",
+};
 
 interface PageProps {
     params: Promise<{ storeId: string }>;

@@ -1,5 +1,10 @@
 import { DeliveryZoneManager } from "@/components/admin/zones/DeliveryZoneManager";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Simulador - Zonas de Entrega",
+};
 
 interface PageProps {
     params: Promise<{ storeId: string }>;

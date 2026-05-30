@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
 import { ProductManager } from "@/components/admin/products/ProductManager";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Produtos",
+};
 
 export default async function ProductsPage() {
     const supabase = await createClient();

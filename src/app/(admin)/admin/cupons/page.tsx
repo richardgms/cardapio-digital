@@ -1,5 +1,10 @@
 import { CouponManager } from "@/components/admin/coupons/CouponManager";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Cupons",
+};
 
 export default function CouponsPage() {
     return (

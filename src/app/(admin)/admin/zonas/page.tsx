@@ -1,5 +1,10 @@
 import { DeliveryZoneManager } from "@/components/admin/zones/DeliveryZoneManager";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Zonas de Entrega",
+};
 
 export default function DeliveryZonesPage() {
     return (

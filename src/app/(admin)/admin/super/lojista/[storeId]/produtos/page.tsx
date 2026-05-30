@@ -1,6 +1,11 @@
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
 import { ProductManager } from "@/components/admin/products/ProductManager";
 import { fetchProductsForProxy } from "@/actions/admin/proxy-products";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Simulador - Produtos",
+};
 
 export default async function ImpersonateProductsPage({
     params,

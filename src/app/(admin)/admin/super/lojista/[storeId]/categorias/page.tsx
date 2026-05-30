@@ -1,5 +1,10 @@
 import { CategoryManager } from "@/components/admin/categories/CategoryManager";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Simulador - Categorias",
+};
 
 interface PageProps {
     params: Promise<{ storeId: string }>;

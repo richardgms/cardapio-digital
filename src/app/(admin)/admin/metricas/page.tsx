@@ -1,5 +1,10 @@
 import { Breadcrumb } from '@/components/admin/Breadcrumb'
 import { MetricsManager } from '@/components/admin/metrics/MetricsManager'
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Métricas",
+};
 
 export default function MetricasPage() {
     return (

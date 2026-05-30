@@ -2,6 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
 import { ConfigManager } from "@/components/admin/config/ConfigManager";
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Configurações da Loja",
+};
 
 export default async function ConfigPage() {
     const supabase = await createClient();

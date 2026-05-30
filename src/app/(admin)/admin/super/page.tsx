@@ -13,6 +13,11 @@ import { EditRestaurantDialog } from '@/components/admin/super/edit-restaurant-d
 import { UtensilsCrossed, Monitor } from 'lucide-react'
 import Link from 'next/link'
 import { NotificationManager } from '@/components/admin/notifications/NotificationManager'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+    title: "Super Admin",
+}
 
 export default async function SuperAdminPage() {
     const [users, restaurants] = await Promise.all([

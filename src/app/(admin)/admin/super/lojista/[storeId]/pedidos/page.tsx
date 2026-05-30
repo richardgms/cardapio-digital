@@ -1,5 +1,10 @@
 import { OrdersManager } from "@/components/admin/orders/OrdersManager";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Simulador - Pedidos",
+};
 
 interface PageProps {
     params: Promise<{ storeId: string }>;

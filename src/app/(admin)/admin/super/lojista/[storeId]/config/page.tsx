@@ -1,6 +1,11 @@
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
 import { ConfigManager } from "@/components/admin/config/ConfigManager";
 import { fetchStoreConfigForProxy } from "@/actions/admin/proxy-config";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Simulador - Configurações",
+};
 
 export default async function ImpersonateConfigPage({
     params,
