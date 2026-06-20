@@ -108,7 +108,12 @@ function getDayLabel(dateStr: string, period: Period): string {
     return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`
 }
 
-export function MetricsManager() {
+interface MetricsManagerProps {
+    storeId?: string
+    isImpersonating?: boolean
+}
+
+export function MetricsManager({ storeId, isImpersonating }: MetricsManagerProps = {}) {
     const [period, setPeriod] = useState<Period>('7days')
     const [deliveryFilter, setDeliveryFilter] = useState<DeliveryType | 'all'>('all')
     const [metrics, setMetrics] = useState<MetricsData | null>(null)
@@ -118,27 +123,49 @@ export function MetricsManager() {
         async function fetchMetrics() {
             setLoading(true)
             try {
-                const supabase = createClient()
-                const { data: { user } } = await supabase.auth.getUser()
-                if (!user) return
+                let orders: any[] = []
+                let items: any[] = []
 
-                let query = supabase
-                    .from('orders')
-                    .select('id, status, delivery_type, payment_method, total, created_at')
-                    .eq('store_id', user.id)
+                if (isImpersonating && storeId) {
+                    const { fetchMetricsDataAsProxy } = await import('@/actions/admin/proxy-metrics')
+                    const res = await fetchMetricsDataAsProxy(storeId, period, deliveryFilter)
+                    orders = res.orders
+                    items = res.items
+                } else {
+                    const supabase = createClient()
+                    const { data: { user } } = await supabase.auth.getUser()
+                    if (!user) return
 
-                if (period !== 'all') {
-                    const periodStart = getPeriodStart(period)
-                    query = query.gte('created_at', periodStart.toISOString())
+                    let query = supabase
+                        .from('orders')
+                        .select('id, status, delivery_type, payment_method, total, created_at')
+                        .eq('store_id', user.id)
+
+                    if (period !== 'all') {
+                        const periodStart = getPeriodStart(period)
+                        query = query.gte('created_at', periodStart.toISOString())
+                    }
+
+                    if (deliveryFilter !== 'all') {
+                        query = query.eq('delivery_type', deliveryFilter)
+                    }
+
+                    // Fetch orders
+                    const { data: ordersFetched } = await query
+                        .order('created_at', { ascending: true })
+
+                    orders = ordersFetched || []
+
+                    const activeOrders = orders.filter(o => o.status !== 'cancelled')
+                    const activeOrderIds = activeOrders.map(o => o.id)
+                    const { data: itemsFetched } = activeOrderIds.length > 0
+                        ? await supabase
+                            .from('order_items')
+                            .select('product_name, quantity, item_total, order_id')
+                            .in('order_id', activeOrderIds)
+                        : { data: [] }
+                    items = itemsFetched || []
                 }
-
-                if (deliveryFilter !== 'all') {
-                    query = query.eq('delivery_type', deliveryFilter)
-                }
-
-                // Fetch orders
-                const { data: orders } = await query
-                    .order('created_at', { ascending: true })
 
                 if (!orders || orders.length === 0) {
                     setMetrics({
@@ -156,15 +183,6 @@ export function MetricsManager() {
 
                 const activeOrders = orders.filter(o => o.status !== 'cancelled')
                 const cancelledOrders = orders.filter(o => o.status === 'cancelled').length
-
-                // Fetch order items for active orders
-                const activeOrderIds = activeOrders.map(o => o.id)
-                const { data: items } = activeOrderIds.length > 0
-                    ? await supabase
-                        .from('order_items')
-                        .select('product_name, quantity, item_total, order_id')
-                        .in('order_id', activeOrderIds)
-                    : { data: [] }
 
                 // KPIs
                 const totalRevenue = activeOrders.reduce((sum, o) => sum + (o.total || 0), 0)

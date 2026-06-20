@@ -2,7 +2,7 @@ import { validateSuperAdmin } from "@/lib/auth-guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, Settings, ExternalLink, LayoutDashboard, Folder, MapPin, Clock, ReceiptText } from "lucide-react";
+import { Package, Settings, ExternalLink, LayoutDashboard, Folder, MapPin, Clock, ReceiptText, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -92,6 +92,24 @@ export default async function ImpersonateIndexPage({
                     <CardContent>
                         <Link href={`/admin/super/lojista/${storeId}/pedidos`}>
                             <Button variant="outline" className="w-full border-black">Ver Pedidos</Button>
+                        </Link>
+                    </CardContent>
+                </Card>
+
+                {/* MÉTRICAS */}
+                <Card className="hover:border-primary/50 transition-colors">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5" />
+                            Métricas
+                        </CardTitle>
+                        <CardDescription>
+                            Veja faturamento, ticket médio e mais.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Link href={`/admin/super/lojista/${storeId}/metricas`}>
+                            <Button variant="outline" className="w-full border-black">Ver Métricas</Button>
                         </Link>
                     </CardContent>
                 </Card>

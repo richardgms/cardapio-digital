@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 
 export const changelogHistory: ChangelogEntry[] = [
   {
+    version: "1.36.0",
+    date: "19/06/2026",
+    title: "Métricas no Simulador (Super Admin)",
+    changes: [
+      "Integrado painel de métricas do restaurante diretamente na área do Simulador de Loja.",
+      "Criação de Server Actions seguras com validação administrativa e log de auditoria para visualização de faturamento e vendas.",
+      "Filtros unificados por período (Hoje, 7d, 30d, Todos) e tipo de entrega (Delivery, Retirada, Mesa)."
+    ]
+  },
+  {
     version: "1.35.10",
     date: "30/05/2026",
     title: "Destaque de Promoções no Menu Público",
