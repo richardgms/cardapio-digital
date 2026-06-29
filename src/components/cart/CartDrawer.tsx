@@ -361,7 +361,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     return (
         <Sheet open={open} onOpenChange={onClose}>
             <SheetContent
-                className="w-full sm:max-w-md flex flex-col p-0 gap-0 [&>button]:hidden"
+                className="w-full sm:max-w-md flex flex-col p-0 gap-0 [&>button]:hidden bg-background"
                 onInteractOutside={(e) => {
                     // Não fechar quando o tap aterrissa em um portal do Radix
                     // (Select, Popover) ou no Toaster do sonner — em iOS Safari

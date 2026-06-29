@@ -258,7 +258,7 @@ export function OrdersManager({ storeId, isImpersonating }: OrdersManagerProps) 
             </div>
 
             <Sheet open={!!selectedOrder} onOpenChange={(o) => !o && setSelectedOrder(null)}>
-                <SheetContent className="sm:max-w-md border-l border-border p-0">
+                <SheetContent className="sm:max-w-md border-l border-border p-0 bg-background">
                     {selectedOrder && (
                         <div className="flex flex-col h-full">
                             <div className="p-6 border-b border-border">

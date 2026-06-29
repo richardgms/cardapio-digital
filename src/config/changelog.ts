@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 
 export const changelogHistory: ChangelogEntry[] = [
   {
+    version: "1.36.1",
+    date: "28/06/2026",
+    title: "Compatibilidade de Cores e Gaveta do Carrinho",
+    changes: [
+      "Adicionado fallback de cores em formato hexadecimal para navegadores e PCs legados (como Windows 7/Chrome 109) incapazes de interpretar o espaço de cores oklch.",
+      "Melhorias defensivas com aplicação de classe bg-background sólida no SheetContent do Carrinho de Compras e no visualizador de pedidos no painel administrativo."
+    ]
+  },
+  {
     version: "1.36.0",
     date: "19/06/2026",
     title: "Métricas no Simulador (Super Admin)",
