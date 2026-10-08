@@ -1,6 +1,7 @@
 "use server"
 
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { loadPublicStore, PUBLIC_STORE_WITH_HOURS } from '@/lib/public-store'
 import { cookies, headers } from 'next/headers'
 
 /**
@@ -30,26 +31,18 @@ export async function getStoreBySubdomain() {
  * Internal function to fetch store from database
  */
 async function fetchStoreBySubdomain(subdomain: string) {
-    const supabase = await createClient()
+    return loadPublicStore(subdomain, async slug => {
+        const supabase = await createAdminClient();
+        const { data, error } = await supabase.from('store_config')
+            .select(PUBLIC_STORE_WITH_HOURS).eq('subdomain', slug).maybeSingle();
+        if (error) return null;
+        return data;
+    });
+}
 
-    const { data: store, error } = await supabase
-        .from('store_config')
-        .select(`
-            *,
-            business_hours (
-                *,
-                periods:business_hour_periods (*)
-            )
-        `)
-        .eq('subdomain', subdomain)
-        .single()
-
-    if (error || !store) {
-        console.error('Store not found for subdomain:', subdomain, error)
-        return null
-    }
-
-    return store
+/** Leitura pública limitada; não retorna identidade administrativa ou campos futuros. */
+export async function getPublicStoreBySubdomain(subdomain: string) {
+    return fetchStoreBySubdomain(subdomain);
 }
 
 /**

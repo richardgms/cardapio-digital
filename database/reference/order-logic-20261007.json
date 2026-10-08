@@ -1,0 +1,84 @@
+{
+  "triggers": [
+    {
+      "tgname": "increment_coupon_usage",
+      "tgenabled": "O",
+      "definition": "CREATE TRIGGER increment_coupon_usage AFTER INSERT ON coupon_usages FOR EACH ROW EXECUTE FUNCTION increment_coupon_usage()",
+      "table_name": "coupon_usages",
+      "table_schema": "public"
+    },
+    {
+      "tgname": "update_coupons_updated_at",
+      "tgenabled": "O",
+      "definition": "CREATE TRIGGER update_coupons_updated_at BEFORE UPDATE ON coupons FOR EACH ROW EXECUTE FUNCTION update_coupons_updated_at()",
+      "table_name": "coupons",
+      "table_schema": "public"
+    },
+    {
+      "tgname": "trg_orders_set_number",
+      "tgenabled": "O",
+      "definition": "CREATE TRIGGER trg_orders_set_number BEFORE INSERT ON orders FOR EACH ROW EXECUTE FUNCTION set_order_number()",
+      "table_name": "orders",
+      "table_schema": "public"
+    },
+    {
+      "tgname": "trg_orders_updated_at",
+      "tgenabled": "O",
+      "definition": "CREATE TRIGGER trg_orders_updated_at BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION set_updated_at()",
+      "table_name": "orders",
+      "table_schema": "public"
+    }
+  ],
+  "functions": [
+    {
+      "owner": "postgres",
+      "arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.increment_coupon_usage()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n    UPDATE public.coupons \r\n    SET usage_count = usage_count + 1\r\n    WHERE id = NEW.coupon_id;\r\n    RETURN NEW;\r\nEND;\r\n$function$\n",
+      "anon_execute": true,
+      "configuration": null,
+      "function_name": "increment_coupon_usage",
+      "function_schema": "public",
+      "security_definer": false,
+      "authenticated_execute": true
+    },
+    {
+      "owner": "postgres",
+      "arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.set_order_number()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nDECLARE\n  next_number integer;\nBEGIN\n  PERFORM 1 FROM public.store_config WHERE id = NEW.store_id FOR UPDATE;\n  SELECT COALESCE(MAX(order_number), 0) + 1\n  INTO next_number\n  FROM public.orders\n  WHERE store_id = NEW.store_id;\n  NEW.order_number := next_number;\n  RETURN NEW;\nEND;\n$function$\n",
+      "anon_execute": true,
+      "configuration": [
+        "search_path=\"\""
+      ],
+      "function_name": "set_order_number",
+      "function_schema": "public",
+      "security_definer": false,
+      "authenticated_execute": true
+    },
+    {
+      "owner": "postgres",
+      "arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.set_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nBEGIN\n  NEW.updated_at := now();\n  RETURN NEW;\nEND;\n$function$\n",
+      "anon_execute": true,
+      "configuration": [
+        "search_path=\"\""
+      ],
+      "function_name": "set_updated_at",
+      "function_schema": "public",
+      "security_definer": false,
+      "authenticated_execute": true
+    },
+    {
+      "owner": "postgres",
+      "arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.update_coupons_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n    NEW.updated_at = NOW();\r\n    RETURN NEW;\r\nEND;\r\n$function$\n",
+      "anon_execute": true,
+      "configuration": null,
+      "function_name": "update_coupons_updated_at",
+      "function_schema": "public",
+      "security_definer": false,
+      "authenticated_execute": true
+    }
+  ],
+  "trigger_count": 4,
+  "function_count": 4
+}

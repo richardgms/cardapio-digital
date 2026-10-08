@@ -7,6 +7,17 @@ export interface ChangelogEntry {
 
 export const changelogHistory: ChangelogEntry[] = [
   {
+    version: "1.37.0",
+    date: "08/10/2026",
+    title: "Pedidos, Carrinho e Preparação da Impressão",
+    changes: [
+      "Editar um item do carrinho conserva a mesma linha, quantidade, opções e observação; a observação aparece antes de finalizar.",
+      "Pedidos e cupons são registrados juntos, com validação de preços e recuperação de tentativas sem duplicar o pedido.",
+      "Painel de pedidos com atualização, filtros e histórico de impressão. Configuração da impressão disponível em validação controlada.",
+      "Proteções de acesso por restaurante e leitura pública limitada aos dados necessários ao cardápio."
+    ]
+  },
+  {
     version: "1.36.1",
     date: "28/06/2026",
     title: "Compatibilidade de Cores e Gaveta do Carrinho",

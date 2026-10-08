@@ -14,6 +14,10 @@ export const useCartStore = create<CartState & CartActions>()(
                 items: [...state.items, { ...item, id: crypto.randomUUID() }]
             })),
 
+            updateItem: (id, replacement) => set((state) => ({
+                items: state.items.map((item) => item.id === id ? { ...replacement, id } : item)
+            })),
+
             removeItem: (id) => set((state) => ({
                 items: state.items.filter((item) => item.id !== id)
             })),

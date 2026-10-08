@@ -34,6 +34,7 @@ import {
     ClipboardList,
     BarChart2,
     TicketPercent,
+    Printer,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -97,6 +98,7 @@ export function AppSidebar() {
             {
                 title: 'Configuração',
                 items: [
+                    { title: 'Impressão', url: '/admin/impressao', icon: Printer },
                     {
                         title: 'Zonas de Entrega',
                         url: '/admin/zonas',

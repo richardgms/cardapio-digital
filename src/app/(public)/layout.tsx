@@ -1,6 +1,6 @@
 import { CookieBanner } from '@/components/layout/CookieBanner'
 import { headers } from "next/headers"
-import { createClient } from "@/lib/supabase/server"
+import { getPublicStoreBySubdomain } from "@/actions/store/get-store-by-subdomain"
 import type { Metadata } from "next"
 
 function getSubdomainFromServer(host: string): string | null {
@@ -35,12 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
     }
 
     try {
-        const supabase = await createClient()
-        const { data: store } = await supabase
-            .from("store_config")
-            .select("name, logo_url")
-            .eq("subdomain", subdomain)
-            .single()
+        const store = await getPublicStoreBySubdomain(subdomain)
 
         if (store) {
             const title = store.name

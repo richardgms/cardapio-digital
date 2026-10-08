@@ -1,0 +1,55 @@
+{
+  "vercel": {
+    "missing_flags": [
+      "RMENU_PRINT_AGENT_ENABLED",
+      "RMENU_PRINT_ACTIVATION_READY"
+    ],
+    "scope": "richardgms-projects",
+    "local_link_created": false,
+    "project_id": "prj_WElQReMshf36K9red4cMfyQ6fFVi",
+    "remote_variables_modified": false,
+    "production_domain": "rmenu.com.br",
+    "deployment_performed": false,
+    "project": "cardapio-digital",
+    "production_secret_pull_blocked_by_auto_review": true,
+    "production_secret_values_downloaded": false
+  },
+  "pending": [
+    "Assinatura digital do instalador",
+    "Instalação interativa/calibração do assistente",
+    "Entrada e reinício real do Windows",
+    "Queda real de conexão/impressora",
+    "Período prolongado com fixtures controladas",
+    "Publicação de consumidores públicos e migração 04 posterior"
+  ],
+  "installer": {
+    "excluded_from_cli_deploy": true,
+    "actual_windows_logon_test_confirmed": false,
+    "credentials_in_package": false,
+    "path": "public/printing/RMenu-Instalar.exe",
+    "sha256": "1EE845698E700ED1C2F5F62887CF131876EAA0B93A414ADC13A1BFF9E87F9635",
+    "excluded_from_pwa_precache": true,
+    "interactive_acceptance_confirmed": false,
+    "authenticode_status": "NotSigned",
+    "os_support": [
+      "Windows 10",
+      "Windows 11"
+    ]
+  },
+  "live_polling": {
+    "new_physical_submission": false,
+    "cycles": 4,
+    "initial_import_scope_failure_fixed": true,
+    "printing_enabled": false,
+    "expected_order_number": 4,
+    "attempts_after": 1
+  },
+  "date": "2026-10-08",
+  "software_checks": {
+    "desktop": 25,
+    "javascript": 45,
+    "windows_core": 23,
+    "build_passed": true,
+    "lint_passed": true
+  }
+}

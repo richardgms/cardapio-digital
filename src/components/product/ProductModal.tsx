@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { useState, useEffect, useCallback } from 'react'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -11,9 +11,10 @@ import useEmblaCarousel from "embla-carousel-react"
 import Autoplay from "embla-carousel-autoplay"
 import { useCartStore } from "@/stores/cartStore"
 import { toast } from "sonner"
-import type { Product, ProductOption } from "@/types/database"
-import type { CartItemOption } from "@/types/cart"
+import type { Product } from "@/types/database"
+import type { CartItem, CartItemOption } from "@/types/cart"
 import { getEffectiveMaxSelect } from "@/lib/sizeRules"
+import { priceOrderItem } from "@/lib/order-pricing"
 import { HalfHalfSelector } from "./HalfHalfSelector"
 import { cn } from "@/lib/utils"
 
@@ -21,9 +22,10 @@ interface ProductModalProps {
     product: Product | null
     open: boolean
     onClose: () => void
+    editingItem?: CartItem | null
 }
 
-export function ProductModal({ product, open, onClose }: ProductModalProps) {
+export function ProductModal({ product, open, onClose, editingItem }: ProductModalProps) {
     const [quantity, setQuantity] = useState(1)
     const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({})
     const [observation, setObservation] = useState("")
@@ -48,13 +50,22 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
     ])
 
     const addItem = useCartStore(state => state.addItem)
+    const updateItem = useCartStore(state => state.updateItem)
 
     // Reset state when product changes or modal opens
     useEffect(() => {
         if (open && product) {
-            setQuantity(1)
-            setSelectedOptions({})
-            setObservation("")
+            setQuantity(editingItem?.quantity ?? 1)
+            const restoredOptions: Record<string, string[]> = {}
+            for (const selected of editingItem?.selected_options ?? []) {
+                const group = product.option_groups?.find(group =>
+                    selected.group_id ? group.id === selected.group_id : group.title === selected.group_name)
+                const option = group?.options?.find(option =>
+                    selected.option_id ? option.id === selected.option_id : option.name === selected.option_name)
+                if (group && option) (restoredOptions[group.id] ??= []).push(option.id)
+            }
+            setSelectedOptions(restoredOptions)
+            setObservation(editingItem?.observation ?? "")
             setValidationErrors([])
             setIsImageOpen(false)
             setActiveImageIndex(0)
@@ -66,7 +77,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                 finalPrice: 0
             })
         }
-    }, [open, product])
+    }, [open, product, editingItem])
 
     const onSelect = useCallback(() => {
         if (!emblaApi) return
@@ -150,55 +161,34 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
 
     const replacementGroups = product.option_groups?.filter(g => g.pricing_mode === 'replacement') ?? []
 
-    const hasMissingRequiredOptions = !halfHalfSelection.enabled && (product.option_groups?.some(group => {
+    const hasMissingRequiredOptions = (product.option_groups?.some(group => {
         const selections = selectedOptions[group.id] || []
         return group.is_required && selections.length === 0
     }) ?? false)
 
-    const hasExcessErrors = !halfHalfSelection.enabled && (product.option_groups?.some(group => {
+    const hasExcessErrors = (product.option_groups?.some(group => {
         if (group.pricing_mode === 'replacement') return false
         const selections = selectedOptions[group.id] || []
         const effMax = getEffectiveMaxSelect(group, selectedOptions, replacementGroups)
         return effMax > 0 && selections.length > effMax
     }) ?? false)
 
-    const calculateTotal = () => {
-        if (hasMissingRequiredOptions) return 0
-
-        let replacementPrice: number | null = null
-        let addonsTotal = 0
-
-        // 1. Definir o preço base inicial (produto ou meio-a-meio)
-        const hasPromo = product.promo_price !== null && product.promo_price !== undefined && product.promo_price > 0 && product.promo_price < product.price
-        const initialBase = halfHalfSelection.enabled && halfHalfSelection.finalPrice > 0
-            ? halfHalfSelection.finalPrice
-            : (hasPromo ? product.promo_price! : product.price)
-
-        // 2. Processar grupos de opções para encontrar replacements e somar addons
-        product.option_groups?.forEach(group => {
-            const selectedIds = selectedOptions[group.id] || []
-            if (selectedIds.length === 0) return
-
-            if (group.pricing_mode === 'replacement') {
-                // Para simplificar, o último replacement processado ganha.
-                // Geralmente só há um grupo de replacement (ex: Tamanho).
-                const option = group.options?.find(o => o.id === selectedIds[0])
-                if (option) {
-                    replacementPrice = option.price
-                }
-            } else {
-                selectedIds.forEach(optionId => {
-                    const option = group.options?.find(o => o.id === optionId)
-                    if (option) addonsTotal += option.price
-                })
-            }
-        })
-
-        // 3. O preço base final é o replacement (se existir) ou o inicial
-        const finalBase = replacementPrice !== null ? replacementPrice : initialBase
-        
-        return (finalBase + addonsTotal) * quantity
+    const priceSelection = () => {
+        if (halfHalfSelection.enabled && (!halfHalfSelection.firstHalf || !halfHalfSelection.secondHalf)) {
+            throw new Error("Selecione os dois sabores para meio a meio.")
+        }
+        const products = new Map([product, halfHalfSelection.firstHalf, halfHalfSelection.secondHalf]
+            .filter((p): p is Product => !!p).map(p => [p.id, p]))
+        return priceOrderItem({
+            client_item_id: 'preview', product_id: product.id, quantity, observations: observation || null,
+            selected_options: Object.entries(selectedOptions).flatMap(([group_id, ids]) => ids.map(option_id => ({ group_id, option_id }))),
+            half_product_ids: halfHalfSelection.enabled ? [halfHalfSelection.firstHalf!.id, halfHalfSelection.secondHalf!.id] : null,
+        }, [...products.values()], product.store_id)
     }
+    const calculateTotal = () => {
+        try { return priceSelection().item_total } catch { return 0 }
+    }
+    const pricingError = (() => { try { priceSelection(); return '' } catch (error) { return error instanceof Error ? error.message : 'Confira as opções.' } })()
 
     const handleAddToCart = () => {
         if (halfHalfSelection.enabled) {
@@ -209,7 +199,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
         }
 
         const errors: string[] = []
-        if (!halfHalfSelection.enabled) {
+        {
             product.option_groups?.forEach(group => {
                 const selections = selectedOptions[group.id] || []
                 if (group.is_required && selections.length === 0) {
@@ -236,6 +226,8 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                 const option = group.options?.find(o => o.id === optionId)
                 if (option) {
                     cartOptions.push({
+                        group_id: group.id,
+                        option_id: option.id,
                         group_name: group.title,
                         option_name: option.name,
                         price: option.price,
@@ -245,7 +237,11 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
             })
         })
 
-        addItem({
+        let priced
+        try { priced = priceSelection() } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Confira as opções dos sabores.'); return
+        }
+        const cartItem: Omit<CartItem, 'id'> = {
             product: product,
             quantity,
             selected_options: cartOptions,
@@ -254,12 +250,23 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                 enabled: true,
                 first_half: halfHalfSelection.firstHalf?.name || "",
                 second_half: halfHalfSelection.secondHalf?.name || "",
-                final_price: halfHalfSelection.finalPrice
+                first_half_id: halfHalfSelection.firstHalf!.id,
+                second_half_id: halfHalfSelection.secondHalf!.id,
+                final_price: priced.unit_price
             } : undefined,
-            item_total: calculateTotal()
-        })
+            item_total: priced.item_total
+        }
 
-        toast.success("Adicionado ao carrinho!")
+        if (editingItem) {
+            if (!useCartStore.getState().items.some(item => item.id === editingItem.id)) {
+                toast.error("Este item não está mais no carrinho.")
+                return
+            }
+            updateItem(editingItem.id, cartItem)
+        } else {
+            addItem(cartItem)
+        }
+        toast.success(editingItem ? "Item atualizado!" : "Adicionado ao carrinho!")
         onClose()
     }
 
@@ -411,6 +418,8 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                         {/* Half Half Selector */}
                         {product.allows_half_half && product.category_id && (
                             <HalfHalfSelector
+                                key={editingItem?.id ?? product.id}
+                                initialSelection={editingItem?.half_half}
                                 categoryId={product.category_id}
                                 currentProduct={product}
                                 onSelectionChange={handleHalfHalfChange}
@@ -418,7 +427,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                         )}
 
                         {/* Options Groups */}
-                        {!halfHalfSelection.enabled && product.option_groups?.map(group => {
+                        {product.option_groups?.map(group => {
                             const hasError = validationErrors.includes(group.id)
                             const effectiveMax = getEffectiveMaxSelect(group, selectedOptions, replacementGroups)
                             const hasExcess = group.pricing_mode !== 'replacement' && effectiveMax > 0 && (selectedOptions[group.id]?.length ?? 0) > effectiveMax
@@ -559,7 +568,7 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => setQuantity(quantity + 1)}
+                                onClick={() => setQuantity(Math.min(100, quantity + 1))}
                             >
                                 <Plus className="h-4 w-4" />
                             </Button>
@@ -572,8 +581,9 @@ export function ProductModal({ product, open, onClose }: ProductModalProps) {
                         </div>
                     </div >
                     <div className="w-full space-y-2">
-                        <Button className="w-full" size="lg" onClick={handleAddToCart} disabled={hasMissingRequiredOptions || hasExcessErrors}>
-                            Adicionar ao Pedido
+                        {pricingError && !hasMissingRequiredOptions && !hasExcessErrors && <p className="text-xs text-destructive" role="alert">{pricingError}</p>}
+                        <Button className="w-full" size="lg" onClick={handleAddToCart} disabled={hasMissingRequiredOptions || hasExcessErrors || !!pricingError}>
+                            {editingItem ? 'Salvar alterações' : 'Adicionar ao Pedido'}
                         </Button>
                         {hasMissingRequiredOptions && (
                             <p className="text-xs text-destructive/80 text-center font-medium animate-in fade-in">

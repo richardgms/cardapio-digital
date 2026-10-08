@@ -1,4 +1,4 @@
-import { CartItem } from "@/types/cart"
+
 
 interface OrderData {
     customerName: string
@@ -12,7 +12,16 @@ interface OrderData {
     pixKey?: string
     pixKeyType?: string
     tableNumber?: string
-    items: CartItem[]
+    items: {
+        product?: { name: string }
+        quantity: number
+        item_total: number
+        selected_options: { option_name: string; is_replacement?: boolean }[]
+        observation?: string
+        half_half?: { enabled: boolean; first_half: string; second_half: string }
+    }[]
+    discountValue?: number
+    couponCode?: string
     subtotal: number
     deliveryFee: number
     total: number
@@ -30,7 +39,7 @@ export function generateWhatsAppMessage(order: OrderData): string {
     ].join('\n')
 
     const itemsList = order.items.map(item => {
-        const productName = item.product?.name || (item as any).product_name || "Item"
+        const productName = item.product?.name || "Item"
         let itemStr = `*${item.quantity}x ${productName}*`
 
         if (item.half_half?.enabled) {
@@ -39,7 +48,7 @@ export function generateWhatsAppMessage(order: OrderData): string {
 
         if (item.selected_options && item.selected_options.length > 0) {
             item.selected_options.forEach(opt => {
-                const optName = opt.option_name || (opt as any).name // Fallback
+                const optName = opt.option_name
                 itemStr += opt.is_replacement ? `\n   ${optName}` : `\n   + ${optName}`
             })
         }
@@ -99,6 +108,9 @@ export function generateWhatsAppMessage(order: OrderData): string {
     ]
     if (order.deliveryType === 'delivery') {
         totalsLines.push(`Entrega: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.deliveryFee)}`)
+    }
+    if (order.discountValue && order.discountValue > 0) {
+        totalsLines.push(`Desconto${order.couponCode ? ` (${order.couponCode})` : ''}: - ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.discountValue)}`)
     }
     totalsLines.push(`*TOTAL: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total)}*`)
     const totals = totalsLines.join('\n')

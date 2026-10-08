@@ -1,7 +1,11 @@
 'use server'
 
+import { ORDER_DETAIL_WITH_PRINTING } from '@/lib/print-job-status';
+
 import { withSuperAdmin } from '@/lib/auth-guards'
 import { SupabaseClient } from '@supabase/supabase-js'
+import type { DeliveryType } from '@/types/database'
+import { ordersPageRange, ordersPeriodStart, type OrdersPeriod } from '@/lib/orders-period'
 
 /**
  * Registra log de auditoria para acesso a dados sensíveis (Pedidos)
@@ -30,32 +34,30 @@ async function recordAuditLog(
 /**
  * Busca pedidos de um lojista via proxy com filtros
  */
-export async function fetchOrdersAsProxy(storeId: string, period: string) {
+export async function fetchOrdersAsProxy(storeId: string, period: OrdersPeriod, page = 0, delivery: DeliveryType | 'all' = 'all') {
     return withSuperAdmin(async (adminClient, user) => {
-        let query = adminClient
-            .from('orders')
-            .select('*')
-            .eq('store_id', storeId)
-            .order('created_at', { ascending: false })
-
-        if (period !== 'all') {
-            const now = new Date()
-            let start: Date
-            if (period === 'today') {
-                start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-            } else if (period === '7days') {
-                start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-            } else {
-                start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-            }
-            query = query.gte('created_at', start.toISOString())
-        }
-
-        const { data, error } = await query
+        const [from, to] = ordersPageRange(page)
+        let query = adminClient.from('orders').select('*', { count: 'exact' }).eq('store_id', storeId)
+            .order('created_at', { ascending: false }).order('id', { ascending: false }).range(from, to)
+        if (!['all','delivery','pickup','table'].includes(delivery)) throw new Error('Tipo inválido')
+        if (delivery !== 'all') query = query.eq('delivery_type', delivery)
+        const start = ordersPeriodStart(period)
+        if (start) query = query.gte('created_at', start)
+        const { data, count, error } = await query
         if (error) throw error
+        await recordAuditLog(adminClient, user.id, storeId, 'view_list', 'orders', { period, page, delivery })
+        return { orders: data || [], total: count ?? 0 }
+    })
+}
 
-        await recordAuditLog(adminClient, user.id, storeId, 'view_list', 'orders', { period })
-        return data || []
+/** Cabeçalho e itens na mesma leitura; autorização e loja aplicadas antes de retornar. */
+export async function fetchOrderDetailAsProxy(storeId: string, orderId: string) {
+    return withSuperAdmin(async (adminClient, user) => {
+        const { data, error } = await adminClient.from('orders').select(ORDER_DETAIL_WITH_PRINTING)
+            .eq('store_id', storeId).eq('id', orderId).single()
+        if (error || !data) throw new Error('Pedido não encontrado ou acesso negado.')
+        await recordAuditLog(adminClient, user.id, storeId, 'view_detail', 'orders', { orderId })
+        return data
     })
 }
 

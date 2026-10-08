@@ -2,50 +2,20 @@
 import { BusinessHour } from "@/types/database";
 
 export function isStoreOpenNow(
-    autoEnabled: boolean,
-    manualIsOpen: boolean,
-    businessHours: BusinessHour[]
+    autoEnabled: boolean, manualIsOpen: boolean, businessHours: BusinessHour[], now = new Date()
 ): boolean {
-    // Se modo automático desabilitado, usar manual
-    if (!autoEnabled) {
-        return manualIsOpen;
-    }
-
-    // Pegar horário atual de Brasília
-    const now = new Date();
-    const brasiliaTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-
-    const currentDay = brasiliaTime.getDay(); // 0-6
-    // Format "HH:MM"
-    const hours = brasiliaTime.getHours().toString().padStart(2, '0');
-    const minutes = brasiliaTime.getMinutes().toString().padStart(2, '0');
-    const currentTime = `${hours}:${minutes}`;
-
-    // Encontrar config do dia atual
-    // Note: businessHours might be partial or unordered, finding by day_of_week is safest
-    const todayConfig = businessHours?.find(bh => bh.day_of_week === currentDay);
-
-    if (!todayConfig || !todayConfig.is_open) {
-        return false;
-    }
-
-    // Verificar se está dentro de algum período
-    const periods = todayConfig.periods || [];
-    if (periods.length === 0) {
-        // If it's open but no periods defined? Usually implies open 24h or closed?
-        // Let's assume closed if no periods are defined, unless user wants "Open all day".
-        // Based on the UI prompt "Adicionar período", unavailability of periods usually means closed logic in most systems,
-        // BUT `is_open` is true? 
-        // Let's assume if `is_open` is true and NO periods, it's CLOSED because no valid time range.
-        return false;
-    }
-
-    return periods.some(period => {
-        // Database time might be HH:MM:SS, slice to HH:MM
-        const start = period.open_time.slice(0, 5);
-        const end = period.close_time.slice(0, 5);
-        return currentTime >= start && currentTime <= end;
-    });
+    if (!autoEnabled) return manualIsOpen
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', weekday: 'short',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(now)
+    const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(p => p.type === type)?.value ?? ''
+    const day = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(part('weekday'))
+    const time = `${part('hour')}:${part('minute')}:${part('second')}`
+    return businessHours.some(h => h.is_open && (h.periods ?? []).some(p => {
+        const start = p.open_time.length === 5 ? `${p.open_time}:00` : p.open_time
+        const end = p.close_time.length === 5 ? `${p.close_time}:00` : p.close_time
+        return (h.day_of_week === day && ((start < end && time >= start && time < end) || (start > end && time >= start)))
+            || (h.day_of_week === (day + 6) % 7 && start > end && time < end)
+    }))
 }
 
 const WEEKDAYS = [

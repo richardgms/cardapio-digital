@@ -1,39 +1,41 @@
 import type { NextConfig } from "next";
-import withPWAInit from "@ducanh2912/next-pwa";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import withSerwistInit from "@serwist/next";
 
-const withPWA = withPWAInit({
-  dest: "public",
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,
-  disable: process.env.NODE_ENV === "development",
-  extendDefaultRuntimeCaching: true,
-  workboxOptions: {
-    disableDevLogs: true,
-    // Wait for client to call SKIP_WAITING — required so SwUpdateToast can prompt
-    // the user before the new SW activates. Without this, reg.waiting is null
-    // by the time the toast renders and the "Recarregar" button does nothing.
-    skipWaiting: false,
-    clientsClaim: true,
-    // Never cache API routes or admin pages — auth state must always be fresh.
-    // This also prevents the service worker from interfering with Set-Cookie
-    // headers returned by the auth callback.
-    navigateFallbackDenylist: [/^\/api\//, /^\/admin/, /^\/auth\//],
-    runtimeCaching: [
+const withPWA = withSerwistInit({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
+  swUrl: "/sw.js",
+  register: true,
+  manifestTransforms: [async (entries) => ({
+    manifest: [
+      ...entries,
       {
-        urlPattern: /^https?:\/\/[^/]+\/api\//,
-        handler: "NetworkOnly" as const,
-      },
-      {
-        urlPattern: /^https?:\/\/[^/]+\/admin/,
-        handler: "NetworkOnly" as const,
-      },
-      {
-        urlPattern: /^https?:\/\/[^/]+\/auth\//,
-        handler: "NetworkOnly" as const,
+        url: "/~offline",
+        // This route is served by Next.js, rather than emitted as a worker asset.
+        size: 0,
+        revision: createHash("sha256")
+          .update(readFileSync("src/app/~offline/page.tsx"))
+          .digest("hex"),
       },
     ],
-  },
+    warnings: [],
+  })],
+  // Runtime routing handles public navigation; explicit route precaching could
+  // otherwise save authenticated HTML outside the NetworkOnly barriers.
+  cacheOnNavigation: false,
+  // Reconnecting must not reload an unfinished checkout.
+  reloadOnOnline: false,
+  disable: process.env.NODE_ENV === "development",
+  // Only public install assets belong in the precache. Native installers,
+  // old generated workers and merchant credentials must never enter it.
+  globPublicPatterns: [
+    "icons/**/*",
+    "manifest.json",
+    "icon.svg",
+    "apple-touch-icon.png",
+  ],
 });
 
 const nextConfig: NextConfig = {

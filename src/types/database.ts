@@ -30,6 +30,8 @@ export interface StoreConfig {
     accept_card: boolean | null
 }
 
+export type PublicStoreConfig = Omit<StoreConfig, 'admin_email' | 'created_at' | 'updated_at'>
+
 export interface BusinessHour {
     id: string
     store_config_id: string
@@ -124,12 +126,16 @@ export type DeliveryType = 'delivery' | 'pickup' | 'table'
 export type PaymentMethod = 'pix' | 'card' | 'cash'
 
 export interface SelectedOption {
+    group_id?: string
+    option_id?: string
+    is_replacement?: boolean
     group: string
     option: string
     price: number
 }
 
 export interface HalfHalfItem {
+    product_id?: string
     product_name: string
     selected_options: SelectedOption[]
 }
@@ -145,6 +151,9 @@ export interface Order {
     delivery_zone_id: string | null
     delivery_zone_name: string | null
     delivery_address: string | null
+    address_complement: string | null
+    request_hash: string | null
+    expected_item_count: number | null
     payment_method: PaymentMethod
     change_for: number | null
     subtotal: number
@@ -153,6 +162,8 @@ export interface Order {
     coupon_code: string | null
     total: number
     status: OrderStatus
+    handoff_status?: 'unknown' | 'pending_handoff' | 'whatsapp_opened' | 'confirmed' | null
+    document_version?: number
     notes: string | null
     created_at: string
     updated_at: string
