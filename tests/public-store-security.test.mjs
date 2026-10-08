@@ -126,7 +126,17 @@ test('contrato após deploy: anon sem configuração, dono só sua linha, servid
   await asRole(other,'service_role',null,async()=>assert.equal((await other.query('select id from store_config')).rows.length,2));
   await other.exec('rollback');
   const results=await other.exec(read('../database/verify-private-store-configuration-readonly.sql'));
-  assert.equal(results.flatMap(x=>x.rows).find(x=>x.private_config_verification).private_config_verification.all_passed,true);
+  const verification=results.flatMap(x=>x.rows).find(x=>x.private_config_verification).private_config_verification;
+  assert.equal(verification.all_passed,true);
+  assert.equal(verification.enabled_store_count,0);
+  assert.equal(verification.automatic_printing_activated_by_this_query,false);
+  await other.exec('update public.print_settings set enabled=true');
+  const activeResults=await other.exec(read('../database/verify-private-store-configuration-readonly.sql'));
+  const activeVerification=activeResults.flatMap(x=>x.rows).find(x=>x.private_config_verification).private_config_verification;
+  assert.equal(activeVerification.all_passed,true);
+  assert.equal(activeVerification.enabled_store_count,1);
+  assert.equal(activeVerification.automatic_printing_activated_by_this_query,false);
+  assert.equal((await other.query('select enabled from public.print_settings')).rows[0].enabled,true);
  }finally{await other.close();}
 });
 test('projeção pública elimina campos administrativos, futuros e extras dos horários',async()=>{
