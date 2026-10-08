@@ -14,10 +14,11 @@
     { "number": 11, "state": "spooler_submitted", "attempts": 1, "scenario": "windows_reboot_and_automatic_start", "operator_confirmed": "one_legible_copy_with_cut" },
     { "number": 12, "state": "spooler_submitted", "attempts": 1, "scenario": "printer_power_off_then_on", "operator_confirmed": "one_legible_copy_with_cut_after_power_on" },
     { "number": 13, "state": "spooler_submitted", "attempts": 1, "scenario": "computer_ethernet_disconnect_then_reconnect", "operator_confirmed": "no_print_while_disconnected_and_one_copy_after_reconnect" },
-    { "number": 14, "state": "spooler_submitted", "attempts": 1, "scenario": "installed_android_pwa_checkout", "operator_confirmed": "home_screen_icon_opens_standalone_and_one_legible_copy_with_cut" }
+    { "number": 14, "state": "spooler_submitted", "attempts": 1, "scenario": "installed_android_pwa_checkout", "operator_confirmed": "home_screen_icon_opens_standalone_and_one_legible_copy_with_cut" },
+    { "number": 15, "order_id": "92bc3d57-a59b-4188-bc72-4af4978517a5", "job_id": "3da88824-e448-4ba9-b6a2-2dc47468ef25", "created_at": "2026-10-08T23:10:51.652034Z", "deployment_id": "dpl_7VXQgjWnQzHKQa6fKi6trg2Ub1e4", "state": "spooler_submitted", "attempts": 1, "scenario": "android_pwa_checkout_after_update", "operator_confirmed": "one_legible_copy_with_cut_after_update_notice_and_reload" }
   ],
   "android_pwa_installation": "operator_confirmed_new_installation_on_test_day",
-  "pwa_update_trial": { "previous_deployment_id": "dpl_H57F1rin9zxKhvAy7oCZuDXUmcgK", "candidate_deployment_id": "dpl_7VXQgjWnQzHKQa6fKi6trg2Ub1e4", "source_commit": "0effb84", "application_code_unchanged_since": "544d499", "previous_worker_sha256": "6eaf15b89d517f17d78c8305fc144daaa4cadc3bb579a420616433b2bade91aa", "candidate_worker_sha256": "31673195c5daf13704a06cc2770870c1e8179dda829d79d76d1ad2814995354d", "authenticated_health_after_alias": "connected", "commercial_aliases_unchanged": true, "printing_activation_unchanged": true, "orders_created_by_tools": false, "public_pwa_probe": "passed_after_initial_store_name_wait_timeout", "public_worker_matches_candidate": true, "physical_update_confirmation": "pending" },
+  "pwa_update_trial": { "previous_deployment_id": "dpl_H57F1rin9zxKhvAy7oCZuDXUmcgK", "candidate_deployment_id": "dpl_7VXQgjWnQzHKQa6fKi6trg2Ub1e4", "source_commit": "0effb84", "application_code_unchanged_since": "544d499", "previous_worker_sha256": "6eaf15b89d517f17d78c8305fc144daaa4cadc3bb579a420616433b2bade91aa", "candidate_worker_sha256": "31673195c5daf13704a06cc2770870c1e8179dda829d79d76d1ad2814995354d", "authenticated_health_after_alias": "connected", "commercial_aliases_unchanged": true, "printing_activation_unchanged": true, "orders_created_by_tools": false, "public_pwa_probe": "passed_after_initial_store_name_wait_timeout", "public_worker_matches_candidate": true, "physical_update_confirmation": "operator_confirmed_notice_reload_and_order_15_printed", "legacy_workbox_migration": "not_physically_tested" },
   "windows_autostart": "operator_confirmed_after_real_reboot",
   "printer_power_off_observation": { "printer_status": "Error", "windows_queue_count": 1, "windows_job_status": "Error, Printing, Retained" },
   "final_observation": { "printer_status": "Normal", "windows_queue_count": 0, "authenticated_health": "connected", "printing_enabled_in_test_store": true },
@@ -25,5 +26,5 @@
   "order_7_enqueued": false,
   "physical_outcome_source": "operator_confirmation",
   "spooler_submitted_means": "Windows accepted the job; physical printing requires separate confirmation",
-  "pending": ["physical_android_pwa_existing_install_update", "extended_restaurant_pilot", "other_printers_and_58mm", "installer_signing_and_distribution", "commercial_domain_publication_and_private_config_cutover"]
+  "pending": ["physical_legacy_workbox_install_migration", "extended_restaurant_pilot", "other_printers_and_58mm", "installer_signing_and_distribution", "commercial_domain_publication_and_private_config_cutover"]
 }
