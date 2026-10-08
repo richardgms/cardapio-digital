@@ -4,10 +4,12 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useProducts } from "@/hooks/useProducts"
 import type { Product } from "@/types/database"
+import type { CartItem } from "@/types/cart"
 
 interface HalfHalfSelectorProps {
     categoryId: string
     currentProduct: Product
+    initialSelection?: CartItem['half_half']
     onSelectionChange: (selection: {
         enabled: boolean
         firstHalf: Product | null
@@ -31,11 +33,11 @@ const formatPrice = (product: Product) => {
     return fmt(activePrice)
 }
 
-export function HalfHalfSelector({ categoryId, currentProduct, onSelectionChange }: HalfHalfSelectorProps) {
+export function HalfHalfSelector({ categoryId, currentProduct, onSelectionChange, initialSelection }: HalfHalfSelectorProps) {
     const { products } = useProducts()
-    const [enabled, setEnabled] = useState(false)
-    const [firstHalfId, setFirstHalfId] = useState<string>(currentProduct.id)
-    const [secondHalfId, setSecondHalfId] = useState<string>("")
+    const [enabled, setEnabled] = useState(initialSelection?.enabled ?? false)
+    const [firstHalfId, setFirstHalfId] = useState<string>(initialSelection?.first_half_id ?? currentProduct.id)
+    const [secondHalfId, setSecondHalfId] = useState<string>(initialSelection?.second_half_id ?? "")
 
     // Filter eligible products: same category AND allows_half_half
     const eligibleProducts = products.filter(p =>

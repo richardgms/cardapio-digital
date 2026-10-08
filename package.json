@@ -1,12 +1,23 @@
 {
   "name": "cardapio-digital",
-  "version": "1.36.1",
+  "version": "1.37.0",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:public-security": "node --import tsx --test tests/public-store-security.test.mjs",
+    "test:orders-panel": "node --import tsx --test tests/orders-refresh.test.mjs",
+    "test:print-queue": "node --import tsx --test tests/print-queue.test.mjs",
+    "test:print-concurrency": "node --test tests/print-queue-concurrency.test.mjs",
+    "test:print-integrated": "node --import tsx tests/print-agent-http-integration.mjs",
+    "test:print-agent": "node --import tsx --test tests/print-agent-api.test.mjs",
+    "test:print-windows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File printing/windows/Test-Agent.ps1",
+    "test:printing": "node --import tsx --test tests/order-documents.test.mjs tests/order-receipt.test.mjs",
+    "test:security": "node --test tests/order-handoff-security.test.mjs",
+    "test:checkout": "node --import tsx --test tests/order-pricing.test.mjs tests/order-checkout-service.test.mjs tests/checkout-attempt.test.mjs",
+    "test:database": "node --import tsx --test tests/store-write-policies.test.mjs tests/order-foundation.test.mjs tests/atomic-order-persistence.test.mjs tests/order-documents.test.mjs tests/print-queue.test.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -43,7 +54,7 @@
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "lucide-react": "^0.555.0",
-    "next": "16.0.7",
+    "next": "16.3.8",
     "qrcode": "^1.5.4",
     "react": "19.2.0",
     "react-dom": "19.2.0",
@@ -65,7 +76,7 @@
     "baseline-browser-mapping": "^2.10.11",
     "dotenv": "^17.2.3",
     "eslint": "^9",
-    "eslint-config-next": "16.0.7",
+    "eslint-config-next": "16.3.8",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"

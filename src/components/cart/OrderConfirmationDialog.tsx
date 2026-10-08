@@ -1,6 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useSyncExternalStore } from "react"
+import { markOrderHandoff } from "@/actions/store/mark-order-handoff"
+import { toast } from "sonner"
 import {
     Dialog,
     DialogContent,
@@ -15,11 +17,11 @@ import { openWhatsApp } from "@/lib/whatsapp"
 import { formatPhone } from "@/lib/validators"
 
 export function OrderConfirmationDialog() {
-    const { isPending, paymentMethod, whatsappNumber, message, dismiss } = useOrderConfirmationStore()
-    const [mounted, setMounted] = useState(false)
+    const { isPending, paymentMethod, whatsappNumber, message, orderId, idempotencyKey, dismiss } = useOrderConfirmationStore()
+    const mounted = useSyncExternalStore(() => () => undefined, () => true, () => false)
 
     useEffect(() => {
-        setMounted(true)
+        void useOrderConfirmationStore.persist.rehydrate()
     }, [])
 
     if (!mounted) return null
@@ -27,8 +29,11 @@ export function OrderConfirmationDialog() {
     const formattedPhone = whatsappNumber ? formatPhone(whatsappNumber) : ""
 
     const handleContact = () => {
-        if (whatsappNumber) {
-            openWhatsApp(whatsappNumber, message || "Olá! Acabei de fazer um pedido pelo cardápio digital.")
+        let opened = false
+        try { opened = !!whatsappNumber && openWhatsApp(whatsappNumber, message) } catch { /* manter aviso para repetir */ }
+        if (!opened) { toast.error('Não foi possível abrir o WhatsApp. Tente novamente.'); return }
+        if (orderId && idempotencyKey) {
+            void markOrderHandoff({ order_id: orderId, idempotency_key: idempotencyKey, status: 'whatsapp_opened' }).catch(() => undefined)
         }
         dismiss()
     }
@@ -44,10 +49,10 @@ export function OrderConfirmationDialog() {
 
                     <div className="space-y-2">
                         <DialogTitle className="text-xl font-bold text-center">
-                            Pedido Enviado!
+                            Pedido registrado!
                         </DialogTitle>
                         <DialogDescription className="text-sm text-muted-foreground text-center">
-                            Seu pedido foi enviado para o restaurante via WhatsApp.
+                            Seu pedido foi registrado na loja. Envie a mensagem no WhatsApp para conversar com o restaurante.
                         </DialogDescription>
                     </div>
                 </DialogHeader>

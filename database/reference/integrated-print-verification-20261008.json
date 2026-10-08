@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-08",
+  "native_concurrency": {
+    "passed": 14,
+    "failed": 0,
+    "postgresql_version": "18.4",
+    "independent_operational_connections": 2,
+    "overlap_verified_by": "pg_blocking_pids",
+    "production_database_accessed": false
+  },
+  "affected_regressions": {
+    "queue_passed": 19,
+    "api_passed": 10,
+    "documents_and_receipts_passed": 23,
+    "failed": 0
+  },
+  "real_storage_fixture_test": {
+    "authenticated_upload": true,
+    "public_image_read": true,
+    "anonymous_overwrite_denied": true,
+    "anonymous_delete_denied": true,
+    "test_file_removed": true,
+    "existing_products_images_unchanged": true,
+    "owner_id_directly_read": false
+  },
+  "isolated_integrated_print": {
+    "real_http_api_handler": true,
+    "native_sql": true,
+    "windows_agent_core": true,
+    "driver": "GDI / EPSON TM-T20X Receipt",
+    "paper_width_mm": 80,
+    "durable_journal_and_ack": true,
+    "restart_did_not_claim_again": true,
+    "physical_paper_confirmed": true,
+    "legible": true,
+    "copies": 1,
+    "automatic_cut": true,
+    "fictitious_total_brl": 14,
+    "confirmation_source": "user_confirmation_and_photo",
+    "production_database_accessed": false,
+    "installed_agent_configuration_changed": false,
+    "servers_stopped": true,
+    "repetition_guard_preserved": true
+  },
+  "production_automatic_printing_activated": false,
+  "deployment_performed": false,
+  "private_public_read_contract_migration_pending": "2026100804",
+  "limits": [
+    "Production Supabase PostgREST printing path not exercised end-to-end",
+    "Uses transport/configuration harness with actual API handler, AgentCore and renderer",
+    "Does not prove remote concurrency or production load",
+    "Does not prove 58 mm hardware or Windows power loss during spool"
+  ]
+}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { DeliveryZone } from '@/types/database'
 import { getSubdomain } from '@/lib/subdomain'
+import { getPublicStoreBySubdomain } from '@/actions/store/get-store-by-subdomain'
 
 export function useDeliveryZones() {
     const [zones, setZones] = useState<DeliveryZone[]>([])
@@ -19,11 +20,7 @@ export function useDeliveryZones() {
                     return
                 }
 
-                const { data: storeData } = await supabase
-                    .from('store_config')
-                    .select('id')
-                    .eq('subdomain', subdomain)
-                    .single()
+                const storeData = await getPublicStoreBySubdomain(subdomain)
 
                 const storeId = storeData?.id
                 if (!storeId) {

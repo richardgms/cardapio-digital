@@ -1,0 +1,12 @@
+{
+  "store": "teste1",
+  "order_number": 6,
+  "order_id": "445ab60f-2d00-49ed-a170-dcf952172904",
+  "job_id": "e15991b5-1b0d-4006-8b82-49648069a6a4",
+  "state": "spooler_submitted",
+  "attempts": 1,
+  "operator_report": "Pedido criado pelo lojista imprimiu automaticamente; aparentemente tudo certo.",
+  "printing_disabled": true,
+  "observed_at": "2026-10-08T15:46:46.629Z",
+  "continuous_fault_tests_completed": false
+}

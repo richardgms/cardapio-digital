@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,7 @@ import NextImage from "next/image"
 import { useCartStore } from "@/stores/cartStore"
 import { usePublicStore } from "@/hooks/usePublicStore"
 import { useDeliveryZones } from "@/hooks/useDeliveryZones"
-import { generateWhatsAppMessage, navigateToWhatsApp } from "@/lib/whatsapp"
+import { navigateToWhatsApp } from "@/lib/whatsapp"
 import { setCheckoutLock } from "@/components/pwa/SwUpdateToast"
 import { useOrderConfirmationStore } from "@/stores/orderConfirmationStore"
 import { toast } from "sonner"
@@ -23,12 +23,14 @@ import { formatPhone, cleanPhone, validatePhone, validateName } from "@/lib/vali
 import { createOrder } from "@/actions/store/create-order"
 import { markOrderHandoff } from "@/actions/store/mark-order-handoff"
 import { validateCoupon } from "@/actions/store/coupons"
-import type { Coupon } from "@/types/database"
+import type { PublicCoupon } from "@/actions/store/coupons"
+import type { CartItem } from "@/types/cart"
+import { cartItemsToIntent, prepareCheckoutAttempt, readCheckoutAttempt, sameCartIntent, writeCheckoutAttempt, recoverCheckoutIntent, remainingCartAfterCommit } from "@/lib/checkout-attempt"
 
 interface CartDrawerProps {
     open: boolean
     onClose: () => void
-    onEditItem?: (item: any) => void
+    onEditItem?: (item: CartItem) => void
 }
 
 export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
@@ -42,9 +44,8 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
 
     const [step, setStep] = useState<'cart' | 'details' | 'payment'>('cart')
     const [isSending, setIsSending] = useState(false)
-    const [idempotencyKey, setIdempotencyKey] = useState<string>(() =>
-        typeof crypto !== 'undefined' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`
-    )
+    const inFlight = useRef(false)
+    const [retryIntent, setRetryIntent] = useState<import('@/lib/checkout-intent').CheckoutIntent | null>(null)
 
     // Form State
     const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup' | 'table'>('delivery')
@@ -59,8 +60,8 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
 
     // Coupon State
     const [couponCode, setCouponCode] = useState("")
-    const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null)
-    const [discountValue, setDiscountValue] = useState(0)
+    const [appliedCoupon, setAppliedCoupon] = useState<PublicCoupon | null>(null)
+    const [validatedCouponContext, setValidatedCouponContext] = useState('')
     const [couponError, setCouponError] = useState("")
     const [isValidatingCoupon, setIsValidatingCoupon] = useState(false)
 
@@ -70,27 +71,37 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
         setTouched(prev => ({ ...prev, [field]: true }))
     }, [])
 
+    const canRecover = (() => {
+        try { return !!retryIntent && sameCartIntent(cartItemsToIntent(items), retryIntent) }
+        catch { return false }
+    })()
+
     // Validation errors (real-time)
     const nameError = validateName(customerName)
     const phoneError = validatePhone(customerPhone)
 
     // Derived State
-    const total = items.reduce((acc, item) => acc + item.item_total, 0)
+    const total = items.reduce((acc, item) => acc + Math.round(item.item_total * 100), 0) / 100
     const selectedZone = zones.find(z => z.id === deliveryZoneId)
     const deliveryFee = deliveryType === 'delivery' && selectedZone ? selectedZone.price : 0
     
+    const couponContext = `${store?.id}:${deliveryType}:${cleanPhone(customerPhone)}`
+    const activeCoupon = appliedCoupon && validatedCouponContext === couponContext && total >= appliedCoupon.min_order_value ? appliedCoupon : null
+
     // Calculate discount
     const calculateDiscount = () => {
-        if (!appliedCoupon) return 0
+        if (!activeCoupon) return 0
         
-        if (appliedCoupon.discount_type === 'free_delivery') {
+        if (activeCoupon.discount_type === 'free_delivery') {
             return deliveryFee
         }
-        return discountValue
+        let discount = activeCoupon.discount_type === 'percentage' ? total * activeCoupon.discount_value / 100 : activeCoupon.discount_value
+        if (activeCoupon.discount_type === 'percentage' && activeCoupon.max_discount_value != null) discount = Math.min(discount, activeCoupon.max_discount_value)
+        return Math.min(total, Math.round(discount * 100) / 100)
     }
     
     const currentDiscount = calculateDiscount()
-    const finalTotal = total + deliveryFee - currentDiscount
+    const finalTotal = Math.round((total + deliveryFee - currentDiscount) * 100) / 100
     const minOrder = store?.minimum_order || 0
     const remainingForMinOrder = Math.max(0, minOrder - total)
 
@@ -144,19 +155,33 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [zones])
 
-    // Reset step when opening/closing
+    // Recuperar exatamente a tentativa que pode ter sido salva antes do timeout.
     useEffect(() => {
-        if (open) {
-            setStep('cart')
-            // Reset coupon when opening
-            setCouponCode("")
-            setAppliedCoupon(null)
-            setDiscountValue(0)
-            setCouponError("")
-            // Nova sessão de checkout = nova idempotency key.
-            setIdempotencyKey(typeof crypto !== 'undefined' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`)
+        if (!open || !store?.id) return
+        setStep('cart')
+        const previous = readCheckoutAttempt(store.id)
+        if (!previous) return
+        try {
+            if (!sameCartIntent(cartItemsToIntent(useCartStore.getState().items), previous.intent)) return
+        } catch { return }
+        if (previous.completed) {
+            clearCart()
+            onClose()
+            return
         }
-    }, [open])
+        const v = previous.intent
+        setCustomerName(v.customer_name)
+        setCustomerPhone(formatPhone(v.customer_phone))
+        setDeliveryType(v.delivery_type)
+        setDeliveryZoneId(v.delivery_zone_id ?? '')
+        setAddress(v.delivery_address ?? '')
+        setComplement(v.address_complement ?? '')
+        setPaymentMethod(v.payment_method)
+        setChangeFor(v.change_for?.toString().replace('.', ',') ?? '')
+        setTableNumber(v.table_number?.toString() ?? '')
+        setCouponCode(v.coupon_code ?? '')
+        setRetryIntent(v)
+    }, [open, store?.id, clearCart, onClose])
 
     // Bloqueia auto-reload do PWA enquanto o checkout está em andamento.
     // Sem isso, um update do SW pode disparar window.location.reload() e
@@ -195,20 +220,21 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                 code: couponCode,
                 storeId: store.id,
                 subtotal: total,
+                items: cartItemsToIntent(items),
                 deliveryType,
                 customerPhone: cleanPhone(customerPhone),
             })
 
             if (result.valid && result.coupon) {
                 setAppliedCoupon(result.coupon)
-                setDiscountValue(result.discountAmount)
+                setValidatedCouponContext(couponContext)
                 toast.success(result.message)
             } else {
                 setCouponError(result.message || "Cupom inválido")
                 setAppliedCoupon(null)
-                setDiscountValue(0)
+                setValidatedCouponContext('')
             }
-        } catch (error) {
+        } catch {
             setCouponError("Erro ao validar cupom")
         } finally {
             setIsValidatingCoupon(false)
@@ -217,143 +243,61 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
 
     const handleRemoveCoupon = () => {
         setAppliedCoupon(null)
-        setDiscountValue(0)
+        setValidatedCouponContext('')
         setCouponCode("")
         setCouponError("")
     }
 
-    const handleCheckout = async () => {
-        if (isSending) return
-
-        if (!store?.whatsapp) {
-            toast.error("Erro: Telefone da loja não configurado.")
+    const handleCheckout = async (recovery?: import('@/lib/checkout-intent').CheckoutIntent) => {
+        if (inFlight.current || isSending) return
+        if (!store?.id || (!recovery && (!paymentMethod || !isDetailsValid || !isPaymentValid))) {
+            toast.error("Confira os dados e a forma de pagamento.")
             return
         }
-
-        if (!paymentMethod) {
-            toast.error("Selecione uma forma de pagamento")
-            return
-        }
-
-        if (deliveryType === 'delivery' && !zones.some(z => z.id === deliveryZoneId)) {
-            toast.error("Zona de entrega indisponível. Selecione outra região.")
-            setDeliveryZoneId("")
-            setStep('details')
-            return
-        }
-
-        // CRÍTICO iOS Safari: abrir popup ANTES de qualquer await, pra preservar
-        // o gesto do clique. Popups disparados depois de await são bloqueados.
-        const popupRef = window.open('about:blank', '_blank')
-
+        inFlight.current = true
+        let popupRef: Window | null = null
+        try { popupRef = window.open('about:blank', '_blank') } catch { /* usar aviso após salvar */ }
         setIsSending(true)
-
         try {
-            saveCustomerData({
-                name: customerName,
-                phone: cleanPhone(customerPhone),
-                address,
-                complement,
-                deliveryZoneId,
-            })
-
-            // 1. Salvar pedido no banco via Server Action
-            const orderResult = await createOrder({
-                store_id: store.id,
-                idempotency_key: idempotencyKey,
-                customer_name: customerName,
-                customer_phone: cleanPhone(customerPhone),
-                delivery_type: deliveryType,
-                table_number: deliveryType === 'table' ? parseInt(tableNumber) : null,
-                delivery_zone_id: deliveryType === 'delivery' && deliveryZoneId ? deliveryZoneId : null,
-                delivery_zone_name: deliveryType === 'delivery' && selectedZone ? selectedZone.name : null,
+            const lineItems = cartItemsToIntent(items)
+            const draft = {
+                store_id: store.id, idempotency_key: '00000000-0000-4000-8000-000000000000',
+                customer_name: customerName, customer_phone: cleanPhone(customerPhone),
+                delivery_type: deliveryType, table_number: deliveryType === 'table' ? parseInt(tableNumber, 10) : null,
+                delivery_zone_id: deliveryType === 'delivery' ? deliveryZoneId || null : null,
                 delivery_address: deliveryType === 'delivery' ? address.trim() : null,
-                payment_method: paymentMethod,
-                change_for: paymentMethod === 'cash' && changeFor ? parseChangeFor(changeFor) : null,
-                subtotal: total,
-                delivery_fee: deliveryFee,
-                discount_value: currentDiscount,
-                coupon_code: appliedCoupon?.code || null,
-                total: finalTotal,
-                notes: null,
-                items: items.map((item) => ({
-                    product_id: item.product?.id || null,
-                    product_name: item.product?.name || 'Produto',
-                    quantity: item.quantity,
-                    unit_price: item.half_half?.enabled ? item.half_half.final_price : (
-                        item.selected_options.find(o => o.is_replacement)?.price ?? item.product?.price ?? 0
-                    ),
-                    selected_options: item.selected_options.map((o) => ({
-                        group: o.group_name,
-                        option: o.option_name,
-                        price: o.price,
-                        is_replacement: o.is_replacement ?? false,
-                    })),
-                    observations: item.observation || null,
-                    is_half_half: item.half_half?.enabled || false,
-                    half_half_items: item.half_half?.enabled ? [
-                        { product_name: item.half_half.first_half, selected_options: [] },
-                        { product_name: item.half_half.second_half, selected_options: [] },
-                    ] : null,
-                    item_total: item.item_total,
-                })),
-            })
-
-            if (!orderResult.success) {
+                address_complement: deliveryType === 'delivery' ? complement.trim() || null : null,
+                payment_method: paymentMethod, change_for: paymentMethod === 'cash' ? parseChangeFor(changeFor) || null : null,
+                coupon_code: activeCoupon?.code || (retryIntent?.coupon_code === couponCode.trim().toUpperCase() ? retryIntent.coupon_code : null), total: Math.round(finalTotal * 100) / 100, notes: null, items: lineItems,
+            }
+            const attempt = await prepareCheckoutAttempt(recovery ?? recoverCheckoutIntent(draft, retryIntent))
+            setRetryIntent(attempt)
+            saveCustomerData({ name: customerName, phone: cleanPhone(customerPhone), address, complement, deliveryZoneId })
+            const result = await createOrder(attempt)
+            if (!result.success) {
                 popupRef?.close()
-                toast.error(orderResult.error)
+                toast.error(result.error)
                 return
             }
-
-            const message = generateWhatsAppMessage({
-                customerName,
-                customerPhone: cleanPhone(customerPhone),
-                deliveryType,
-                deliveryZoneName: selectedZone?.name,
-                deliveryAddress: address,
-                deliveryComplement: complement,
-                paymentMethod,
-                changeFor,
-                items,
-                subtotal: total,
-                deliveryFee,
-                total: finalTotal,
-                pixKey: store?.pix_key || undefined,
-                tableNumber: deliveryType === 'table' ? tableNumber : undefined,
-                orderNumber: orderResult.order_number,
-            })
-
-            const opened = navigateToWhatsApp(popupRef, store.whatsapp, message)
-
-            // Sempre exibe o dialog de confirmação — serve como ack do pedido E
-            // como fallback caso o popup tenha sido bloqueado (botão re-tenta
-            // com gesto novo).
-            setPending({
-                paymentMethod: paymentMethod!,
-                whatsappNumber: store.whatsapp,
-                message,
-            })
-
-            if (!opened) {
-                // Não limpa o carrinho: usuário precisa do dialog pra reabrir.
-                toast.warning("Não conseguimos abrir o WhatsApp automaticamente. Use o botão no aviso para enviar seu pedido.", {
-                    duration: 8000,
-                })
-                return
-            }
-
-            // Fire-and-forget: registra que o handoff aconteceu. Não bloqueia o usuário.
-            markOrderHandoff({
-                order_id: orderResult.order_id,
-                status: 'whatsapp_opened',
-            }).catch(() => undefined)
-
-            clearCart()
+            // Persistir o comprovante ANTES de limpar o carrinho; popup bloqueado
+            // não torna necessário criar outro pedido.
+            setPending({ paymentMethod: result.paymentMethod, whatsappNumber: result.whatsappNumber, message: result.message,
+                orderId: result.order_id, idempotencyKey: attempt.idempotency_key })
+            writeCheckoutAttempt(attempt, true)
+            useCartStore.setState({ items: remainingCartAfterCommit(useCartStore.getState().items, attempt) })
             onClose()
-        } catch {
+            let opened = false
+            try { opened = navigateToWhatsApp(popupRef, result.whatsappNumber, result.message) } catch { popupRef?.close() }
+            if (opened) {
+                void markOrderHandoff({ order_id: result.order_id, idempotency_key: attempt.idempotency_key, status: 'whatsapp_opened' }).catch(() => undefined)
+            } else {
+                toast.warning("Pedido registrado. Use o botão no aviso para abrir o WhatsApp.", { duration: 8000 })
+            }
+        } catch (error) {
             popupRef?.close()
-            toast.error("Erro ao enviar pedido. Tente novamente.")
+            toast.error(error instanceof Error ? error.message : "Não foi possível concluir. Repita a mesma tentativa.")
         } finally {
+            inFlight.current = false
             setIsSending(false)
         }
     }
@@ -433,8 +377,8 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                 /* STEP 1: CART ITEMS */
                                 <div className="space-y-4">
                                     {items.map((item) => {
-                                        const productName = item.product?.name || (item as any).product_name || "Produto Indisponível"
-                                        const productImage = item.product?.image_url || (item as any).product_image
+                                        const productName = item.product?.name || "Produto Indisponível"
+                                        const productImage = item.product?.image_url
 
                                         return (
                                             <div key={item.id} className="flex gap-4 border-b pb-4 last:border-0">
@@ -454,6 +398,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                     )}
                                                     <button
                                                         className="absolute top-1 right-1 h-6 w-6 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-sm transition-colors"
+                                                        aria-label={`Editar ${productName}`}
                                                         onClick={() => onEditItem?.(item)}
                                                     >
                                                         <Pencil className="h-3 w-3 text-foreground" />
@@ -461,7 +406,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                 </div>
 
                                                 {/* Content */}
-                                                <div className="flex-1 flex flex-col justify-between">
+                                                <div className="min-w-0 flex-1 flex flex-col justify-between">
                                                     <div>
                                                         <div className="flex justify-between items-start">
                                                             <h4 className="font-semibold text-sm line-clamp-2">{productName}</h4>
@@ -479,6 +424,11 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                                         {item.selected_options && item.selected_options.length > 0 && (
                                                             <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                                                                 + {item.selected_options.map(opt => opt.option_name).join(', ')}
+                                                            </p>
+                                                        )}
+                                                        {item.observation?.trim() && (
+                                                            <p className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap break-words">
+                                                                <span className="font-medium">Observação:</span> {item.observation}
                                                             </p>
                                                         )}
                                                     </div>
@@ -757,7 +707,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
                                     <div className="space-y-3">
                                         <h3 className="font-semibold">Como você vai pagar?</h3>
-                                        <RadioGroup value={paymentMethod || ""} onValueChange={(v: any) => setPaymentMethod(v)}>
+                                        <RadioGroup value={paymentMethod || ""} onValueChange={v => { if (v === 'pix' || v === 'card' || v === 'cash') setPaymentMethod(v) }}>
                                             {deliveryType !== 'delivery' && (
                                                 <p className="text-sm font-medium text-muted-foreground mb-1">Pagamento no caixa</p>
                                             )}
@@ -830,17 +780,17 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                             {/* Coupon Section */}
                             {step === 'cart' && (
                                 <div className="space-y-2" aria-live="polite" aria-atomic="true">
-                                    {appliedCoupon ? (
+                                    {activeCoupon ? (
                                         <div className="bg-green-50 border border-green-200 rounded-lg p-3" role="status">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <Tag className="h-4 w-4 text-green-600" />
                                                     <div>
                                                         <p className="text-sm font-medium text-green-800">
-                                                            Cupom {appliedCoupon.code} aplicado
+                                                            Cupom {activeCoupon.code} aplicado
                                                         </p>
                                                         <p className="text-xs text-green-600">
-                                                            {appliedCoupon.discount_type === 'free_delivery' 
+                                                            {activeCoupon.discount_type === 'free_delivery'
                                                                 ? 'Frete grátis' 
                                                                 : `Desconto de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentDiscount)}`}
                                                         </p>
@@ -897,20 +847,20 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">Taxa de Entrega</span>
                                         <span>
-                                            {appliedCoupon?.discount_type === 'free_delivery' ? (
+                                            {activeCoupon?.discount_type === 'free_delivery' ? (
                                                 <span className="line-through text-muted-foreground mr-2">
                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(deliveryFee)}
                                                 </span>
                                             ) : null}
-                                            <span className={appliedCoupon?.discount_type === 'free_delivery' ? 'text-green-600' : ''}>
-                                                {appliedCoupon?.discount_type === 'free_delivery' 
+                                            <span className={activeCoupon?.discount_type === 'free_delivery' ? 'text-green-600' : ''}>
+                                                {activeCoupon?.discount_type === 'free_delivery'
                                                     ? 'Grátis' 
                                                     : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(deliveryFee)}
                                             </span>
                                         </span>
                                     </div>
                                 )}
-                                {currentDiscount > 0 && appliedCoupon?.discount_type !== 'free_delivery' && (
+                                {currentDiscount > 0 && activeCoupon?.discount_type !== 'free_delivery' && (
                                     <div className="flex justify-between text-green-600">
                                         <span>Desconto</span>
                                         <span>- {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentDiscount)}</span>
@@ -921,6 +871,13 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                     <span>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(finalTotal)}</span>
                                 </div>
                             </div>
+
+                            {canRecover && retryIntent && (
+                                <div className="space-y-2 border rounded-lg p-3" role="status">
+                                    <p className="text-sm">Há uma tentativa anterior de {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(retryIntent.total)}. Confira antes de iniciar outro pedido.</p>
+                                    <Button variant="outline" className="w-full" disabled={isSending} onClick={() => handleCheckout(retryIntent)}>Conferir tentativa anterior</Button>
+                                </div>
+                            )}
 
                             {/* Store Closed Warning */}
                             {!isCurrentlyOpen && (
@@ -971,7 +928,7 @@ export function CartDrawer({ open, onClose, onEditItem }: CartDrawerProps) {
                                         className="w-full bg-whatsapp hover:bg-whatsapp/90 text-whatsapp-foreground"
                                         size="lg"
                                         disabled={!isPaymentValid || !isCurrentlyOpen || isSending}
-                                        onClick={handleCheckout}
+                                        onClick={() => handleCheckout()}
                                     >
                                         {isSending ? "Enviando..." : "Enviar Pedido no WhatsApp"}
                                     </Button>

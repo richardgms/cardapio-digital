@@ -1,0 +1,1239 @@
+{
+  "buckets": [
+    {
+      "id": "images",
+      "public": true
+    }
+  ],
+  "policies": [
+    {
+      "cmd": "DELETE",
+      "roles": [
+        "public"
+      ],
+      "tablename": "admin_impersonation_logs",
+      "permissive": "PERMISSIVE",
+      "policyname": "No one can delete logs",
+      "schemaname": "public",
+      "check_redacted": "",
+      "using_redacted": "false"
+    },
+    {
+      "cmd": "UPDATE",
+      "roles": [
+        "public"
+      ],
+      "tablename": "admin_impersonation_logs",
+      "permissive": "PERMISSIVE",
+      "policyname": "No one can update logs",
+      "schemaname": "public",
+      "check_redacted": "",
+      "using_redacted": "false"
+    },
+    {
+      "cmd": "SELECT",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "admin_impersonation_logs",
+      "permissive": "PERMISSIVE",
+      "policyname": "Super Admins can view logs",
+      "schemaname": "public",
+      "check_redacted": "",
+      "using_redacted": "((auth.jwt() ->> '<literal>'::text) = '<literal>'::text)"
+    },
+    {
+      "cmd": "SELECT",
+      "roles": [
+        "public"
+      ],
+      "tablename": "store_config",
+      "permissive": "PERMISSIVE",
+      "policyname": "Leitura pública",
+      "schemaname": "public",
+      "check_redacted": "",
+      "using_redacted": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "store_config",
+      "permissive": "PERMISSIVE",
+      "policyname": "Public Read Config",
+      "schemaname": "public",
+      "check_redacted": "",
+      "using_redacted": "true"
+    },
+    {
+      "cmd": "ALL",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "store_config",
+      "permissive": "PERMISSIVE",
+      "policyname": "rmenu_owner_access",
+      "schemaname": "public",
+      "check_redacted": "(id = ( SELECT auth.uid() AS uid))",
+      "using_redacted": "(id = ( SELECT auth.uid() AS uid))"
+    },
+    {
+      "cmd": "SELECT",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "tablename": "store_config",
+      "permissive": "PERMISSIVE",
+      "policyname": "rmenu_public_read",
+      "schemaname": "public",
+      "check_redacted": "",
+      "using_redacted": "true"
+    },
+    {
+      "cmd": "DELETE",
+      "roles": [
+        "public"
+      ],
+      "tablename": "store_config",
+      "permissive": "RESTRICTIVE",
+      "policyname": "rmenu_write_delete_guard",
+      "schemaname": "public",
+      "check_redacted": "",
+      "using_redacted": "(id = ( SELECT auth.uid() AS uid))"
+    },
+    {
+      "cmd": "INSERT",
+      "roles": [
+        "public"
+      ],
+      "tablename": "store_config",
+      "permissive": "RESTRICTIVE",
+      "policyname": "rmenu_write_insert_guard",
+      "schemaname": "public",
+      "check_redacted": "(id = ( SELECT auth.uid() AS uid))",
+      "using_redacted": ""
+    },
+    {
+      "cmd": "UPDATE",
+      "roles": [
+        "public"
+      ],
+      "tablename": "store_config",
+      "permissive": "RESTRICTIVE",
+      "policyname": "rmenu_write_update_guard",
+      "schemaname": "public",
+      "check_redacted": "(id = ( SELECT auth.uid() AS uid))",
+      "using_redacted": "(id = ( SELECT auth.uid() AS uid))"
+    },
+    {
+      "cmd": "DELETE",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "objects",
+      "permissive": "PERMISSIVE",
+      "policyname": "Auth Delete",
+      "schemaname": "storage",
+      "check_redacted": "",
+      "using_redacted": "(bucket_id = '<literal>'::text)"
+    },
+    {
+      "cmd": "UPDATE",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "objects",
+      "permissive": "PERMISSIVE",
+      "policyname": "Auth Update",
+      "schemaname": "storage",
+      "check_redacted": "",
+      "using_redacted": "(bucket_id = '<literal>'::text)"
+    },
+    {
+      "cmd": "INSERT",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "objects",
+      "permissive": "PERMISSIVE",
+      "policyname": "Auth Upload",
+      "schemaname": "storage",
+      "check_redacted": "(bucket_id = '<literal>'::text)",
+      "using_redacted": ""
+    },
+    {
+      "cmd": "DELETE",
+      "roles": [
+        "public"
+      ],
+      "tablename": "objects",
+      "permissive": "PERMISSIVE",
+      "policyname": "Delete admin",
+      "schemaname": "storage",
+      "check_redacted": "",
+      "using_redacted": "((bucket_id = '<literal>'::text) AND ((auth.jwt() ->> '<literal>'::text) = (( SELECT store_config.admin_email\\n   FROM store_config\\n LIMIT 1))::text))"
+    },
+    {
+      "cmd": "SELECT",
+      "roles": [
+        "public"
+      ],
+      "tablename": "objects",
+      "permissive": "PERMISSIVE",
+      "policyname": "Imagens públicas",
+      "schemaname": "storage",
+      "check_redacted": "",
+      "using_redacted": "(bucket_id = '<literal>'::text)"
+    },
+    {
+      "cmd": "SELECT",
+      "roles": [
+        "public"
+      ],
+      "tablename": "objects",
+      "permissive": "PERMISSIVE",
+      "policyname": "Public Access",
+      "schemaname": "storage",
+      "check_redacted": "",
+      "using_redacted": "(bucket_id = '<literal>'::text)"
+    },
+    {
+      "cmd": "INSERT",
+      "roles": [
+        "public"
+      ],
+      "tablename": "objects",
+      "permissive": "PERMISSIVE",
+      "policyname": "Upload admin",
+      "schemaname": "storage",
+      "check_redacted": "((bucket_id = '<literal>'::text) AND ((auth.jwt() ->> '<literal>'::text) = (( SELECT store_config.admin_email\\n   FROM store_config\\n LIMIT 1))::text))",
+      "using_redacted": ""
+    }
+  ],
+  "relations": [
+    {
+      "rls": true,
+      "owner": "postgres",
+      "relkind": "r",
+      "reloptions": null,
+      "schema_name": "public",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "rls": false,
+      "owner": "postgres",
+      "relkind": "i",
+      "reloptions": null,
+      "schema_name": "public",
+      "relation_name": "admin_impersonation_logs_pkey"
+    },
+    {
+      "rls": true,
+      "owner": "postgres",
+      "relkind": "r",
+      "reloptions": null,
+      "schema_name": "public",
+      "relation_name": "store_config"
+    },
+    {
+      "rls": true,
+      "owner": "supabase_storage_admin",
+      "relkind": "r",
+      "reloptions": null,
+      "schema_name": "storage",
+      "relation_name": "buckets"
+    },
+    {
+      "rls": true,
+      "owner": "supabase_storage_admin",
+      "relkind": "r",
+      "reloptions": null,
+      "schema_name": "storage",
+      "relation_name": "objects"
+    }
+  ],
+  "printing_state": {
+    "jobs": 0,
+    "active_devices": 1,
+    "enabled_stores": 0
+  },
+  "schema_version": 1,
+  "public_function_permissions": [
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": true,
+      "function_name": "increment_coupon_usage",
+      "security_definer": false,
+      "authenticated_execute": true
+    },
+    {
+      "arguments": "p_order_id uuid",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_capture_order_document",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_check_coupon_usage_store",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_payload jsonb, p_request_hash text",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_create_order_atomic",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_guard_order_counter",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_guard_order_document",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_guard_order_item_snapshot",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_guard_order_snapshot",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_store_id uuid, p_product_ids uuid[]",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_order_catalog_state",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_state jsonb, p_instant timestamp with time zone",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_order_store_open",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_device uuid, p_hash text",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_auth_device",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_device uuid, p_hash text, p_job uuid, p_lease uuid",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_begin_dispatch",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_cancel_order",
+      "security_definer": true,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_device uuid, p_hash text",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_claim",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_enqueue_document",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_device uuid, p_hash text, p_job uuid, p_lease uuid, p_outcome text",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_finish",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_guard",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_device uuid, p_hash text, p_job uuid",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_inspect",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_job_event",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_store uuid, p_actor uuid, p_name text, p_queue text, p_width integer, p_hash text",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_register_device",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_device uuid, p_hash text, p_job uuid, p_lease uuid",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_renew",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_store uuid, p_actor uuid, p_order uuid, p_key uuid, p_reason text",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_request_reprint",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_store uuid, p_actor uuid, p_device uuid",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_revoke_device",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_store uuid, p_actor uuid, p_enabled boolean",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_print_set_enabled",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_seal_order_at_commit",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "p_payload jsonb, p_request_hash text, p_catalog_state jsonb",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "rmenu_submit_order",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "function_name": "set_order_number",
+      "security_definer": false,
+      "authenticated_execute": false
+    },
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": true,
+      "function_name": "set_updated_at",
+      "security_definer": false,
+      "authenticated_execute": true
+    },
+    {
+      "arguments": "",
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_execute": true,
+      "function_name": "update_coupons_updated_at",
+      "security_definer": false,
+      "authenticated_execute": true
+    }
+  ],
+  "effective_column_permissions": [
+    {
+      "data_type": "uuid",
+      "role_name": "anon",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "id",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "uuid",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "id",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "uuid",
+      "role_name": "anon",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "admin_id",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "uuid",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "admin_id",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "uuid",
+      "role_name": "anon",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "target_store_id",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "uuid",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "target_store_id",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "text",
+      "role_name": "anon",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "action_type",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "text",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "action_type",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "text",
+      "role_name": "anon",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "entity_name",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "text",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "entity_name",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "jsonb",
+      "role_name": "anon",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "payload",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "jsonb",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "payload",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "role_name": "anon",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "created_at",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "created_at",
+      "relation_name": "admin_impersonation_logs"
+    },
+    {
+      "data_type": "uuid",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": false,
+      "can_update": false,
+      "column_name": "id",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "uuid",
+      "role_name": "authenticated",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "id",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "uuid",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": false,
+      "can_update": false,
+      "column_name": "store_id",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "uuid",
+      "role_name": "authenticated",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "store_id",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "text",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": false,
+      "can_update": false,
+      "column_name": "name",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "text",
+      "role_name": "authenticated",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "name",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "text",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": false,
+      "can_update": false,
+      "column_name": "queue_name",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "text",
+      "role_name": "authenticated",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "queue_name",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "integer",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": false,
+      "can_update": false,
+      "column_name": "paper_width_mm",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "integer",
+      "role_name": "authenticated",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "paper_width_mm",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "text",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": false,
+      "can_update": false,
+      "column_name": "credential_hash",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "text",
+      "role_name": "authenticated",
+      "can_insert": false,
+      "can_select": false,
+      "can_update": false,
+      "column_name": "credential_hash",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": false,
+      "can_update": false,
+      "column_name": "revoked_at",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "role_name": "authenticated",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "revoked_at",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": false,
+      "can_update": false,
+      "column_name": "created_at",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "role_name": "authenticated",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "created_at",
+      "relation_name": "print_devices"
+    },
+    {
+      "data_type": "uuid",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "id",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "uuid",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "id",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "character varying(100)",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "name",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "character varying(100)",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "name",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "character varying(20)",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "whatsapp",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "character varying(20)",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "whatsapp",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "is_open",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "is_open",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "text",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "logo_url",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "text",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "logo_url",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "text",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "cover_url",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "text",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "cover_url",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "numeric(10,2)",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "minimum_order",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "numeric(10,2)",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "minimum_order",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "text",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "address",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "text",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "address",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "character varying(255)",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "admin_email",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "character varying(255)",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "admin_email",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "created_at",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "created_at",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "updated_at",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "updated_at",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "auto_schedule_enabled",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "auto_schedule_enabled",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "text",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "subdomain",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "text",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "subdomain",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "text",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "pix_key",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "text",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "pix_key",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "text",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "pix_key_type",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "text",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "pix_key_type",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "table_mode_available",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "table_mode_available",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "table_mode_enabled",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "table_mode_enabled",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "integer",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "table_count",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "integer",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "table_count",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "accept_pix",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "accept_pix",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "accept_cash",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "accept_cash",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "anon",
+      "can_insert": false,
+      "can_select": true,
+      "can_update": false,
+      "column_name": "accept_card",
+      "relation_name": "store_config"
+    },
+    {
+      "data_type": "boolean",
+      "role_name": "authenticated",
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "column_name": "accept_card",
+      "relation_name": "store_config"
+    }
+  ],
+  "storage_effective_permissions": [
+    {
+      "role_name": "anon",
+      "can_delete": true,
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "relation_name": "buckets"
+    },
+    {
+      "role_name": "authenticated",
+      "can_delete": true,
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "relation_name": "buckets"
+    },
+    {
+      "role_name": "anon",
+      "can_delete": true,
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "relation_name": "objects"
+    },
+    {
+      "role_name": "authenticated",
+      "can_delete": true,
+      "can_insert": true,
+      "can_select": true,
+      "can_update": true,
+      "relation_name": "objects"
+    }
+  ]
+}

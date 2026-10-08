@@ -6,6 +6,7 @@ const withPWA = withPWAInit({
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
+  publicExcludes: ["!noprecache/**/*", "!printing/**/*"],
   disable: process.env.NODE_ENV === "development",
   extendDefaultRuntimeCaching: true,
   workboxOptions: {
@@ -20,6 +21,10 @@ const withPWA = withPWAInit({
     // headers returned by the auth callback.
     navigateFallbackDenylist: [/^\/api\//, /^\/admin/, /^\/auth\//],
     runtimeCaching: [
+      {
+        urlPattern: /^https?:\/\/[^/]+\/printing\//,
+        handler: "NetworkOnly" as const,
+      },
       {
         urlPattern: /^https?:\/\/[^/]+\/api\//,
         handler: "NetworkOnly" as const,

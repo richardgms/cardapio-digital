@@ -1,0 +1,52 @@
+{
+  "at": "2026-10-08T12:51:02.737Z",
+  "store": "teste1",
+  "live_supabase": true,
+  "physical_paper_confirmed": true,
+  "checks": {
+    "installed_agent_authenticated": true,
+    "printer_ready_and_empty": true,
+    "one_matching_device_80mm": true,
+    "installation_disabled": true,
+    "no_existing_jobs": true,
+    "fixture_price_14": true,
+    "activation_excluded_history": true,
+    "checkout_created_one_initial_job": true,
+    "installed_agent_submitted_one_attempt": true,
+    "agent_restart_did_not_repeat": true,
+    "historical_orders_not_queued": true,
+    "printing_disabled_after_test": true
+  },
+  "order_id": "daf7dfd6-2045-43af-b1ad-7661d2c8ec8f",
+  "order_number": 4,
+  "job_id": "dd3c65a5-d739-482e-8e28-81a43efefc03",
+  "job": {
+    "id": "dd3c65a5-d739-482e-8e28-81a43efefc03",
+    "state": "spooler_submitted",
+    "attempts": 1,
+    "device_id": "88999262-6f9d-4816-8ff3-a7c36c434170"
+  },
+  "software_passed": true,
+  "physical_confirmation": {
+    "answer": "Sim: legível, uma via e corte automático",
+    "source": "explicit_user_reply",
+    "legible": true,
+    "automatic_cut": true,
+    "order_number": 4,
+    "copies": 1,
+    "recorded_at": "2026-10-08T12:55:03.6183222Z"
+  },
+  "journal_states": [
+    "dispatch_intent",
+    "dispatch_authorized",
+    "spooler_submitted",
+    "acknowledged"
+  ],
+  "remote_events": [
+    "pending",
+    "leased",
+    "dispatching",
+    "spooler_submitted"
+  ],
+  "panel_verified": true
+}

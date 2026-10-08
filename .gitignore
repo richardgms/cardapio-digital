@@ -14,6 +14,14 @@ next-env.d.ts
 .env*.local
 !.env.example
 
+# artefatos e journal do ensaio local (não versionar)
+/printing/.local/
+# Pacotes gerados: os fontes canônicos ficam em printing/windows.
+/printing/RMenuPrintAgent-Windows/
+/printing/RMenuPrintAgent-Windows.zip
+# Instalador compilado para revisão; distribuir somente após assinatura.
+/public/printing/*.exe
+
 # misc
 .DS_Store
 *.pem

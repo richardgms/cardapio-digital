@@ -16,6 +16,7 @@ import { CartSummaryFooter } from '@/components/cart/CartSummaryFooter'
 import { OrderConfirmationDialog } from '@/components/cart/OrderConfirmationDialog'
 import { useCartStore } from '@/stores/cartStore'
 import type { Product } from '@/types/database'
+import type { CartItem } from '@/types/cart'
 import { AlertCircle } from 'lucide-react'
 import { LandingPage } from '@/components/layout/LandingPage'
 
@@ -42,6 +43,7 @@ export default function HomePage() {
 
     const [activeCategory, setActiveCategory] = useState<string | null>(null)
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+    const [editingItem, setEditingItem] = useState<CartItem | null>(null)
     const [isCartOpen, setIsCartOpen] = useState(false)
     const [isSearchOpen, setIsSearchOpen] = useState(false)
 
@@ -104,6 +106,7 @@ export default function HomePage() {
     }
 
     const handleProductSelect = (product: Product) => {
+        setEditingItem(null)
         setSelectedProduct(product)
     }
 
@@ -221,7 +224,12 @@ export default function HomePage() {
             <ProductModal
                 product={selectedProduct}
                 open={!!selectedProduct}
-                onClose={() => setSelectedProduct(null)}
+                editingItem={editingItem}
+                onClose={() => {
+                    setSelectedProduct(null)
+                    setEditingItem(null)
+                    if (editingItem) setIsCartOpen(true)
+                }}
             />
 
             <SearchDialog
@@ -236,7 +244,8 @@ export default function HomePage() {
                 onClose={() => setIsCartOpen(false)}
                 onEditItem={(item) => {
                     if (item.product) {
-                        setSelectedProduct(item.product)
+                        setEditingItem(item)
+                        setSelectedProduct(products.find(product => product.id === item.product.id) ?? item.product)
                         setIsCartOpen(false) // Close cart to focus on modal
                     }
                 }}

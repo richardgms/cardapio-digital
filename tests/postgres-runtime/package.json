@@ -1,0 +1,12 @@
+{
+  "name": "rmenu-postgres-test-runtime",
+  "private": true,
+  "type": "module",
+  "description": "Dependências isoladas para testes com PostgreSQL nativo; não usadas pelo aplicativo.",
+  "dependencies": {
+    "pg": "8.23.1"
+  },
+  "optionalDependencies": {
+    "@embedded-postgres/windows-x64": "18.4.0-beta.17"
+  }
+}

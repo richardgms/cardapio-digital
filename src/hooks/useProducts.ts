@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Product, Category, ProductOptionGroup, ProductOption } from '@/types/database'
 import { getSubdomain } from '@/lib/subdomain'
+import { getPublicStoreBySubdomain } from '@/actions/store/get-store-by-subdomain'
 
 interface UseProductsReturn {
     products: Product[]
@@ -29,13 +30,9 @@ export function useProducts(): UseProductsReturn {
                     return
                 }
 
-                const { data: storeData, error: storeError } = await supabase
-                    .from('store_config')
-                    .select('id')
-                    .eq('subdomain', subdomain)
-                    .single()
+                const storeData = await getPublicStoreBySubdomain(subdomain)
 
-                if (storeError || !storeData) {
+                if (!storeData) {
                     throw new Error('Restaurante não encontrado')
                 }
 
@@ -91,9 +88,9 @@ export function useProducts(): UseProductsReturn {
 
                 setProducts(sortedProducts)
 
-            } catch (err: any) {
-                console.error('Erro ao carregar produtos:', err?.message, err?.code, err?.details, err?.hint)
-                setError(err.message || 'Erro ao carregar cardápio')
+            } catch (err: unknown) {
+                setError(err instanceof Error && err.message === 'Restaurante não encontrado'
+                    ? err.message : 'Erro ao carregar cardápio')
             } finally {
                 setLoading(false)
             }

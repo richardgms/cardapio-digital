@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-08",
+  "user_supabase_verification": {
+    "checks": {
+      "log_barrier": true,
+      "config_guard": true,
+      "private_invoker": true,
+      "storage_barriers": true,
+      "storage_policies": true,
+      "printing_disabled": true,
+      "no_client_log_grants": true,
+      "public_images_preserved": true,
+      "no_legacy_storage_writes": true,
+      "legacy_public_read_preserved": true
+    },
+    "all_passed": true,
+    "automatic_printing_activated": false,
+    "public_read_contract_pending": true
+  },
+  "anonymous_api_readonly_verification": {
+    "test_subdomain": "teste1",
+    "catalog_read": true,
+    "test_products_read": true,
+    "existing_test_images_count": 2,
+    "existing_test_images_reachable": true,
+    "image_request_method": "HEAD",
+    "logs_denied": true,
+    "logs_http_status": 401,
+    "logs_sqlstate": "42501",
+    "logs_data_returned": false,
+    "writes_performed": false,
+    "printing_performed": false
+  },
+  "pending": [
+    "authenticated_storage_upload",
+    "postgresql_two_connection_concurrency",
+    "controlled_integrated_fictitious_print",
+    "publish_validated_public_readers_then_apply_2026100804"
+  ]
+}

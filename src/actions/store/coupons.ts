@@ -2,10 +2,16 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { Coupon } from '@/types/database'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { priceIntentItems } from '@/lib/order-checkout-service'
+import { CheckoutIntentSchema, type ItemIntent } from '@/lib/checkout-intent'
+import { z } from 'zod'
+
+export type PublicCoupon = Pick<Coupon, 'code' | 'discount_type' | 'discount_value' | 'max_discount_value' | 'min_order_value' | 'applies_to'>
 
 export interface ValidateCouponResult {
     valid: boolean
-    coupon?: Coupon
+    coupon?: PublicCoupon
     discountAmount: number
     message?: string
 }
@@ -16,115 +22,52 @@ export interface ApplyCouponParams {
     subtotal: number
     deliveryType: 'delivery' | 'pickup' | 'table'
     customerPhone?: string
-    isFirstPurchase?: boolean
+    items: ItemIntent[]
 }
 
 /**
  * Valida um cupom e calcula o desconto
  */
-export async function validateCoupon({
-    code,
-    storeId,
-    subtotal,
-    deliveryType,
-    customerPhone,
-    isFirstPurchase = false
-}: ApplyCouponParams): Promise<ValidateCouponResult> {
-    const supabase = await createClient()
-
-    // Buscar cupom pelo código e loja
-    const { data: coupon, error } = await supabase
-        .from('coupons')
-        .select('*')
-        .eq('store_id', storeId)
-        .eq('code', code.trim().toUpperCase())
-        .eq('is_active', true)
-        .single()
-
-    if (error || !coupon) {
-        return { valid: false, discountAmount: 0, message: 'Cupom não encontrado ou inválido' }
-    }
-
-    // Verificar validade (data)
-    const now = new Date()
-    const validFrom = new Date(coupon.valid_from)
-    const validUntil = coupon.valid_until ? new Date(coupon.valid_until) : null
-
-    if (now < validFrom) {
-        return { valid: false, discountAmount: 0, message: 'Este cupom ainda não está válido' }
-    }
-
-    if (validUntil && now > validUntil) {
-        return { valid: false, discountAmount: 0, message: 'Este cupom expirou' }
-    }
-
-    // Verificar limite de uso
-    if (coupon.usage_limit !== null && coupon.usage_count >= coupon.usage_limit) {
-        return { valid: false, discountAmount: 0, message: 'Limite de uso deste cupom foi atingido' }
-    }
-
-    // Verificar valor mínimo do pedido
-    if (subtotal < coupon.min_order_value) {
-        return { 
-            valid: false, 
-            discountAmount: 0, 
-            message: `Valor mínimo do pedido: R$ ${coupon.min_order_value.toFixed(2).replace('.', ',')}` 
+export async function validateCoupon(input: ApplyCouponParams): Promise<ValidateCouponResult> {
+    const invalid = (message = 'Cupom não encontrado ou inválido'): ValidateCouponResult => ({ valid: false, discountAmount: 0, message })
+    const parsed = z.object({ code: z.string().trim().min(1).max(50), storeId: z.string().uuid(),
+        deliveryType: z.enum(['delivery','pickup','table']), customerPhone: z.string().max(30).optional(),
+        items: CheckoutIntentSchema.shape.items }).safeParse(input)
+    if (!parsed.success) return invalid('Confira os itens e o código do cupom.')
+    const { code, storeId, deliveryType, items } = parsed.data
+    const phone = parsed.data.customerPhone?.replace(/\D/g, '') ?? ''
+    try {
+        const supabase = await createAdminClient()
+        const priced = await priceIntentItems(supabase, storeId, items)
+        const subtotal = priced.items.reduce((sum, i) => sum + Math.round(i.item_total * 100), 0) / 100
+        const { data: coupon, error } = await supabase.from('coupons')
+            .select('code,discount_type,discount_value,max_discount_value,min_order_value,applies_to,valid_from,valid_until,usage_limit,usage_count')
+            .eq('store_id', storeId).eq('code', code.toUpperCase()).eq('is_active', true).maybeSingle()
+        if (error || !coupon) return invalid()
+        const now = Date.now()
+        if (now < new Date(coupon.valid_from).getTime()) return invalid('Este cupom ainda não está válido.')
+        if (coupon.valid_until && now >= new Date(coupon.valid_until).getTime()) return invalid('Este cupom expirou.')
+        if (coupon.usage_limit != null && coupon.usage_count >= coupon.usage_limit) return invalid('Limite de uso atingido.')
+        if (subtotal < (coupon.min_order_value ?? 0)) return invalid('O pedido não atingiu o mínimo deste cupom.')
+        if ((coupon.applies_to === 'delivery' && deliveryType !== 'delivery') ||
+            (coupon.applies_to === 'pickup' && deliveryType !== 'pickup')) return invalid('Cupom indisponível para esta forma de entrega.')
+        if (coupon.discount_type === 'free_delivery' && deliveryType !== 'delivery') return invalid('Frete grátis exige entrega.')
+        if (coupon.applies_to === 'first_purchase') {
+            if (phone.length < 10 || phone.length > 15) return invalid('Informe seu telefone nos dados do pedido antes de aplicar este cupom.')
+            const history = await supabase.from('orders').select('id').eq('store_id', storeId)
+                .eq('customer_phone', phone).neq('status', 'cancelled').limit(1)
+            if (history.error || history.data?.length) return invalid('Cupom indisponível para esta compra.')
         }
-    }
-
-    // Verificar aplicação por tipo de entrega
-    if (coupon.applies_to !== 'all') {
-        if (coupon.applies_to === 'delivery' && deliveryType !== 'delivery') {
-            return { valid: false, discountAmount: 0, message: 'Cupom válido apenas para delivery' }
-        }
-        if (coupon.applies_to === 'pickup' && deliveryType !== 'pickup') {
-            return { valid: false, discountAmount: 0, message: 'Cupom válido apenas para retirada' }
-        }
-        if (coupon.applies_to === 'first_purchase' && !isFirstPurchase) {
-            return { valid: false, discountAmount: 0, message: 'Cupom válido apenas para primeira compra' }
-        }
-    }
-
-    // Verificar se cliente já usou este cupom (para cupons de primeira compra ou uso único por cliente)
-    if (customerPhone && (coupon.applies_to === 'first_purchase' || coupon.usage_limit === 1)) {
-        const { data: existingUsage } = await supabase
-            .from('coupon_usages')
-            .select('id')
-            .eq('coupon_id', coupon.id)
-            .eq('customer_phone', customerPhone)
-            .maybeSingle()
-
-        if (existingUsage) {
-            return { valid: false, discountAmount: 0, message: 'Você já utilizou este cupom' }
-        }
-    }
-
-    // Calcular valor do desconto
-    let discountAmount = 0
-
-    if (coupon.discount_type === 'percentage') {
-        discountAmount = subtotal * (coupon.discount_value / 100)
-        // Aplicar limite máximo se existir
-        if (coupon.max_discount_value && discountAmount > coupon.max_discount_value) {
-            discountAmount = coupon.max_discount_value
-        }
-    } else if (coupon.discount_type === 'fixed') {
-        discountAmount = coupon.discount_value
-        // Garantir que desconto não seja maior que o subtotal
-        if (discountAmount > subtotal) {
-            discountAmount = subtotal
-        }
-    } else if (coupon.discount_type === 'free_delivery') {
-        // Para frete grátis, o valor será aplicado na taxa de entrega
-        discountAmount = 0 // Será tratado separadamente no checkout
-    }
-
-    return {
-        valid: true,
-        coupon,
-        discountAmount: Math.round(discountAmount * 100) / 100, // Arredondar para 2 casas
-        message: 'Cupom aplicado com sucesso!'
-    }
+        let discount = coupon.discount_type === 'percentage' ? subtotal * coupon.discount_value / 100
+            : coupon.discount_type === 'fixed' ? Math.min(subtotal, coupon.discount_value) : 0
+        if (coupon.discount_type === 'percentage' && coupon.max_discount_value != null) discount = Math.min(discount, coupon.max_discount_value)
+        discount = Math.min(subtotal, Math.round(discount * 100) / 100)
+        if (!Number.isFinite(discount) || discount < 0) return invalid()
+        const publicCoupon: PublicCoupon = { code: coupon.code, discount_type: coupon.discount_type,
+            discount_value: coupon.discount_value, max_discount_value: coupon.max_discount_value,
+            min_order_value: coupon.min_order_value ?? 0, applies_to: coupon.applies_to }
+        return { valid: true, coupon: publicCoupon, discountAmount: discount, message: 'Cupom aplicado. Será conferido novamente ao finalizar.' }
+    } catch { return invalid('Não foi possível conferir o cupom. Tente novamente.') }
 }
 
 /**

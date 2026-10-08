@@ -1,0 +1,31 @@
+# Local tests, SQL evidence, printer journals and operator packages stay local.
+.git/
+.serena/
+.codex/
+.qoder/
+.agents/
+.claude/
+.aws/
+.env*
+.vercel/
+.next/
+node_modules/
+tests/
+database/
+plans/
+printing/
+scripts/
+attachments/
+*.log
+*.pem
+*.key
+*.txt
+Snipaste_*.png
+Snipaste_*.jpg
+*.tsbuildinfo
+public/sw.js*
+public/workbox-*.js*
+public/swe-worker-*.js*
+public/fallback-*.js*
+# Unsigned installer is for local review; distribute after signing/acceptance.
+public/printing/*.exe

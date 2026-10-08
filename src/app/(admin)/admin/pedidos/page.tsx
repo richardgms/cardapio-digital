@@ -13,7 +13,7 @@ export default function PedidosPage() {
                 { label: "Dashboard", href: "/admin" },
                 { label: "Pedidos" },
             ]} />
-            <OrdersManager />
+            <OrdersManager reprintsEnabled={process.env.RMENU_PRINT_AGENT_ENABLED === '1' && process.env.RMENU_PRINT_ACTIVATION_READY === '1'} />
         </div>
     );
 }

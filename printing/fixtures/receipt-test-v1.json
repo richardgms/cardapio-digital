@@ -1,0 +1,49 @@
+{
+  "order_id": "00000000-0000-4000-8000-000000000001",
+  "store_id": "00000000-0000-4000-8000-000000000002",
+  "document_version": 1,
+  "schema_version": 1,
+  "sealed_at": "2026-10-08T01:00:00+00:00",
+  "snapshot": {
+    "schema_version": 1,
+    "document_version": 1,
+    "store_name": "Loja fictícia — São João",
+    "order": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "store_id": "00000000-0000-4000-8000-000000000002",
+      "order_number": 1,
+      "document_version": 1,
+      "expected_item_count": 1,
+      "created_at": "2026-10-08T01:00:00+00:00",
+      "customer_name": "CLIENTE FICTÍCIO — TESTE",
+      "customer_phone": "00000000000",
+      "delivery_type": "delivery",
+      "table_number": null,
+      "delivery_zone_name": "Bairro São José",
+      "delivery_address": "Rua fictícia com nome longo para verificar quebra de linha, 123",
+      "address_complement": "Fundos, portão azul; tocar a campainha e aguardar",
+      "payment_method": "cash",
+      "change_for": 50,
+      "subtotal": 30,
+      "delivery_fee": 5,
+      "discount_value": 3,
+      "coupon_code": "FICTICIO",
+      "total": 32,
+      "notes": "Não é pedido real. Verificar acentos: ç á é í ó ú ã õ."
+    },
+    "items": [
+      {
+        "id": "00000000-0000-4000-8000-000000000003",
+        "order_id": "00000000-0000-4000-8000-000000000001",
+        "product_name": "Pão de açafrão e hambúrguer com queijo",
+        "quantity": 2,
+        "unit_price": 15,
+        "item_total": 30,
+        "selected_options": [{"group": "Adicionais", "option": "Queijo e molho de limão", "price": 1}],
+        "observations": "Sem cebola; cortar ao meio",
+        "is_half_half": false,
+        "half_half_items": null
+      }
+    ]
+  }
+}

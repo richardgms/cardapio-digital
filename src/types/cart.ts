@@ -1,6 +1,8 @@
 import type { Product } from './database'
 
 export interface CartItemOption {
+    group_id?: string
+    option_id?: string
     group_name: string
     option_name: string
     price: number
@@ -20,6 +22,8 @@ export interface CartItem {
         enabled: boolean
         first_half: string
         second_half: string
+        first_half_id?: string
+        second_half_id?: string
         final_price: number
     }
 }
@@ -30,6 +34,7 @@ export interface CartState {
 
 export interface CartActions {
     addItem: (item: Omit<CartItem, 'id'>) => void
+    updateItem: (id: string, item: Omit<CartItem, 'id'>) => void
     removeItem: (id: string) => void
     updateQuantity: (id: string, quantity: number) => void
     clearCart: () => void
