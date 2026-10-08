@@ -16,6 +16,8 @@
     { "number": 13, "state": "spooler_submitted", "attempts": 1, "scenario": "computer_ethernet_disconnect_then_reconnect", "operator_confirmed": "no_print_while_disconnected_and_one_copy_after_reconnect" },
     { "number": 14, "state": "spooler_submitted", "attempts": 1, "scenario": "installed_android_pwa_checkout", "operator_confirmed": "home_screen_icon_opens_standalone_and_one_legible_copy_with_cut" }
   ],
+  "android_pwa_installation": "operator_confirmed_new_installation_on_test_day",
+  "pwa_update_trial": { "previous_deployment_id": "dpl_H57F1rin9zxKhvAy7oCZuDXUmcgK", "candidate_deployment_id": "dpl_7VXQgjWnQzHKQa6fKi6trg2Ub1e4", "source_commit": "0effb84", "application_code_unchanged_since": "544d499", "previous_worker_sha256": "6eaf15b89d517f17d78c8305fc144daaa4cadc3bb579a420616433b2bade91aa", "candidate_worker_sha256": "31673195c5daf13704a06cc2770870c1e8179dda829d79d76d1ad2814995354d", "authenticated_health_after_alias": "connected", "commercial_aliases_unchanged": true, "printing_activation_unchanged": true, "orders_created_by_tools": false, "public_pwa_probe": "passed_after_initial_store_name_wait_timeout", "public_worker_matches_candidate": true, "physical_update_confirmation": "pending" },
   "windows_autostart": "operator_confirmed_after_real_reboot",
   "printer_power_off_observation": { "printer_status": "Error", "windows_queue_count": 1, "windows_job_status": "Error, Printing, Retained" },
   "final_observation": { "printer_status": "Normal", "windows_queue_count": 0, "authenticated_health": "connected", "printing_enabled_in_test_store": true },
