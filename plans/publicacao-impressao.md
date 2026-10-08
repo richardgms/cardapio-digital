@@ -1,41 +1,31 @@
-# Preparação da publicação e operação contínua
+# Publicação e operação contínua
 
-Projeto confirmado por consultas somente de leitura em 08/10/2026: `richardgms-projects/cardapio-digital`, ID `prj_WElQReMshf36K9red4cMfyQ6fFVi`, domínio de produção `https://rmenu.com.br`, Node 24.x, Next.js. CLI 62.7.0 autenticada como `richardgms`. Esta pasta ainda não está vinculada; não executar link/deploy automaticamente ao receber `link_required`.
+Estado confirmado em 08/10/2026: projeto Vercel richardgms-projects/cardapio-digital, ID prj_WElQReMshf36K9red4cMfyQ6fFVi, Node 24.x. CLI 62.7.0 instalada, autenticada e pasta vinculada ao projeto existente. PR de revisão: https://github.com/richardgms/cardapio-digital/pull/1, ainda draft e sem merge.
 
-Nomes das variáveis de produção presentes: NEXT_PUBLIC_ROOT_DOMAIN, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_APP_URL. Valores não foram baixados nem alterados. As duas liberações RMENU_PRINT_AGENT_ENABLED e RMENU_PRINT_ACTIVATION_READY ainda não existem no ambiente remoto. Chave service_role fica somente no servidor; nunca incluída no instalador.
+## Publicação atual
 
-A comparação dos valores remotos com o ambiente local ainda não foi realizada: a revisão automática bloqueou `vercel env pull` para `.vercel/.env.production.local` por persistir segredos de produção e considerar a autorização anterior limitada aos nomes. A pasta `.vercel` foi criada com ACL protegida, mas nenhum segredo ou vínculo foi baixado. Prosseguir nessa leitura exige autorização específica do usuário; não obter os mesmos valores por outro meio para contornar o bloqueio. Build local passou com configuração local, não comprova ainda coerência dos valores remotos.
+Somente https://teste1.rmenu.com.br usa o deployment dpl_H57F1rin9zxKhvAy7oCZuDXUmcgK, código 544d499, build e runtime com RMENU_PRINT_AGENT_ENABLED=1, RMENU_PRINT_ACTIVATION_READY=1 e RMENU_PRINT_ACTIVATION_STORE_IDS contendo apenas o UUID da teste1. A política exige lista válida e verifica o dono autenticado antes de ativar ou solicitar reimpressão; lista ausente/vazia/inválida bloqueia todas as lojas. Desativação continua disponível ao dono.
 
-## Sequência de publicação
+O domínio principal e o wildcard *.rmenu.com.br continuam no deployment comercial anterior dpl_ExCN964hzW812oecxeZnFZcZwu8j. A impressão da teste1 foi ativada pelo próprio operador em 08/10/2026 às 16:11:37 (America/Sao_Paulo), com novo corte sem histórico. A migração 2026100804 ainda não foi aplicada.
 
-1. Validar esta versão local e revisar a alteração conjunta de checkout, documentos, fila, segurança e leitores públicos. Há mudanças anteriores de várias etapas ainda sem commit; não publicar seletivamente componentes que dependem das migrações aplicadas.
-2. Na execução autorizada da publicação, vincular explicitamente esta pasta ao projeto existente `cardapio-digital` e escopo `richardgms-projects`; confirmar owner/ID depois. Não criar outro projeto nem sobrescrever `.env.local` com `env pull`.
-3. Preparar uma implantação de revisão usando as variáveis do ambiente correspondente. Para a primeira publicação, conexão/cadastro podem usar RMENU_PRINT_AGENT_ENABLED=1, com RMENU_PRINT_ACTIVATION_READY=0. Nenhuma loja é ativada por essas flags. Configurar valores coerentes no build e no runtime. Não promover um build de preview supondo que ele usa as variáveis de produção.
-4. Conferir login do lojista, seus produtos/horários, isolamento entre lojas, cardápios públicos, imagens existentes, checkout fictício na teste1, painel e health autenticado. Nenhum pedido real/histórico deve ser usado no ensaio. Uma proteção de preview deve ser usada normalmente, sem desativá-la.
-5. Publicar os leitores públicos limitados e conferir os cardápios por seus domínios reais. Só então aplicar/verificar `2026100804_private_store_configuration.sql`, cuja trava exige comprovação dos consumidores publicados. Isso fecha a leitura anônima integral de store_config. Não executar 04 antes da nova versão pública; não voltar a consumidores antigos após revogar as permissões sem um plano de compatibilidade.
-6. Distribuir o instalador Windows somente após assinatura digital e aceitação do assistente/startup. O `.exe` atual é um candidato local não assinado; `.vercelignore` exclui esse arquivo da publicação. O pacote não contém credenciais.
-7. Após os ensaios, preparar build/runtime com RMENU_PRINT_ACTIVATION_READY=1 e ativar somente a loja autorizada com equipamento calibrado. Liberação e ativação são ações separadas. Não liberar todas as lojas de uma vez.
+Os nomes de variáveis persistentes de produção continuam sendo NEXT_PUBLIC_ROOT_DOMAIN, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY e NEXT_PUBLIC_APP_URL. As três variáveis de impressão acima existem somente nos overrides deste deployment de ensaio, não no ambiente persistente do projeto. Antes de um merge que gere publicação automática, preparar configuração de produção coerente e autorizada, preservando a liberação restrita às lojas calibradas. Não presumir que um rebuild reproduzirá overrides de outra publicação.
 
-A `.vercelignore` preparada exclui `.env*`, testes, SQL/evidências, pacotes/journals locais, ferramentas e artefatos gerados. O download do instalador não entra no cache offline da PWA. Guia para o restaurante: `printing/guia-do-restaurante.md`.
+Não houve download nem comparação dos segredos remotos. A revisão automática anterior rejeitou env pull por persistir segredos de produção; esse acesso não foi contornado. A configuração do instalador contém somente a credencial própria do dispositivo, protegida por DPAPI CurrentUser depois da importação, nunca service_role.
 
-## O que validar continuamente
+## Confirmações concluídas
 
-Atualização da revisão: o assistente interativo e sua calibração foram concluídos pelo usuário; o monitor e o worker instalados foram encontrados em execução. O pedido fictício #006 foi criado pelo próprio lojista e impresso automaticamente com uma tentativa registrada. A impressão da teste1 foi desligada ao encerrar esse ensaio. A suíte de revisão passou com 243 testes de regressão e 48 verificações Windows. Isso ainda não substitui testes de reinício real do Windows, interrupções físicas e período prolongado.
+Os pedidos fictícios publicados #008 a #013 tiveram uma tentativa registrada cada. O operador confirmou impressão automática, Chrome fechado no PC, outro celular sem pedido anterior, reinício real do Windows com assistente iniciando sozinho, interrupção de energia da Epson e desconexão/reconexão Ethernet do PC. O health autenticado recuperou conexão e a fila Windows ficou vazia após os testes. O pedido #007, anterior à ativação, não entrou na fila. Evidência: database/reference/published-print-operation-verification-20261008.json.
 
-- Agente aberto: pedidos fictícios novos aparecem na fila e são consumidos sem abrir o painel ou clicar em imprimir.
-- Falta de conexão ao iniciar e no meio do uso: aguardar e retomar; não repetir envio iniciado.
-- Impressora indisponível/ocupada: aguardar sem reservar outro pedido e retomar quando pronta.
-- Reiniciar o agente e depois o Windows: reconciliar ACK, preservar registros e não emitir outra via.
-- Entrada no mesmo usuário Windows: iniciar pelo atalho instalado, sem comandos.
-- Pausar/retomar, encerrar, desativar a loja e revogar o computador: manter a autorização e a fronteira de envio corretas.
-- Conferir uma impressora/rolo por restaurante, incluindo 58 mm e corte compatível com o modelo.
+Com a Epson desligada, o Windows aceitou um trabalho e manteve erro na fila; ao religar, o operador confirmou uma via legível com corte. Isso valida a recuperação observada dessa combinação de driver/Epson de 80 mm; spooler_submitted não comprova impressão física nem garante o mesmo comportamento em outros modelos.
 
-Já validado: ensaio real #004/R$14 com confirmação física e reinício sem repetição; quatro ciclos adicionais reais com loja desligada e uma única tentativa preservada; testes Windows de recuperação de conexão e pausa com callbacks controlados; calibração local única e falha parcial sem reenvio; instalação e atalho de inicialização em diretório isolado (sem alterar startup real).
+Validação técnica anterior: 246 casos de regressão aprovados em execuções documentadas, mais sete novos testes de liberação por loja; 36 testes direcionados de fila/API/liberação, TypeScript, lint dos arquivos modificados e builds remotos aprovados. As 48 verificações Windows anteriores permanecem documentadas. Auditoria de dependências de produção sem alertas; cinco alertas altos continuam restritos à cadeia do linter de desenvolvimento. Não houve mudança de código depois desses checks ao registrar as evidências físicas.
 
-Ainda exige operador: instalação interativa completa, teste da calibração do assistente no equipamento, entrada/reinício real do Windows, queda real de conexão/cabo e período prolongado com pedidos fictícios controlados. Os quatro ciclos não comprovam horas de operação. Nenhuma dessas confirmações foi presumida.
+## Próximos passos
 
-## Referências
+1. Conferir instalação e atualização do PWA em Android físico. O teste em navegador móvel e o teste automatizado Edge não substituem essa confirmação.
+2. Concluir a revisão do PR e preparar a configuração persistente das três variáveis de impressão para uma publicação autorizada. Publicar o código preservando a liberação/ativação por loja; não habilitar todos os restaurantes automaticamente.
+3. Conferir os leitores públicos e os fluxos dos restaurantes nos domínios reais depois da publicação. Somente então aplicar/verificar 2026100804_private_store_configuration.sql com a trava de consumidores publicados. Não voltar aos consumidores antigos após revogar suas permissões sem plano de compatibilidade.
+4. Assinar digitalmente e preparar a distribuição do instalador. O executável atual é de avaliação local e está excluído do Git, Vercel e cache PWA. Guia para o lojista: printing/guia-do-restaurante.md.
+5. Selecionar um restaurante piloto, conferir seu Windows/driver/impressora/papel/corte, liberar somente sua loja e observar operação prolongada. Outras impressoras, 58 mm e macOS/Linux ainda exigem validação própria.
 
-- [Implantação pela CLI](https://vercel.com/docs/cli/deploy)
-- [Ambientes da Vercel](https://vercel.com/docs/deployments/environments)
-- [Promoção de uma implantação](https://vercel.com/docs/deployments/promoting-a-deployment)
+A impressão da teste1 continua ativada para os ensaios controlados. Nenhum pedido real, envio de WhatsApp, reimpressão ou mudança de fila/journal foi necessário para registrar essas confirmações.
