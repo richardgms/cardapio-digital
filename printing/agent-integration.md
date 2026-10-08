@@ -14,7 +14,7 @@ Ações do painel usam auth.getUser verificado, exigem UID do dono igual ao stor
 
 ## Liberações separadas
 
-`RMENU_PRINT_AGENT_ENABLED=1` libera conexão/cadastro/API; não ativa nenhuma loja. `RMENU_PRINT_ACTIVATION_READY=1` libera ativação e reimpressão no painel somente depois das validações. Ambas desligadas por padrão. Na conferência local pode-se iniciar o processo Next com a primeira=1 e a segunda=0, sem editar .env.local ou publicar. Configuração do painel é dinâmica; página de pedidos é compilada com a liberação presente no build. Nova liberação exige build/deploy coerente.
+`RMENU_PRINT_AGENT_ENABLED=1` libera conexão/cadastro/API; não ativa nenhuma loja. Ativação e reimpressão exigem também `RMENU_PRINT_ACTIVATION_READY=1` e o UUID do dono/loja na lista explícita `RMENU_PRINT_ACTIVATION_STORE_IDS` (UUIDs separados por vírgula). Lista ausente, vazia ou inválida bloqueia a liberação, mesmo com as duas flags ligadas. O servidor valida a loja do usuário autenticado antes das RPCs; as páginas usam a mesma política. As flags ficam desligadas por padrão. Na conferência local pode-se iniciar o processo Next com a primeira=1 e a segunda=0, sem editar .env.local ou publicar. As páginas consultam a sessão e a política no servidor; novas variáveis de liberação exigem deploy coerente. A liberação da interface não ativa a impressão no banco: cada lojista ainda confirma a calibração e ativa somente pedidos novos.
 
 Desativar cancela reservas e registra envios iniciados como incertos; não garante retirar spool em andamento. Ativar define novo corte e não gera histórico. Campos de nome/fila/papel são próprios de cada dispositivo (58/80). Não usar 80 mm como exigência global para restaurantes.
 
