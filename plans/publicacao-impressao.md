@@ -22,7 +22,7 @@ Validação técnica anterior: 246 casos de regressão aprovados em execuções 
 
 ## Próximos passos
 
-1. Conferir instalação e atualização do PWA em Android físico. O teste em navegador móvel e o teste automatizado Edge não substituem essa confirmação.
+1. O operador abriu o PWA pelo ícone no Android, sem barra do Chrome, e confirmou o pedido fictício #014 com uma via legível e corte; o banco registrou uma tentativa. Ainda conferir atualização de um PWA já instalado: o teste do aplicativo atual não comprova migração de uma instalação anterior.
 2. Concluir a revisão do PR e preparar a configuração persistente das três variáveis de impressão para uma publicação autorizada. Publicar o código preservando a liberação/ativação por loja; não habilitar todos os restaurantes automaticamente.
 3. Conferir os leitores públicos e os fluxos dos restaurantes nos domínios reais depois da publicação. Somente então aplicar/verificar 2026100804_private_store_configuration.sql com a trava de consumidores publicados. Não voltar aos consumidores antigos após revogar suas permissões sem plano de compatibilidade.
 4. Assinar digitalmente e preparar a distribuição do instalador. O executável atual é de avaliação local e está excluído do Git, Vercel e cache PWA. Guia para o lojista: printing/guia-do-restaurante.md.

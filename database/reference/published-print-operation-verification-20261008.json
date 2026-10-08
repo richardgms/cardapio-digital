@@ -13,7 +13,8 @@
     { "number": 10, "state": "spooler_submitted", "attempts": 1, "scenario": "another_phone_first_order", "operator_confirmed": "printed_correctly" },
     { "number": 11, "state": "spooler_submitted", "attempts": 1, "scenario": "windows_reboot_and_automatic_start", "operator_confirmed": "one_legible_copy_with_cut" },
     { "number": 12, "state": "spooler_submitted", "attempts": 1, "scenario": "printer_power_off_then_on", "operator_confirmed": "one_legible_copy_with_cut_after_power_on" },
-    { "number": 13, "state": "spooler_submitted", "attempts": 1, "scenario": "computer_ethernet_disconnect_then_reconnect", "operator_confirmed": "no_print_while_disconnected_and_one_copy_after_reconnect" }
+    { "number": 13, "state": "spooler_submitted", "attempts": 1, "scenario": "computer_ethernet_disconnect_then_reconnect", "operator_confirmed": "no_print_while_disconnected_and_one_copy_after_reconnect" },
+    { "number": 14, "state": "spooler_submitted", "attempts": 1, "scenario": "installed_android_pwa_checkout", "operator_confirmed": "home_screen_icon_opens_standalone_and_one_legible_copy_with_cut" }
   ],
   "windows_autostart": "operator_confirmed_after_real_reboot",
   "printer_power_off_observation": { "printer_status": "Error", "windows_queue_count": 1, "windows_job_status": "Error, Printing, Retained" },
@@ -22,5 +23,5 @@
   "order_7_enqueued": false,
   "physical_outcome_source": "operator_confirmation",
   "spooler_submitted_means": "Windows accepted the job; physical printing requires separate confirmation",
-  "pending": ["physical_android_pwa_install_and_existing_install_update", "extended_restaurant_pilot", "other_printers_and_58mm", "installer_signing_and_distribution", "commercial_domain_publication_and_private_config_cutover"]
+  "pending": ["physical_android_pwa_existing_install_update", "extended_restaurant_pilot", "other_printers_and_58mm", "installer_signing_and_distribution", "commercial_domain_publication_and_private_config_cutover"]
 }
