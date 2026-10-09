@@ -5,8 +5,9 @@ Add-Type -AssemblyName System.Windows.Forms,System.Drawing
 [Windows.Forms.Application]::EnableVisualStyles()
 Import-Module (Join-Path $PSScriptRoot 'AgentConfig.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'AgentDesktop.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'AgentCalibration.psm1') -Force
 $stateDirectory=Join-Path $env:LOCALAPPDATA 'RMenuPrintAgent'
-$setupState=@{config=$null;configured=$false;connected=$false}
+$setupState=@{config=$null;configured=$false;connected=$false;selfService=$false}
 $form=New-Object Windows.Forms.Form
 $form.Text='Conectar impressora · RMenu';$form.ClientSize=New-Object Drawing.Size(600,745)
 $form.StartPosition='CenterScreen';$form.FormBorderStyle='FixedDialog';$form.MaximizeBox=$false
@@ -66,8 +67,9 @@ $check.Add_Click({
     $connection=Get-RMenuConnectionStatus $setupState.config
     $setupState.connected=$connection -eq 'connected';$finish.Enabled=$false;$testPrint.Enabled=$false;$confirmed.Enabled=$false
     if($setupState.connected){
-        $calibration=Get-RMenuCalibrationState $setupState.config $stateDirectory
-        $testPrint.Enabled=$calibration -eq 'not_requested'
+        try {$setupState.selfService=Get-RMenuSelfServiceSupport $setupState.config}catch{$setupState.connected=$false;$status.Text='Não foi possível conferir o assistente agora. Tente conferir a conexão novamente.';return}
+        $calibration=if($setupState.selfService){Get-RMenuSelfServiceCalibrationState $setupState.config $stateDirectory}else{Get-RMenuCalibrationState $setupState.config $stateDirectory}
+        $testPrint.Enabled=$calibration -in @('not_requested','request_pending','requested')
         $confirmed.Enabled=$calibration -in @('spooler_submitted','uncertain','paper_confirmed')
         $confirmed.Checked=$calibration -eq 'paper_confirmed'
         $finish.Enabled=$confirmed.Checked
@@ -80,8 +82,8 @@ $testPrint.Add_Click({
     if(-not $setupState.connected){return}
     $testPrint.Enabled=$false
     try {
-        $outcome=Send-RMenuCalibration $setupState.config $stateDirectory
-        $confirmed.Enabled=$true
+        $outcome=if($setupState.selfService){Send-RMenuSelfServiceCalibration $setupState.config $stateDirectory}else{Send-RMenuCalibration $setupState.config $stateDirectory}
+        $confirmed.Enabled=$outcome -in @('spooler_submitted','uncertain')
         $status.Text=if($outcome -eq 'spooler_submitted'){'Teste enviado. Confira o papel e marque a confirmação abaixo.'}else{'Resultado não confirmado. Confira papel e fila; não repetir automaticamente.'}
     } catch {$status.Text='Teste não iniciado. Confira papel, impressora e fila. Depois confira a conexão novamente.'}
 })
@@ -89,7 +91,7 @@ $confirmed.Add_CheckedChanged({$finish.Enabled=$setupState.connected -and $confi
 $finish.Add_Click({
     if(-not $setupState.connected -or -not $confirmed.Checked){return}
     try {
-        Confirm-RMenuCalibration $setupState.config $stateDirectory
+        if($setupState.selfService){Confirm-RMenuSelfServiceCalibration $setupState.config $stateDirectory}else{Confirm-RMenuCalibration $setupState.config $stateDirectory}
         $applicationDirectory=Install-RMenuApplication $PSScriptRoot $stateDirectory
         Set-RMenuAutoStart $stateDirectory $autoStart.Checked
         $arguments='-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -STA -File "'+(Join-Path $applicationDirectory 'AgentMonitor.ps1')+'"'

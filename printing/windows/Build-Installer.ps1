@@ -4,7 +4,7 @@ $ErrorActionPreference='Stop'
 $workspace=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $staging=Join-Path $workspace ('printing/.local/installer-build-'+[Guid]::NewGuid().ToString('N'))
 $null=New-Item -ItemType Directory -Path $staging
-$files=@('AgentConfig.psm1','AgentCore.psm1','AgentDesktop.psm1','AgentReceipt.cs','Run-Agent.ps1','AgentMonitor.ps1','Setup-Agent.ps1')
+$files=@('AgentConfig.psm1','AgentCore.psm1','AgentDesktop.psm1','AgentCalibration.psm1','AgentReceipt.cs','Run-Agent.ps1','AgentMonitor.ps1','Setup-Agent.ps1')
 foreach($name in $files){
     $source=Join-Path $PSScriptRoot $name
     if($name.EndsWith('.ps1') -or $name.EndsWith('.psm1')){[IO.File]::WriteAllText((Join-Path $staging $name),[IO.File]::ReadAllText($source,[Text.Encoding]::UTF8),(New-Object Text.UTF8Encoding($true)))}

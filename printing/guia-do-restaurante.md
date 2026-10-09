@@ -10,7 +10,7 @@ Preparado para Windows 10 ou 11. O instalador está em revisão; a distribuiçã
 4. Volte ao assistente RMenu, clique em **Selecionar configuração** e escolha o arquivo baixado. Clique em **Conferir conexão**.
 5. Clique em **Imprimir teste fictício**. Confira o texto, uma única via e o corte adequado ao modelo. Marque a confirmação quando o papel estiver correto.
 6. Mantenha **Iniciar automaticamente quando eu entrar no Windows** marcado e clique em **Concluir e abrir RMenu Impressão**.
-7. No painel da loja, confirme a calibração e clique em **Ativar somente pedidos novos**, quando a liberação estiver disponível.
+7. No painel da loja, aguarde **Teste de impressão confirmado** e **Computador conectado**. Marque a conferência e clique em **Ativar somente pedidos novos**. Após publicar e habilitar a ativação autônoma, você poderá fazer isso sem pedir uma liberação individual.
 
 O assistente reúne instalação, conexão e teste. Não exige extrair arquivos do instalador `.exe` nem executar comandos. O arquivo de conexão é importado uma única vez. Após conferir a importação, remova a cópia baixada desse arquivo; não a envie para outras pessoas.
 

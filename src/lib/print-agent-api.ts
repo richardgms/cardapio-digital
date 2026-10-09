@@ -6,6 +6,10 @@ const id = z.string().uuid();
 const jobOperation = { job_id: id, lease_token: id };
 const operation = z.discriminatedUnion('operation', [
     z.object({ operation: z.literal('health') }).strict(),
+    z.object({ operation: z.literal('calibration_start'), request_id: id, queue_name: z.string().trim().min(1).max(160), paper_width_mm: z.union([z.literal(58), z.literal(80)]) }).strict(),
+    z.object({ operation: z.literal('calibration_dispatch'), test_id: id }).strict(),
+    z.object({ operation: z.literal('calibration_finish'), test_id: id, outcome: z.enum(['spooler_submitted', 'uncertain']) }).strict(),
+    z.object({ operation: z.literal('calibration_confirm'), test_id: id }).strict(),
     z.object({ operation: z.literal('claim') }).strict(),
     z.object({ operation: z.literal('inspect'), job_id: id }).strict(),
     z.object({ operation: z.literal('renew'), ...jobOperation }).strict(),
@@ -58,7 +62,7 @@ async function readSmallJson(request: Request) {
 }
 
 export async function handlePrintAgentRequest(request: Request, dependencies: {
-    enabled: boolean; rpc: PrintRpc; allow: (fingerprint: string) => boolean;
+    enabled: boolean; selfServiceEnabled?: boolean; rpc: PrintRpc; allow: (fingerprint: string) => boolean;
 }) {
     if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
     if (!dependencies.enabled) return json({ error: 'printing_module_disabled' }, 503);
@@ -75,6 +79,21 @@ export async function handlePrintAgentRequest(request: Request, dependencies: {
     const auth = { p_device: deviceId, p_hash: tokenHash };
     const rpc = dependencies.rpc;
     try {
+        if (input.operation === 'calibration_start' || input.operation === 'calibration_dispatch' || input.operation === 'calibration_finish' || input.operation === 'calibration_confirm') {
+            if (!dependencies.selfServiceEnabled) return json({ error: 'calibration_not_available' }, 503);
+            const args = input.operation === 'calibration_start' ? { ...auth, p_request: input.request_id, p_queue: input.queue_name, p_width: input.paper_width_mm } :
+                { ...auth, p_test: input.test_id, ...(input.operation === 'calibration_finish' ? { p_outcome: input.outcome } : {}) };
+            const result = await rpc('rmenu_print_' + input.operation, args);
+            if (result.error) return json({ error: result.error.code === '42501' ? 'unauthorized' : 'calibration_not_confirmed' }, result.error.code === '42501' ? 401 : 409);
+            if (input.operation === 'calibration_start') {
+                const test = z.object({ test_id: id, state: z.enum(['requested','dispatching','spooler_submitted','uncertain','paper_confirmed']), expires_at: z.string().datetime({offset:true}), queue_name: z.string().min(1).max(160), paper_width_mm: z.union([z.literal(58),z.literal(80)]) }).strict().parse(result.data);
+                if (test.queue_name !== input.queue_name || test.paper_width_mm !== input.paper_width_mm) throw new Error('invalid_response');
+                const lineWidth = test.paper_width_mm === 80 ? 42 : 32;
+                return json({ test, lines: ['RMENU - TESTE DE IMPRESSAO', 'SEM PEDIDO REAL', 'Teste: ' + test.test_id.slice(0,8), '-'.repeat(lineWidth), 'Texto: ç á é í ó ú ã õ', '1234567890'.repeat(5).slice(0,lineWidth), 'Confira uma via, largura e corte', 'Nao confirma pagamento.'] });
+            }
+            if (typeof result.data !== 'boolean') throw new Error('invalid_response');
+            return json({ accepted: result.data });
+        }
         const args = input.operation === 'health' ? { ...auth, p_job: '00000000-0000-0000-0000-000000000000' } : input.operation === 'claim' ? auth :
             input.operation === 'inspect' ? { ...auth, p_job: input.job_id } :
                 { ...auth, p_job: input.job_id, p_lease: input.lease_token, ...(input.operation === 'finish' ? { p_outcome: input.outcome } : {}) };
@@ -84,7 +103,7 @@ export async function handlePrintAgentRequest(request: Request, dependencies: {
         if (input.operation === 'health') {
             // inspect authenticates internally; sentinel never fetches a credential row.
             if (result.data !== null) throw new Error('invalid_response');
-            return json({ authenticated: true, protocol_version: 1, lease_seconds: 60 });
+            return json({ authenticated: true, protocol_version: 1, lease_seconds: 60, ...(dependencies.selfServiceEnabled ? { self_service_calibration: true } : {}) });
         }
         if (input.operation === 'inspect') {
             if (result.data === null) return json({ job: null });

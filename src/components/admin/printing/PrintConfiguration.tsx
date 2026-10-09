@@ -16,7 +16,7 @@ export function PrintConfiguration({ moduleEnabled, activationReady }: { moduleE
     useEffect(() => {
         let disposed = false;
         const reconciler = createReconciler<Configuration>({ load: getPrintConfiguration,
-            result(value) { owner.current = value.store_id; setConfiguration(value); setError(null); setLoading(false); },
+            result(value) { owner.current = value.store_id; setConfiguration(value); setError(null); setLoading(false); if (value.self_service && !value.self_service_check.ready) setCalibrated(false); },
             error() { setError('Não foi possível atualizar a configuração.'); setLoading(false); }, busy() { } });
         refresh.current = reconciler;
         const visible = () => { if (document.visibilityState !== 'hidden') void reconciler.refresh(); };
@@ -24,7 +24,7 @@ export function PrintConfiguration({ moduleEnabled, activationReady }: { moduleE
         window.addEventListener('online', visible); document.addEventListener('visibilitychange', visible);
         const { data: auth } = client.auth.onAuthStateChange(event => {
             if (event === 'SIGNED_OUT' || event === 'SIGNED_IN') {
-                owner.current = null; setConfiguration(null);
+                owner.current = null; setConfiguration(null); setCalibrated(false);
                 queueMicrotask(() => { if (!disposed) void reconciler.refresh(); });
             }
         });
@@ -56,6 +56,7 @@ export function PrintConfiguration({ moduleEnabled, activationReady }: { moduleE
         catch { setError('Operação não confirmada. Atualize para conferir o estado.'); }
         finally { setBusy(false); void refresh.current?.refresh(); }
     }
+    const canActivate = activationReady && (!configuration?.self_service || configuration.self_service_check.ready);
     return <div className="space-y-6">
         <div className="flex items-center justify-between gap-3"><h1 className="text-2xl font-bold">Impressão de pedidos</h1><Button variant="outline" onClick={() => void refresh.current?.refresh()} disabled={busy}>Atualizar</Button></div>
         {error && <p role="alert" className="text-destructive">{error}</p>}
@@ -67,7 +68,7 @@ export function PrintConfiguration({ moduleEnabled, activationReady }: { moduleE
                 <li>No computador conectado à impressora, abra o assistente RMenu para Windows 10 ou 11.</li>
                 <li>Escolha a impressora no assistente, copie o nome e cadastre abaixo a mesma largura de papel.</li>
                 <li>Abra a configuração baixada no assistente. Ele confere a conexão e pode iniciar com o Windows.</li>
-                <li>No assistente, imprima uma única via de teste fictício e confira o papel antes de ativar pedidos novos.</li>
+                <li>No assistente, imprima uma única via de teste fictício, confira o papel e conclua. Quando o teste estiver registrado e o computador conectado, ative pedidos novos abaixo.</li>
             </ol>
             <p className="text-sm text-muted-foreground">O instalador Windows está em validação para distribuição. Para macOS ou Linux, solicite uma instalação compatível. O cardápio e o painel continuam disponíveis pelo navegador.</p>
             <p className="text-sm text-muted-foreground">Depois de configurar, mantenha este computador ligado, com o usuário Windows conectado e a impressora pronta. Fechar o navegador não interrompe o agente.</p>
@@ -78,14 +79,17 @@ export function PrintConfiguration({ moduleEnabled, activationReady }: { moduleE
                 <p>Somente pedidos novos, completos e posteriores à ativação entram automaticamente. WhatsApp e pagamento têm estados separados.</p>
                 {configuration.cutoff_at && <p className="text-sm">Ativação mais recente: {new Date(configuration.cutoff_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>}
                 {configuration.enabled ? <Button variant="destructive" disabled={busy} onClick={() => mutate(() => setPrintEnabled({ store_id: configuration.store_id, enabled: false, calibration_confirmed: false }))}>Desativar impressão</Button> : <>
-                    <label className="flex items-start gap-2"><input type="checkbox" checked={calibrated} disabled={!activationReady} onChange={event => setCalibrated(event.target.checked)} />Conferi fila, largura do rolo, layout, corte e uma única via neste computador.</label>
-                    <Button disabled={busy || !moduleEnabled || !activationReady || !calibrated || !configuration.devices.some(device => !device.revoked_at)} onClick={() => mutate(() => setPrintEnabled({ store_id: configuration.store_id, enabled: true, calibration_confirmed: calibrated }))}>Ativar somente pedidos novos</Button>
+                    {configuration.self_service && !configuration.self_service_check.ready && <p role="status" className="text-sm">{!configuration.self_service_check.available ? 'Não foi possível conferir o teste agora. Atualize para tentar novamente.' : 'Conclua o teste no assistente, confirme a comanda e mantenha esse computador conectado. O painel confere o resultado automaticamente.'}</p>}
+                    <label className="flex items-start gap-2"><input type="checkbox" checked={calibrated} disabled={busy || !canActivate} onChange={event => setCalibrated(event.target.checked)} />Conferi fila, largura do rolo, layout, corte e uma única via neste computador.</label>
+                    <Button disabled={busy || !moduleEnabled || !canActivate || !calibrated || !configuration.devices.some(device => !device.revoked_at)} onClick={() => mutate(() => setPrintEnabled({ store_id: configuration.store_id, enabled: true, calibration_confirmed: calibrated }))}>Ativar somente pedidos novos</Button>
                 </>}
             </section>
             <section className="space-y-3 rounded-xl border p-4"><h2 className="font-semibold">Dispositivos</h2>
                 {configuration.devices.length === 0 && <p>Nenhum dispositivo cadastrado.</p>}
                 {configuration.devices.map(device => <div key={device.id} className="flex items-center justify-between gap-3 rounded border p-3">
-                    <div><p className="font-semibold">{device.name}</p><p className="text-sm">{device.queue_name} · {device.paper_width_mm} mm · {device.revoked_at ? 'Revogado' : 'Credencial ativa'}</p></div>
+                    <div><p className="font-semibold">{device.name}</p><p className="text-sm">{device.queue_name} · {device.paper_width_mm} mm · {device.revoked_at ? 'Revogado' : 'Credencial ativa'}</p>
+                        {configuration.self_service && !device.revoked_at && <p className="text-sm text-muted-foreground">{!configuration.self_service_check.available ? 'Conferência indisponível' : configuration.self_service_check.devices.find(check => check.id === device.id)?.calibrated ? 'Teste de impressão confirmado' : 'Teste de impressão pendente'} · {configuration.self_service_check.devices.find(check => check.id === device.id)?.connected ? 'Computador conectado' : 'Aguardando conexão'}</p>}
+                    </div>
                     {!device.revoked_at && <Button size="sm" variant="outline" disabled={busy} onClick={() => mutate(() => revokePrintDevice({ store_id: configuration.store_id, device_id: device.id }))}>Revogar</Button>}
                 </div>)}
             </section>

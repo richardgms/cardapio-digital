@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { registerPrintDevice } from '@/lib/print-device-service';
-import { isPrintActivationReadyForStore } from '@/lib/print-activation';
+import { isPrintActivationReadyForStore, isPrintSelfServiceEnabled } from '@/lib/print-activation';
+import { parsePrintSelfServiceCheck } from '@/lib/print-self-service';
 import type { PrintRpc } from '@/lib/print-agent-api';
 
 async function ownerId() {
@@ -31,10 +32,19 @@ export async function getPrintConfiguration() {
         client.from('print_devices').select('id,name,queue_name,paper_width_mm,revoked_at,created_at').eq('store_id', owner).order('created_at'),
     ]);
     if (settings.error || devices.error) throw new Error('Não foi possível consultar a configuração.');
-    return z.object({ store_id: z.string().uuid(), enabled: z.boolean(), cutoff_at: z.string().datetime({ offset: true }).nullable(), devices: z.array(z.object({
+    const configuration = z.object({ store_id: z.string().uuid(), enabled: z.boolean(), cutoff_at: z.string().datetime({ offset: true }).nullable(), devices: z.array(z.object({
         id: z.string().uuid(), name: z.string(), queue_name: z.string(), paper_width_mm: z.union([z.literal(58), z.literal(80)]),
         revoked_at: z.string().datetime({ offset: true }).nullable(), created_at: z.string().datetime({ offset: true }),
     })) }).parse({ store_id: owner, enabled: settings.data?.enabled ?? false, cutoff_at: settings.data?.cutoff_at ?? null, devices: devices.data ?? [] });
+    const selfService = isPrintSelfServiceEnabled();
+    let check = parsePrintSelfServiceCheck(null);
+    if (selfService) {
+        try {
+            const status = await rpc('rmenu_print_self_service_status', { p_store: owner, p_actor: owner });
+            check = parsePrintSelfServiceCheck(status.error ? null : status.data);
+        } catch { /* Fail closed for activation; settings and disable remain available. */ }
+    }
+    return { ...configuration, self_service: selfService, self_service_check: check };
 }
 export async function setPrintEnabled(input: unknown) {
     const parsed = z.object({ store_id: z.string().uuid(), enabled: z.boolean(), calibration_confirmed: z.boolean() }).strict().safeParse(input);
@@ -44,8 +54,11 @@ export async function setPrintEnabled(input: unknown) {
     try {
         const owner = await ownerId();
         if (!owner || owner !== parsed.data.store_id) return { ok: false, error: 'Acesso negado.' };
-        if (parsed.data.enabled && !isPrintActivationReadyForStore(owner)) return { ok: false, error: 'Ativação ainda não liberada para esta loja.' };
-        const result = await rpc('rmenu_print_set_enabled', { p_store: owner, p_actor: owner, p_enabled: parsed.data.enabled });
+        const selfService = parsed.data.enabled && isPrintSelfServiceEnabled();
+        if (parsed.data.enabled && !selfService && !isPrintActivationReadyForStore(owner)) return { ok: false, error: 'Ativação ainda não liberada para esta loja.' };
+        const result = selfService ? await rpc('rmenu_print_self_service_enable', { p_store: owner, p_actor: owner }) :
+            await rpc('rmenu_print_set_enabled', { p_store: owner, p_actor: owner, p_enabled: parsed.data.enabled });
+        if (selfService && result.error) return { ok: false, error: 'Conclua o teste no assistente, confirme o papel e mantenha o computador conectado. Depois atualize esta página.' };
         return result.error ? { ok: false, error: 'Não foi possível alterar a impressão.' } : { ok: true };
     } catch { return { ok: false, error: 'Não foi possível alterar a impressão. Recarregue para conferir o estado.' }; }
 }
@@ -65,7 +78,10 @@ export async function requestOrderReprint(input: unknown) {
     try {
         const owner = await ownerId();
         if (!owner || owner !== parsed.data.store_id) return { ok: false, error: 'Acesso negado.' };
-        if (!isPrintActivationReadyForStore(owner)) return { ok: false, error: 'Reimpressão ainda não liberada para esta loja.' };
+        if (isPrintSelfServiceEnabled()) {
+            const status = await rpc('rmenu_print_self_service_status', { p_store: owner, p_actor: owner });
+            if (status.error || !parsePrintSelfServiceCheck(status.data).ready) return { ok: false, error: 'Conecte o computador com teste confirmado antes de solicitar outra via.' };
+        } else if (!isPrintActivationReadyForStore(owner)) return { ok: false, error: 'Reimpressão ainda não liberada para esta loja.' };
         const result = await rpc('rmenu_print_request_reprint', { p_store: owner, p_actor: owner, p_order: parsed.data.order_id, p_key: parsed.data.request_key, p_reason: parsed.data.reason });
         return result.error || !z.string().uuid().safeParse(result.data).success ? { ok: false, error: 'Não foi possível solicitar a reimpressão. Confira o histórico antes de tentar com outra chave.' } : { ok: true };
     } catch { return { ok: false, error: 'Não foi possível confirmar a solicitação. Confira o histórico antes de tentar com outra chave.' }; }

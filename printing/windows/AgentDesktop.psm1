@@ -3,7 +3,7 @@ Import-Module (Join-Path $PSScriptRoot 'AgentConfig.psm1')
 Import-Module (Join-Path $PSScriptRoot 'AgentCore.psm1')
 
 function Get-RMenuApplicationFiles {
-    return @('AgentConfig.psm1','AgentCore.psm1','AgentDesktop.psm1','AgentReceipt.cs','Run-Agent.ps1','AgentMonitor.ps1','Setup-Agent.ps1')
+    return @('AgentConfig.psm1','AgentCore.psm1','AgentDesktop.psm1','AgentCalibration.psm1','AgentReceipt.cs','Run-Agent.ps1','AgentMonitor.ps1','Setup-Agent.ps1')
 }
 function Install-RMenuApplication {
     param([string]$SourceDirectory,[string]$StateDirectory)
