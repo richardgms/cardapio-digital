@@ -1,6 +1,6 @@
 # Impressão local e ensaio controlado
 
-Atualização: o PR #1 foi integrado e publicado em 08/10/2026, merge `e1cfc4e`. Os domínios comerciais e a teste1 foram conferidos; os ensaios físicos de navegador/PWA, reinício e recuperação de rede/impressora passaram na Epson de 80 mm. As seções abaixo preservam os registros das etapas anteriores. A impressão continua liberada individualmente até habilitar o novo fluxo. A migração 04 de privacidade segue pendente no banco real.
+Atualização: o PR #1 foi integrado e publicado em 08/10/2026, merge `e1cfc4e`. Os domínios comerciais e a teste1 foram conferidos; os ensaios físicos de navegador/PWA, reinício e recuperação de rede/impressora passaram na Epson de 80 mm. As seções abaixo preservam os registros das etapas anteriores. A impressão continua liberada individualmente até habilitar o novo fluxo. A migração 04 de privacidade foi aplicada e verificada pelo operador. Depois da aplicação, seis domínios públicos/PWA e o health do agente instalado passaram, sem criar ou imprimir pedidos.
 
 A ativação pelo próprio restaurante está preparada em [ativação autônoma](../plans/ativacao-impressao-autonoma.md): exige migração 05, servidor atualizado, assistente atualizado e flag nova. Testes automatizados usam somente bancos e credenciais fictícios, sem papel. Não representa uma ativação geral já executada; assinatura/distribuição comercial do instalador permanece pendente.
 

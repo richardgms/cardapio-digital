@@ -16,6 +16,8 @@ try{
  cluster=await startNativePostgres();
  const fixture=await createOrderDatabase(cluster.db);
  await cluster.db.exec(readSql('../database/migrations/2026100802_persistent_print_queue.sql'));
+ await cluster.db.exec("set rmenu.public_read_contract_ready='published-consumers-2026100804'");
+ await cluster.db.exec(readSql('../database/migrations/2026100804_private_store_configuration.sql'));
  await cluster.db.exec(readSql('../database/migrations/2026100805_print_self_service.sql'));
  assert.equal((await cluster.db.query(readSql('../database/verify-print-self-service-readonly.sql'))).rows[0].print_self_service_verification.all_passed,true);
  const call=async(client,name,args)=>(await client.query(`select public.${name}(${args.map((_,i)=>'$'+(i+1)).join(',')}) as result`,args)).rows[0].result;

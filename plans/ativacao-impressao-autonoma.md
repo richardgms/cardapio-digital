@@ -22,9 +22,14 @@ Nenhuma migração ou publicação ativa lojas automaticamente.
 
 ## Publicação em ordem
 
-1. A migração anterior `2026100804_private_store_configuration.sql` segue pendente
-   no ambiente real. Seus consumidores públicos já foram publicados e conferidos.
-   Aplicar e conferir essa proteção separadamente conforme o plano de publicação.
+1. A migração anterior `2026100804_private_store_configuration.sql` foi aplicada
+   pelo operador e verificada: quatro checks verdadeiros, `all_passed=true`, uma
+   loja ativa e nenhuma ativação pela consulta. Depois da aplicação, seis domínios
+   passaram no ensaio público/PWA sem login e o health do agente instalado confirmou
+   conexão, sem reservar ou imprimir. Evidência local:
+   `printing/.local/private-config-publication-verification.json`.
+   A composição das migrações 04 e 05 também passou nos testes SQL/API e no ensaio
+   integrado de HTTP, agente Windows e PostgreSQL nativo.
 2. Revisar e aplicar `2026100805_print_self_service.sql` no SQL Editor; é transacional
    e aditiva. Executar `verify-print-self-service-readonly.sql`: todos os checks devem
    ser verdadeiros. Manter a flag nova desligada.

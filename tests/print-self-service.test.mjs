@@ -23,7 +23,11 @@ before(async()=>{
  ({db,storeA,storeB,call}=await createOrderDatabase());
  await db.exec(readSql('../database/migrations/2026100802_persistent_print_queue.sql'));
  deviceA=(await rpc('rmenu_print_register_device',{p_store:storeA,p_actor:storeA,p_name:'A',p_queue:'Fila fictícia',p_width:80,p_hash:hash})).data;
+ await db.exec("set rmenu.public_read_contract_ready='published-consumers-2026100804'");
+ await db.exec(readSql('../database/migrations/2026100804_private_store_configuration.sql'));
  await db.exec(readSql('../database/migrations/2026100805_print_self_service.sql'));
+ await db.exec("set rmenu.public_read_contract_ready='published-consumers-2026100804'");
+ await db.exec(readSql('../database/migrations/2026100804_private_store_configuration.sql'));
  await db.exec(readSql('../database/migrations/2026100805_print_self_service.sql'));
  deviceB=await register(storeB,58);
 });
@@ -90,6 +94,8 @@ test('ativação exige conexão recente e repetição não move o corte',async()
  const second=await rpc('rmenu_print_self_service_enable',{p_store:storeA,p_actor:storeA});
  assert.equal(first.data.cutoff_at,second.data.cutoff_at);
  assert.equal((await db.query('select activation_mode from print_settings where store_id=$1',[storeA])).rows[0].activation_mode,'self_service');
+ await db.exec("set rmenu.public_read_contract_ready='published-consumers-2026100804'");
+ await db.exec(readSql('../database/migrations/2026100804_private_store_configuration.sql'));
  await db.exec(readSql('../database/migrations/2026100805_print_self_service.sql'));
  const preserved=(await db.query('select enabled,cutoff_at,activation_mode from print_settings where store_id=$1',[storeA])).rows[0];
  assert.equal(preserved.enabled,true);assert.equal(new Date(preserved.cutoff_at).toISOString(),new Date(first.data.cutoff_at).toISOString());
