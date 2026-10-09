@@ -9,7 +9,8 @@ with functions as (
  select 'private_table_and_rls' as name,coalesce((select relrowsecurity and relforcerowsecurity
  and not has_table_privilege('anon',oid,'SELECT,INSERT,UPDATE,DELETE')
  and not has_table_privilege('authenticated',oid,'SELECT,INSERT,UPDATE,DELETE')
- and has_table_privilege('service_role',oid,'SELECT,INSERT,UPDATE,DELETE')
+ and has_table_privilege('service_role',oid,'SELECT') and has_table_privilege('service_role',oid,'INSERT')
+ and has_table_privilege('service_role',oid,'UPDATE') and has_table_privilege('service_role',oid,'DELETE')
  from pg_class where oid=to_regclass('public.print_device_checks')),false) as passed
  union all select 'private_rpcs',count(*)=10 and bool_and(not has_function_privilege('anon',oid,'EXECUTE')
  and not has_function_privilege('authenticated',oid,'EXECUTE') and has_function_privilege('service_role',oid,'EXECUTE')) from functions

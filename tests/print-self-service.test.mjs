@@ -38,6 +38,10 @@ test('migração aditiva é reaplicável e não ativa nem muda cortes',async()=>
  assert.deepEqual(row,{enabled:false,cutoff_at:null,activation_mode:'managed'});
  const verified=(await db.query(readSql('../database/verify-print-self-service-readonly.sql'))).rows[0].print_self_service_verification;
  assert.equal(verified.all_passed,true,JSON.stringify(verified));
+ await db.exec('revoke update on public.print_device_checks from service_role');
+ const incomplete=(await db.query(readSql('../database/verify-print-self-service-readonly.sql'))).rows[0].print_self_service_verification;
+ assert.equal(incomplete.all_passed,false);assert.equal(incomplete.checks.private_table_and_rls,false);
+ await db.exec('grant update on public.print_device_checks to service_role');
  assert.equal((await db.query('select count(*)::int as count from print_jobs')).rows[0].count,0);
 });
 test('visitante e dono não leem provas nem executam RPCs privadas',async()=>{
