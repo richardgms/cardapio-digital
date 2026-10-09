@@ -1,7 +1,7 @@
 import { OrdersManager } from "@/components/admin/orders/OrdersManager";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
 import { createClient } from "@/lib/supabase/server";
-import { isPrintActivationReadyForStore } from "@/lib/print-activation";
+import { isPrintActivationReadyForStore, isPrintSelfServiceEnabled } from "@/lib/print-activation";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -17,7 +17,7 @@ export default async function PedidosPage() {
                 { label: "Dashboard", href: "/admin" },
                 { label: "Pedidos" },
             ]} />
-            <OrdersManager reprintsEnabled={isPrintActivationReadyForStore(error ? null : user?.id)} />
+            <OrdersManager reprintsEnabled={!error && !!user && (isPrintSelfServiceEnabled() || isPrintActivationReadyForStore(user.id))} />
         </div>
     );
 }

@@ -6,7 +6,7 @@ $script:checks=0
 function Assert([bool]$Condition,[string]$Message){if(-not $Condition){throw $Message};$script:checks++}
 Assert ($null -ne (Get-Command Read-RMenuConfiguration -ErrorAction SilentlyContinue)) 'Importação do assistente removeu configuração do agente'
 Assert ($null -ne (Get-Command Send-RMenuJob -ErrorAction SilentlyContinue)) 'Importação do assistente removeu envio do agente'
-foreach($file in @('Run-Agent.ps1','AgentDesktop.psm1','AgentMonitor.ps1','Setup-Agent.ps1','Build-Installer.ps1')){
+foreach($file in @('Run-Agent.ps1','AgentDesktop.psm1','AgentCalibration.psm1','AgentMonitor.ps1','Setup-Agent.ps1','Build-Installer.ps1')){
     $tokens=$null;$errors=$null
     $null=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot $file),[ref]$tokens,[ref]$errors)
     Assert ($errors.Count -eq 0) ('Sintaxe inválida: '+$file)

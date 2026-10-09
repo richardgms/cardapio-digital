@@ -2,9 +2,18 @@ type ActivationEnvironment = {
     RMENU_PRINT_AGENT_ENABLED?: string;
     RMENU_PRINT_ACTIVATION_READY?: string;
     RMENU_PRINT_ACTIVATION_STORE_IDS?: string;
+    RMENU_PRINT_SELF_SERVICE?: string;
 };
 
 const storeIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isPrintSelfServiceEnabled(environment: ActivationEnvironment = {
+    RMENU_PRINT_AGENT_ENABLED: process.env.RMENU_PRINT_AGENT_ENABLED,
+    RMENU_PRINT_ACTIVATION_READY: process.env.RMENU_PRINT_ACTIVATION_READY,
+    RMENU_PRINT_SELF_SERVICE: process.env.RMENU_PRINT_SELF_SERVICE,
+}) {
+    return environment.RMENU_PRINT_AGENT_ENABLED === '1' && environment.RMENU_PRINT_ACTIVATION_READY === '1' && environment.RMENU_PRINT_SELF_SERVICE === '1';
+}
 
 export function isPrintActivationReadyForStore(
     storeId: string | null | undefined,

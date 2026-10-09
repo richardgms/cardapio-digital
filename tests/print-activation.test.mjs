@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import ts from 'typescript';
 import activation from '../src/lib/print-activation.ts';
 
-const { isPrintActivationReadyForStore } = activation;
+const { isPrintActivationReadyForStore, isPrintSelfServiceEnabled } = activation;
 const require = createRequire(import.meta.url);
 const pilot = '099cb335-23df-4aca-b13e-3fee1e31fde9';
 const other = '3e7ff658-c39c-4b84-9db8-4c745a0ec510';
@@ -32,7 +32,7 @@ test('missing, malformed or wildcard lists cannot release all stores', () => {
     }
 });
 
-function actionsFor(owner, environment = enabled) {
+function actionsFor(owner, environment = enabled, rpcError = null) {
     const calls = [];
     const source = fs.readFileSync(new URL('../src/actions/admin/printing.ts', import.meta.url), 'utf8');
     const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
@@ -43,15 +43,16 @@ function actionsFor(owner, environment = enabled) {
     };
     const admin = { rpc: (name, parameters) => {
         calls.push({ name, parameters });
-        return { abortSignal: async () => ({ data: name === 'rmenu_print_request_reprint' ? other : true, error: null }) };
+        return { abortSignal: async () => ({ data: name === 'rmenu_print_request_reprint' ? other : true, error: rpcError }) };
     } };
     vm.runInNewContext(compiled, {
         module: actionModule, exports: actionModule.exports, AbortSignal, process: { env: environment },
         require: name => {
             if (name === '@/lib/supabase/server') return { createClient: async () => client };
             if (name === '@/lib/supabase/admin') return { createAdminClient: () => admin };
+            if (name === '@/lib/print-self-service') return require('../src/lib/print-self-service.ts');
             if (name === '@/lib/print-device-service') return { registerPrintDevice: async () => ({ ok: false }) };
-            if (name === '@/lib/print-activation') return { isPrintActivationReadyForStore: id => isPrintActivationReadyForStore(id, environment) };
+            if (name === '@/lib/print-activation') return { isPrintActivationReadyForStore: id => isPrintActivationReadyForStore(id, environment), isPrintSelfServiceEnabled: () => isPrintSelfServiceEnabled(environment) };
             return require(name);
         },
     });
@@ -63,6 +64,31 @@ test('server rejects activation by an unlisted owner before any write RPC', asyn
     const result = await actions.setPrintEnabled({ store_id: other, enabled: true, calibration_confirmed: true });
     assert.equal(result.ok, false);
     assert.equal(calls.length, 0);
+});
+
+test('self service requires all explicit flags and delegates activation to the guarded SQL RPC', async () => {
+    const environment={...enabled,RMENU_PRINT_SELF_SERVICE:'1'};
+    assert.equal(isPrintSelfServiceEnabled(environment),true);
+    for(const flag of ['RMENU_PRINT_SELF_SERVICE','RMENU_PRINT_AGENT_ENABLED','RMENU_PRINT_ACTIVATION_READY'])assert.equal(isPrintSelfServiceEnabled({...environment,[flag]:'0'}),false);
+    const {actions,calls}=actionsFor(other,environment);
+    assert.equal((await actions.setPrintEnabled({store_id:other,enabled:true,calibration_confirmed:true})).ok,true);
+    assert.equal(calls[0].name,'rmenu_print_self_service_enable');
+    assert.equal(calls[0].parameters.p_actor,other);
+    const denied=actionsFor(other,environment,{code:'22023'});
+    assert.equal((await denied.actions.setPrintEnabled({store_id:other,enabled:true,calibration_confirmed:true})).ok,false);
+});
+
+test('self service cannot forge owner; disabling bypasses calibration readiness',async()=>{
+    const environment={...enabled,RMENU_PRINT_SELF_SERVICE:'1'};
+    for(const owner of [other,null]){
+        const {actions,calls}=actionsFor(owner,environment);
+        assert.equal((await actions.setPrintEnabled({store_id:pilot,enabled:true,calibration_confirmed:true})).ok,false);
+        assert.equal(calls.length,0);
+    }
+    const {actions,calls}=actionsFor(other,environment);
+    assert.equal((await actions.setPrintEnabled({store_id:other,enabled:false,calibration_confirmed:false})).ok,true);
+    assert.equal(calls[0].name,'rmenu_print_set_enabled');
+    assert.equal(calls[0].parameters.p_enabled,false);
 });
 
 test('server rejects forged pilot identity and unauthenticated activation', async () => {

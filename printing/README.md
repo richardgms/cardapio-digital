@@ -1,5 +1,9 @@
 # Impressão local e ensaio controlado
 
+Atualização: o PR #1 foi integrado e publicado em 08/10/2026, merge `e1cfc4e`. Os domínios comerciais e a teste1 foram conferidos; os ensaios físicos de navegador/PWA, reinício e recuperação de rede/impressora passaram na Epson de 80 mm. As seções abaixo preservam os registros das etapas anteriores. A impressão continua liberada individualmente até habilitar o novo fluxo. A migração 04 de privacidade foi aplicada e verificada pelo operador. Depois da aplicação, seis domínios públicos/PWA e o health do agente instalado passaram, sem criar ou imprimir pedidos.
+
+A ativação pelo próprio restaurante está preparada em [ativação autônoma](../plans/ativacao-impressao-autonoma.md): exige migração 05, servidor atualizado, assistente atualizado e flag nova. Testes automatizados usam somente bancos e credenciais fictícios, sem papel. Não representa uma ativação geral já executada; assinatura/distribuição comercial do instalador permanece pendente.
+
 Revisão de publicação em 08/10/2026: o lojista concluiu o assistente Windows, confirmou a calibração e criou o pedido fictício #006 pelo cardápio local; a fila registrou uma tentativa e o usuário confirmou a impressão automática. O ensaio terminou com impressão da `teste1` desligada. Evidência: `database/reference/merchant-automatic-print-verification-20261008.json`. A suíte completa passou com 243 testes e 48 verificações Windows. Entrada real após reiniciar o Windows, interrupção real de rede/impressora e período prolongado ainda não foram validados. O executável permanece um candidato local sem assinatura de distribuição.
 
 Os fontes atuais do agente estão em `printing/windows`; `Build-Installer.ps1` gera o executável local. Pastas e arquivos de pacotes gerados não são versionados, para evitar cópias divergentes. O `.vercelignore` mantém fontes de ensaio, journals e executáveis locais fora do deploy.

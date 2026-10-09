@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("Instalar RMenu Impressão")]
 [assembly: AssemblyProduct("RMenu Impressão")]
-[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
 internal static class InstallerLauncher
 {
     [STAThread]
@@ -15,7 +15,7 @@ internal static class InstallerLauncher
     {
         Application.EnableVisualStyles();
         string directory = Path.Combine(Path.GetTempPath(), "RMenuSetup-" + Guid.NewGuid().ToString("N"));
-        string[] names = { "AgentConfig.psm1", "AgentCore.psm1", "AgentDesktop.psm1", "AgentReceipt.cs", "Run-Agent.ps1", "AgentMonitor.ps1", "Setup-Agent.ps1" };
+        string[] names = { "AgentConfig.psm1", "AgentCore.psm1", "AgentDesktop.psm1", "AgentCalibration.psm1", "AgentReceipt.cs", "Run-Agent.ps1", "AgentMonitor.ps1", "Setup-Agent.ps1" };
         try
         {
             Directory.CreateDirectory(directory);
