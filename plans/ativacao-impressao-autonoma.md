@@ -1,8 +1,14 @@
 # Ativação da impressão pelo restaurante
 
-O dono poderá configurar o computador, enviar uma comanda fictícia no assistente,
+Estado consolidado em 10/10/2026: migrações 04 e 05 verificadas, PR #2 integrado,
+servidor publicado e flag autônoma habilitada. Na teste1, assistente atualizado,
+confirmação física e ativação pelo dono foram validados com o pedido fictício #016,
+uma via legível com corte e uma tentativa. A publicação não ativa novas lojas.
+Veja [changelog](../docs/changelog.md) e [operação](../docs/operacao-impressao.md).
+
+O dono pode configurar o computador, enviar uma comanda fictícia no assistente,
 confirmar o papel e ativar somente pedidos novos no próprio painel. Não precisa
-liberação individual por UUID quando o modo autônomo estiver publicado e habilitado.
+liberação individual por UUID no modo autônomo publicado e habilitado.
 Nenhuma migração ou publicação ativa lojas automaticamente.
 
 ## Barreiras implementadas
@@ -18,9 +24,12 @@ Nenhuma migração ou publicação ativa lojas automaticamente.
 | Interromper uma instalação existente | Coluna nova começa em `managed`; não altera enabled, cutoff, jobs ou credenciais | Instalações anteriores continuam no fluxo já validado até migração voluntária |
 | Assistente antigo afirmar prova nova | Servidor emite desafio e só aceita a sequência solicitada pelo agente autenticado | Cliente anterior não registra a nova prova; precisa atualizar assistente |
 | Publicação incompleta | Flag `RMENU_PRINT_SELF_SERVICE` ausente por padrão; ativação falha fechada se RPC/prova indisponíveis | Manter flag desligada até banco, servidor e assistente validados |
-| Instalação insegura ou sem suporte | Instalador não assinado excluído de Git, Vercel e cache PWA | Assinatura e distribuição final ainda pendentes; Windows 10/11, macOS/Linux não validados |
+| Instalação insegura ou sem suporte | Instalador não assinado excluído de Git, Vercel e cache PWA; piloto acompanhado pelo suporte | Epson USB/80 mm validada em Windows; outros equipamentos, macOS/Linux e distribuição pública pendentes |
 
 ## Publicação em ordem
+
+Etapas 1 a 7 concluídas na teste1. A sequência fica como referência histórica de
+implantação, sem necessidade de reaplicar as migrações ou repetir o pedido #016.
 
 1. A migração anterior `2026100804_private_store_configuration.sql` foi aplicada
    pelo operador e verificada: quatro checks verdadeiros, `all_passed=true`, uma
@@ -47,8 +56,10 @@ Nenhuma migração ou publicação ativa lojas automaticamente.
    “Teste de impressão confirmado” e “Computador conectado”.
 7. Ativar pedidos novos e criar apenas um pedido fictício autorizado. Confirmar
    uma via, corte e um único job/tentativa. Não reenfileirar pedidos antigos.
-8. Distribuir instalador assinado com instruções claras e validar a impressora do
-   primeiro restaurante. Monitorar falhas pelo painel; impressão não confirma pagamento.
+8. Acompanhar instalação no primeiro restaurante conforme
+   [piloto assistido](piloto-assistido-impressao.md), com executável sem assinatura
+   nesta fase e instruções claras. Validar a impressora e observar um turno completo.
+   Distribuição pública e assinatura permanecem futuras. Impressão não confirma pagamento.
 
 ## Recuperação
 

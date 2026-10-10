@@ -1,5 +1,34 @@
 # Publicação e operação contínua
 
+## Estado consolidado em 10/10/2026
+
+Os PRs [#1](https://github.com/richardgms/cardapio-digital/pull/1) e
+[#2](https://github.com/richardgms/cardapio-digital/pull/2) foram integrados.
+Último deployment conferido: `dpl_6icHz7ixk15Hoe8DfGsQUcbLZcpB`, Ready,
+merge `bacc3cc5ed7781f2d36256899b23ad210a4fabb2`, com aliases comerciais e teste1.
+Migrações 04 e 05 aplicadas e verificadas; flags de agente, ativação e
+`RMENU_PRINT_SELF_SERVICE=1` habilitadas na publicação conferida. O dono pode ativar
+após teste físico registrado e computador conectado, sem liberação individual por
+UUID no fluxo autônomo. A publicação não ativou outros restaurantes.
+
+Na teste1, o fluxo atualizado foi confirmado em produção: teste no assistente,
+confirmação no painel, reativação às 22:44:11 em 08/10 (São Paulo) e pedido fictício
+#016 posterior ao corte, em uma via legível com corte e uma tentativa registrada.
+O estado foi lido como `self_service`. Testes de continuidade e PWA já concluídos
+estão no [changelog](../docs/changelog.md).
+
+Próxima etapa: contato com Soberano Burguer, instalação assistida e operação
+prolongada no equipamento do restaurante. O operador escolheu piloto com executável
+sem assinatura; assinatura prévia deixou de ser requisito desse piloto. Distribuição
+pública permanece pendente. Modelo conhecido antecipadamente ajuda, mas o assistente
+lista impressoras instaladas; o teste físico continua obrigatório antes de ativar.
+Procedimento: [piloto assistido](piloto-assistido-impressao.md).
+
+## Histórico da preparação
+
+O registro abaixo descreve etapas anteriores. Os deployments, pendências de SQL e
+restrições de liberação ali citados foram substituídos pelo estado consolidado acima.
+
 Estado confirmado em 08/10/2026: projeto Vercel richardgms-projects/cardapio-digital, ID prj_WElQReMshf36K9red4cMfyQ6fFVi, Node 24.x. CLI 62.7.0 instalada, autenticada e pasta vinculada ao projeto existente. PR de revisão: https://github.com/richardgms/cardapio-digital/pull/1, ainda draft e sem merge.
 
 ## Publicação atual

@@ -1,6 +1,12 @@
 # Conectar a impressora do restaurante
 
-Preparado para Windows 10 ou 11. O instalador está em revisão; a distribuição aos restaurantes será liberada após assinatura digital e teste de entrada no Windows. macOS e Linux podem acessar o painel e o cardápio pelo navegador, mas ainda precisam de um agente de impressão compatível.
+Preparado para Windows 10 ou 11. Nesta fase, a instalação nos restaurantes será acompanhada pelo suporte RMenu. O instalador do piloto ainda não possui assinatura digital; o Windows pode mostrar um aviso ou impedir sua abertura em alguns computadores. macOS e Linux podem acessar o painel e o cardápio pelo navegador, mas ainda precisam de um agente de impressão compatível.
+
+## Instalação acompanhada pelo suporte
+
+Receba o instalador pelo canal combinado com o suporte RMenu. Antes de abrir, confirme com o suporte que este é o arquivo da versão do piloto. Se o Windows mostrar um aviso, informe a mensagem e aguarde a conferência da origem do arquivo. Não desative o antivírus ou outras proteções para instalar. Um bloqueio pode exigir outra forma de distribuição; não há garantia de que o piloto abra em qualquer computador.
+
+O suporte acompanha a escolha da impressora e o primeiro teste. A impressão automática só deve ser ativada depois de conferir uma via legível e o corte adequado ao equipamento do restaurante.
 
 ## Primeira instalação
 
@@ -10,7 +16,7 @@ Preparado para Windows 10 ou 11. O instalador está em revisão; a distribuiçã
 4. Volte ao assistente RMenu, clique em **Selecionar configuração** e escolha o arquivo baixado. Clique em **Conferir conexão**.
 5. Clique em **Imprimir teste fictício**. Confira o texto, uma única via e o corte adequado ao modelo. Marque a confirmação quando o papel estiver correto.
 6. Mantenha **Iniciar automaticamente quando eu entrar no Windows** marcado e clique em **Concluir e abrir RMenu Impressão**.
-7. No painel da loja, aguarde **Teste de impressão confirmado** e **Computador conectado**. Marque a conferência e clique em **Ativar somente pedidos novos**. Após publicar e habilitar a ativação autônoma, você poderá fazer isso sem pedir uma liberação individual.
+7. No painel da loja, aguarde **Teste de impressão confirmado** e **Computador conectado**. Marque a conferência e clique em **Ativar somente pedidos novos**. O próprio responsável pela loja pode ativar pelo painel depois da confirmação do equipamento.
 
 O assistente reúne instalação, conexão e teste. Não exige extrair arquivos do instalador `.exe` nem executar comandos. O arquivo de conexão é importado uma única vez. Após conferir a importação, remova a cópia baixada desse arquivo; não a envie para outras pessoas.
 

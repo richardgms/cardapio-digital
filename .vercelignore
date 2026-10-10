@@ -12,6 +12,7 @@
 node_modules/
 /tests/
 /database/
+/docs/
 /plans/
 /printing/
 /scripts/
@@ -27,5 +28,5 @@ public/sw.js*
 public/workbox-*.js*
 public/swe-worker-*.js*
 public/fallback-*.js*
-# Unsigned installer is for local review; distribute after signing/acceptance.
+# Unsigned installer stays out of deploys; assisted pilot uses a reviewed copy.
 public/printing/*.exe

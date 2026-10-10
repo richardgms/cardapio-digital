@@ -9,12 +9,17 @@ export const changelogHistory: ChangelogEntry[] = [
   {
     version: "1.37.0",
     date: "08/10/2026",
-    title: "Pedidos, Carrinho e Preparação da Impressão",
+    title: "Pedidos e Impressão Automática",
     changes: [
       "Editar um item do carrinho conserva a mesma linha, quantidade, opções e observação; a observação aparece antes de finalizar.",
       "Pedidos e cupons são registrados juntos, com validação de preços e recuperação de tentativas sem duplicar o pedido.",
-      "Painel de pedidos com atualização, filtros e histórico de impressão. Configuração da impressão disponível em validação controlada.",
-      "Proteções de acesso por restaurante e leitura pública limitada aos dados necessários ao cardápio."
+      "Painel de pedidos com atualização, filtros e histórico de impressão, com estados separados de contato, pagamento e impressão.",
+      "Ativação da impressão pelo próprio lojista após teste confirmado e computador conectado; entram somente pedidos novos após a ativação.",
+      "Assistente para Windows 10 e 11 com seleção das impressoras instaladas, configuração do papel e teste fictício. Instalação acompanhada pelo suporte nesta fase.",
+      "Impressão em segundo plano e início automático ao entrar no Windows, sem precisar manter o navegador aberto.",
+      "PWA atualizado, com instalação e atualização conferidas no Android e proteção das páginas privadas no cache.",
+      "Proteções de acesso por restaurante, configuração privada e controle do envio de imagens; leitura pública limitada aos dados necessários ao cardápio.",
+      "Impressão física validada na Epson TM-T20X com papel de 80 mm. Outros modelos e larguras precisam de teste antes da ativação."
     ]
   },
   {

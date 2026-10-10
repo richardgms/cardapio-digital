@@ -19,7 +19,7 @@ next-env.d.ts
 # Pacotes gerados: os fontes canônicos ficam em printing/windows.
 /printing/RMenuPrintAgent-Windows/
 /printing/RMenuPrintAgent-Windows.zip
-# Instalador compilado para revisão; distribuir somente após assinatura.
+# Instalador compilado: piloto assistido; distribuição pública ainda pendente.
 /public/printing/*.exe
 
 # misc
@@ -50,7 +50,9 @@ router_output.txt
 **/.agent(legacy)
 
 # docs e scripts locais
-docs/
+/docs/*
+!/docs/changelog.md
+!/docs/operacao-impressao.md
 scripts/
 
 # arquivos pessoais soltos na raiz

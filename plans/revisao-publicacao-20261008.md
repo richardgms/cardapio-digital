@@ -1,5 +1,25 @@
 # Revisão da versão 1.37.0
 
+## Fechamento consolidado em 10/10/2026
+
+Publicação dos PRs #1 e #2 concluída; migrações privadas 04 e 05 aplicadas e
+verificadas. Ativação pelo lojista validada na teste1 com assistente atualizado,
+confirmação física, reativação às 22:44:11 de 08/10 (São Paulo) e pedido fictício
+#016, uma via legível com corte e uma tentativa registrada. A publicação conferida
+é o merge `bacc3cc5ed7781f2d36256899b23ad210a4fabb2`, deployment
+`dpl_6icHz7ixk15Hoe8DfGsQUcbLZcpB`, Ready, nos aliases comerciais e teste1.
+
+Piloto assistido sem assinatura escolhido pelo operador; distribuição pública,
+operação prolongada em restaurante, outros equipamentos/58 mm e migração física
+de PWA antigo Workbox permanecem pendentes. Registro atual em
+[docs/changelog.md](../docs/changelog.md) e
+[piloto assistido](piloto-assistido-impressao.md).
+
+## Histórico da revisão
+
+As seções seguintes preservam evidências e pendências do momento em que foram
+registradas. Não representam pendências atuais de merge ou aplicação das migrações.
+
 Preparação final: três opções de impressão persistidas na produção da Vercel, com lista contendo somente a teste1; deployments e aliases mantidos. Contrato público válido nas cinco lojas e uma única loja habilitada, dentro do escopo. Auditoria de 149 arquivos sem segredos literais ou novos erros de lint. A verificação da migração privada foi corrigida para conferir somente as barreiras de leitura e informar separadamente a quantidade de lojas com impressão ativa, sem mudar essa ativação; 17 testes PostgreSQL/PGlite passaram, incluindo o cenário ativo. Soberano Burguer foi escolhido como piloto, mas o equipamento e o contato estão pendentes e sua ativação não foi liberada. O merge, publicação comercial e aplicação de 2026100804 continuam pendentes da etapa de publicação.
 
 O operador esclareceu que instalou o PWA agora; o pedido #014 valida instalação nova. Foi recompilada a mesma aplicação, a partir de 0effb84, para oferecer um worker diferente na teste1 (dpl_7VXQgjWnQzHKQa6fKi6trg2Ub1e4). Os domínios comerciais e a ativação/filas permaneceram iguais; health conectado, página pública, manifest, ícones e worker aprovados. Uma primeira sondagem móvel expirou esperando o nome da loja; a inspeção seguinte encontrou HTTP 200, nome correto e nenhum erro de página, e a repetição completa passou. O operador confirmou o aviso e o recarregamento do PWA e depois confirmou o pedido #015 com uma única comanda legível e corte. O banco registrou spooler_submitted com uma tentativa; tentativas anteriores permaneceram iguais. A migração física de uma instalação antiga com Workbox continua sem teste.
