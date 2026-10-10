@@ -1,5 +1,13 @@
 # Execução da publicação
 
+Atualização em 10/10/2026: publicação concluída pelos PRs #1 e #2, migrações 04/05
+aplicadas e verificadas, e ativação pelo lojista validada na teste1. Este roteiro
+preserva a sequência anterior; não reaplicar migrações nem repetir seus ensaios.
+Estado atual: [publicação](publicacao-impressao.md) e
+[changelog](../docs/changelog.md). A lista manual antiga não limita a ativação no
+modo autônomo habilitado. Piloto assistido sem assinatura foi escolhido pelo operador:
+[procedimento atual](piloto-assistido-impressao.md).
+
 Preparado em 08/10/2026 para o PR https://github.com/richardgms/cardapio-digital/pull/1, base master e branch codex/printing-checkout-release. Este documento não executa a publicação. A impressão e o cadastro dos dispositivos não são ativados pelo merge.
 
 ## Antes da publicação

@@ -1,5 +1,27 @@
 # Impressão local e ensaio controlado
 
+## Estado consolidado em 10/10/2026
+
+Os PRs #1 e #2 foram integrados; código e ativação pelo lojista foram publicados,
+e as migrações 04 e 05 foram aplicadas e verificadas. Na teste1, o assistente
+atualizado confirmou o teste físico; o dono reativou pedidos novos às 22:44:11 em
+08/10, e o pedido fictício #016 saiu em uma via legível com corte, com uma tentativa
+registrada. Os testes de navegador fechado, reinício do Windows, recuperação de
+rede/impressora e PWA Android também foram concluídos nesta Epson USB/80 mm.
+
+Foi escolhido piloto assistido com instalador sem assinatura. O executável continua
+fora do Git/Vercel/cache PWA; distribuição pública, outros modelos/58 mm e operação
+prolongada em restaurante permanecem pendentes. O assistente lista as impressoras
+instaladas no Windows; conhecer o modelo antes de enviar o arquivo não é obrigatório.
+Veja [changelog consolidado](../docs/changelog.md),
+[operação](../docs/operacao-impressao.md) e
+[piloto assistido](../plans/piloto-assistido-impressao.md).
+
+## Histórico das etapas
+
+Os parágrafos abaixo registram o estado em cada etapa. Pendências e restrições
+antigas não substituem o estado consolidado acima.
+
 Atualização: o PR #1 foi integrado e publicado em 08/10/2026, merge `e1cfc4e`. Os domínios comerciais e a teste1 foram conferidos; os ensaios físicos de navegador/PWA, reinício e recuperação de rede/impressora passaram na Epson de 80 mm. As seções abaixo preservam os registros das etapas anteriores. A impressão continua liberada individualmente até habilitar o novo fluxo. A migração 04 de privacidade foi aplicada e verificada pelo operador. Depois da aplicação, seis domínios públicos/PWA e o health do agente instalado passaram, sem criar ou imprimir pedidos.
 
 A ativação pelo próprio restaurante está preparada em [ativação autônoma](../plans/ativacao-impressao-autonoma.md): exige migração 05, servidor atualizado, assistente atualizado e flag nova. Testes automatizados usam somente bancos e credenciais fictícios, sem papel. Não representa uma ativação geral já executada; assinatura/distribuição comercial do instalador permanece pendente.
